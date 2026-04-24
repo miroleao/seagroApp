@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SE Agropecuária Nelore de Elite — Demonstração</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: { colors: { brand: { 50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95' } } } }
+  }
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f7fc; }
+  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 220px; background: #fff; border-right: 1px solid #e5e7eb; z-index: 10; display: flex; flex-direction: column; }
+  .main { margin-left: 220px; min-height: 100vh; padding: 24px; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-radius: 8px; margin: 2px 8px; cursor: pointer; font-size: 13.5px; color: #6b7280; font-weight: 500; transition: all .15s; }
+  .nav-item:hover { background: #f5f3ff; color: #6d28d9; }
+  .nav-item.active { background: #f5f3ff; color: #6d28d9; font-weight: 600; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; }
+  .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #f3f4f6; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f9fafb; color: #374151; }
+  tr:hover td { background: #fafafa; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+  .btn-primary { background: #7c3aed; color: #fff; }
+  .btn-primary:hover { background: #6d28d9; }
+  .btn-outline { background: #fff; color: #6b7280; border: 1px solid #e5e7eb; }
+  .btn-outline:hover { background: #f9fafb; }
+  .btn-demo { background: #7c3aed; color: #fff; opacity: .5; cursor: not-allowed; }
+  .accordion { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+  .acc-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #fff; cursor: pointer; user-select: none; }
+  .acc-header:hover { background: #fafafa; }
+  .acc-body { border-top: 1px solid #f3f4f6; background: #fff; }
+  .acc-body.hidden { display: none; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 16px; width: 680px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #1f2937; color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 13px; z-index: 200; opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .demo-banner { background: #7c3aed; color: #fff; text-align: center; padding: 7px; font-size: 12px; font-weight: 600; letter-spacing: .3px; }
+  .chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .gen-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; font-size: 12px; padding: 4px 0; }
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast" id="toast">Modo demo — ação desabilitada</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="demo-banner">MODO DEMONSTRAÇÃO</div>
+  <div style="padding: 16px 16px 8px; border-bottom: 1px solid #f3f4f6; margin-bottom: 8px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:32px;height:32px;border-radius:8px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="18" height="18"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div>
+        <p style="font-size:12px;font-weight:700;color:#111;margin:0;line-height:1.2;">SE Agropecuária</p>
+        <p style="font-size:11px;color:#9ca3af;margin:0;">Nelore de Elite</p>
+      </div>
+    </div>
+  </div>
+
+  <nav style="flex:1;padding:4px 0;">
+    <div class="nav-item active" onclick="nav('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="nav('doadoras')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Doadoras
+    </div>
+    <div class="nav-item" onclick="nav('reproducao')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 015 5v3a5 5 0 01-10 0V7a5 5 0 015-5z"/><path d="M5 20a7 7 0 0114 0"/></svg>
+      Reprodução
+    </div>
+    <div class="nav-item" onclick="nav('rebanho')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Rebanho
+    </div>
+    <div class="nav-item" onclick="nav('financeiro')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Financeiro
+    </div>
+  </nav>
+
+  <div style="padding:12px 16px;border-top:1px solid #f3f4f6;">
+    <div style="font-size:11px;color:#d1d5db;text-align:center;">v1.0 · Demonstração</div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+
+<!-- ═══════════════════════════════════════════════ DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#111;margin:0;">Dashboard</h1>
+      <p style="font-size:13px;color:#9ca3af;margin:4px 0 0;">Visão geral · Abril 2026</p>
+    </div>
+    <span class="badge" style="background:#fef3c7;color:#92400e;">Modo Demo</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+    <div class="stat-card">
+      <div style="width:40px;height:40px;border-radius:10px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="20" height="20"><path d="M12 2a5 5 0 015 5v3a5 5 0 01-10 0V7a5 5 0 015-5z"/></svg>
+      </div>
+      <div><p style="font-size:24px;font-weight:700;color:#111;margin:0;">12</p><p style="font-size:12px;color:#9ca3af;margin:0;">Doadoras ativas</p></div>
+    </div>
+    <div class="stat-card">
+      <div style="width:40px;height:40px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      </div>
+      <div><p style="font-size:24px;font-weight:700;color:#111;margin:0;">8</p><p style="font-size:12px;color:#9ca3af;margin:0;">Sessões OPU</p></div>
+    </div>
+    <div class="stat-card">
+      <div style="width:40px;height:40px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" width="20" height="20"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div><p style="font-size:24px;font-weight:700;color:#111;margin:0;">47</p><p style="font-size:12px;color:#9ca3af;margin:0;">Embriões estoque</p></div>
+    </div>
+    <div class="stat-card">
+      <div style="width:40px;height:40px;border-radius:10px;background:#fef9c3;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" width="20" height="20"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div><p style="font-size:24px;font-weight:700;color:#111;margin:0;">23</p><p style="font-size:12px;color:#9ca3af;margin:0;">Prenhezes ativas</p></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+    <div class="card">
+      <h3 style="font-size:14px;font-weight:600;color:#374151;margin:0 0 12px;">Últimas Sessões OPU</h3>
+      <table>
+        <thead><tr><th>Data</th><th>Doadoras</th><th>Oócitos</th><th>Embriões</th><th>P+</th><th>Lab</th></tr></thead>
+        <tbody>
+          <tr><td>15/04/2026</td><td>3</td><td>22</td><td>14</td><td><span class="badge" style="background:#dcfce7;color:#166534;">9</span></td><td>BoviGene</td></tr>
+          <tr><td>28/03/2026</td><td>4</td><td>31</td><td>19</td><td><span class="badge" style="background:#dcfce7;color:#166534;">13</span></td><td>BoviGene</td></tr>
+          <tr><td>10/03/2026</td><td>2</td><td>16</td><td>8</td><td><span class="badge" style="background:#dcfce7;color:#166534;">5</span></td><td>GenBovino</td></tr>
+          <tr><td>20/02/2026</td><td>3</td><td>24</td><td>15</td><td><span class="badge" style="background:#dcfce7;color:#166534;">10</span></td><td>BoviGene</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3 style="font-size:14px;font-weight:600;color:#374151;margin:0 0 12px;">Alertas</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="background:#fef3c7;border-radius:8px;padding:10px 12px;">
+          <p style="font-size:12px;font-weight:600;color:#92400e;margin:0;">Partos previstos</p>
+          <p style="font-size:11px;color:#b45309;margin:2px 0 0;">4 receptoras com parto em 30 dias</p>
+        </div>
+        <div style="background:#eff6ff;border-radius:8px;padding:10px 12px;">
+          <p style="font-size:12px;font-weight:600;color:#1e40af;margin:0;">DG pendente</p>
+          <p style="font-size:11px;color:#1d4ed8;margin:2px 0 0;">7 receptoras aguardam diagnóstico</p>
+        </div>
+        <div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;">
+          <p style="font-size:12px;font-weight:600;color:#166534;margin:0;">Estoque congelados</p>
+          <p style="font-size:11px;color:#16a34a;margin:2px 0 0;">32 DT · 15 Vitrificados disponíveis</p>
+        </div>
+        <div style="background:#fdf2f8;border-radius:8px;padding:10px 12px;">
+          <p style="font-size:12px;font-weight:600;color:#9d174d;margin:0;">Próxima OPU</p>
+          <p style="font-size:11px;color:#be185d;margin:2px 0 0;">Agendada para 05/05/2026</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ DOADORAS -->
+<div class="page" id="page-doadoras">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#111;margin:0;">Doadoras</h1>
+      <p style="font-size:13px;color:#9ca3af;margin:4px 0 0;">12 animais cadastradas</p>
+    </div>
+    <button class="btn btn-demo" onclick="showToast()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nova Doadora
+    </button>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table>
+      <thead>
+        <tr><th>Animal</th><th>RGN / RGD</th><th>Pai</th><th>Mãe</th><th>Idade</th><th>Sócios</th><th>Última OPU</th><th>Embriões</th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr style="cursor:pointer;" onclick="openDoadora('jurupari')">
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:30px;height:30px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#7c3aed;">LJ</div>
+              <div><p style="margin:0;font-weight:600;color:#111;">LH Jurupari</p><p style="margin:0;font-size:11px;color:#9ca3af;">PO · Nelore</p></div>
+            </div>
+          </td>
+          <td><span style="font-family:monospace;font-size:12px;">3867-0 / 04.567.321</span></td>
+          <td>GNS Porém</td><td>LH Jucara</td>
+          <td><span class="badge" style="background:#f5f3ff;color:#7c3aed;">38m</span></td>
+          <td><span class="badge" style="background:#f3f4f6;color:#374151;">2 sócios</span></td>
+          <td>15/04/2026</td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534;">18 emb.</span></td>
+          <td><span style="color:#7c3aed;font-size:12px;font-weight:600;">Ver ficha →</span></td>
+        </tr>
+        <tr style="cursor:pointer;" onclick="openDoadora('helena')">
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:30px;height:30px;border-radius:50%;background:#fce7f3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#be185d;">SH</div>
+              <div><p style="margin:0;font-weight:600;color:#111;">SE Helena</p><p style="margin:0;font-size:11px;color:#9ca3af;">PO · Nelore</p></div>
+            </div>
+          </td>
+          <td><span style="font-family:monospace;font-size:12px;">4201-3 / 05.123.890</span></td>
+          <td>TE Magnata</td><td>GJ Helena</td>
+          <td><span class="badge" style="background:#f5f3ff;color:#7c3aed;">52m</span></td>
+          <td><span class="badge" style="background:#f3f4f6;color:#374151;">1 sócio</span></td>
+          <td>28/03/2026</td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534;">24 emb.</span></td>
+          <td><span style="color:#7c3aed;font-size:12px;font-weight:600;">Ver ficha →</span></td>
+        </tr>
+        <tr style="cursor:pointer;" onclick="openDoadora('mimosa')">
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:30px;height:30px;border-radius:50%;background:#fef9c3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#ca8a04;">LM</div>
+              <div><p style="margin:0;font-weight:600;color:#111;">LH Mimosa</p><p style="margin:0;font-size:11px;color:#9ca3af;">PO · Nelore</p></div>
+            </div>
+          </td>
+          <td><span style="font-family:monospace;font-size:12px;">2944-7 / 03.298.114</span></td>
+          <td>GNS Cacique</td><td>LH Mimosinha</td>
+          <td><span class="badge" style="background:#f5f3ff;color:#7c3aed;">61m</span></td>
+          <td><span class="badge" style="background:#f3f4f6;color:#374151;">Solo</span></td>
+          <td>10/03/2026</td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534;">31 emb.</span></td>
+          <td><span style="color:#7c3aed;font-size:12px;font-weight:600;">Ver ficha →</span></td>
+        </tr>
+        <tr style="cursor:pointer;" onclick="openDoadora('diamante')">
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:30px;height:30px;border-radius:50%;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#059669;">SD</div>
+              <div><p style="margin:0;font-weight:600;color:#111;">SE Diamante</p><p style="margin:0;font-size:11px;color:#9ca3af;">PO · Nelore</p></div>
+            </div>
+          </td>
+          <td><span style="font-family:monospace;font-size:12px;">5103-2 / 06.711.445</span></td>
+          <td>TE Magnata</td><td>SE Diamantina</td>
+          <td><span class="badge" style="background:#f5f3ff;color:#7c3aed;">29m</span></td>
+          <td><span class="badge" style="background:#f3f4f6;color:#374151;">2 sócios</span></td>
+          <td>15/04/2026</td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534;">11 emb.</span></td>
+          <td><span style="color:#7c3aed;font-size:12px;font-weight:600;">Ver ficha →</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ REPRODUÇÃO -->
+<div class="page" id="page-reproducao">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#111;margin:0;">Reprodução</h1>
+      <p style="font-size:13px;color:#9ca3af;margin:4px 0 0;">Sessões OPU-FIV organizadas por data</p>
+    </div>
+    <button class="btn btn-demo" onclick="showToast()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nova Sessão OPU
+    </button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+    <div class="stat-card"><div style="width:36px;height:36px;border-radius:8px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="18" height="18"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18"/></svg></div><div><p style="font-size:22px;font-weight:700;color:#111;margin:0;">8</p><p style="font-size:12px;color:#9ca3af;margin:0;">Sessões OPU</p></div></div>
+    <div class="stat-card"><div style="width:36px;height:36px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></div><div><p style="font-size:22px;font-weight:700;color:#111;margin:0;">84</p><p style="font-size:12px;color:#9ca3af;margin:0;">Embriões produzidos</p></div></div>
+    <div class="stat-card"><div style="width:36px;height:36px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" width="18" height="18"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div><p style="font-size:22px;font-weight:700;color:#111;margin:0;">37</p><p style="font-size:12px;color:#9ca3af;margin:0;">P+ (prenhezes)</p></div></div>
+  </div>
+
+  <!-- Abril 2026 -->
+  <div class="accordion">
+    <div class="acc-header" onclick="toggleAcc('abril')">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div>
+          <p style="margin:0;font-weight:700;color:#111;font-size:15px;">Abril 2026</p>
+          <p style="margin:2px 0 0;font-size:11px;color:#9ca3af;">1 sessão · 3 doadoras</p>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <span class="chip" style="background:#f5f3ff;color:#7c3aed;">OPU</span>
+          <span class="chip" style="background:#eff6ff;color:#1d4ed8;">FIV</span>
+          <span class="chip" style="background:#dcfce7;color:#166534;">T.E.</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px;font-size:12px;color:#6b7280;">
+        <span>Oócitos: <b style="color:#111;">22</b></span>
+        <span>Embriões: <b style="color:#111;">14</b></span>
+        <span>P+: <b style="color:#16a34a;">9</b></span>
+        <svg id="chevron-abril" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="transform:rotate(180deg);transition:.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="acc-body" id="acc-abril">
+      <div style="padding:8px 0;">
+        <div style="padding:6px 12px;background:#f9fafb;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;font-weight:600;color:#6b7280;">15 de Abril de 2026</span>
+          <span class="chip" style="background:#f5f3ff;color:#7c3aed;">OPU</span>
+          <span class="chip" style="background:#eff6ff;color:#1d4ed8;">FIV</span>
+          <span class="chip" style="background:#dcfce7;color:#166534;">T.E.</span>
+        </div>
+        <!-- Doadora 1 -->
+        <div style="border-bottom:1px solid #f9fafb;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;" onclick="toggleEmbrioes('emb1')">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#7c3aed;">LJ</div>
+              <div>
+                <p style="margin:0;font-weight:600;font-size:13px;color:#111;">LH Jurupari</p>
+                <p style="margin:0;font-size:11px;color:#9ca3af;">BoviGene · Touro: GNS Império</p>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;font-size:12px;color:#6b7280;">
+              <div class="text-center"><p style="margin:0;font-size:10px;color:#9ca3af;">Oócitos</p><p style="margin:0;font-weight:600;color:#374151;">8</p></div>
+              <div class="text-center"><p style="margin:0;font-size:10px;color:#9ca3af;">Embriões</p><p style="margin:0;font-weight:600;color:#374151;">5</p></div>
+              <div class="text-center"><p style="margin:0;font-size:10px;color:#9ca3af;">Taxa</p><p style="margin:0;font-weight:600;color:#7c3aed;">63%</p></div>
+              <div class="text-center"><p style="margin:0;font-size:10px;color:#9ca3af;">P+</p><p style="margin:0;font-weight:600;color:#16a34a;">3</p></div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div id="emb1" style="display:none;padding:0 16px 12px;">
+            <table style="font-size:12px;">
+              <thead><tr><th>#</th><th>Status</th><th>Tipo</th><th>Brinco</th><th>DG</th><th>Prev. Parto</th><th>CDC-FIV</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td><span class="chip" style="background:#dcfce7;color:#166534;">Disponível</span></td><td><span class="chip" style="background:#dbeafe;color:#1e40af;">DT</span></td><td>—</td><td>—</td><td>—</td><td><span class="chip" style="background:#dcfce7;color:#166534;">CDC-2847</span></td><td><button class="btn btn-demo" style="padding:3px 8px;font-size:11px;" onclick="showToast()">T.E.</button></td></tr>
+                <tr><td>2</td><td><span class="chip" style="background:#dcfce7;color:#166534;">Disponível</span></td><td><span class="chip" style="background:#e0e7ff;color:#3730a3;">Vitri.</span></td><td>—</td><td>—</td><td>—</td><td><span class="chip" style="background:#dcfce7;color:#166534;">CDC-2848</span></td><td><button class="btn btn-demo" style="padding:3px 8px;font-size:11px;" onclick="showToast()">T.E.</button></td></tr>
+                <tr><td>3</td><td><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span></td><td><span class="chip" style="background:#fef3c7;color:#92400e;">Impl.</span></td><td><span style="font-family:monospace;font-weight:600;color:#7c3aed;">1234</span></td><td><span class="chip" style="background:#dcfce7;color:#166534;">P+</span></td><td>26/01/2027</td><td>CDC-2849</td><td>—</td></tr>
+                <tr><td>4</td><td><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span></td><td><span class="chip" style="background:#fef3c7;color:#92400e;">Impl.</span></td><td><span style="font-family:monospace;font-weight:600;color:#7c3aed;">1789</span></td><td><span class="chip" style="background:#dcfce7;color:#166534;">P+</span></td><td>26/01/2027</td><td>CDC-2850</td><td>—</td></tr>
+                <tr><td>5</td><td><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span></td><td><span class="chip" style="background:#fef3c7;color:#92400e;">Impl.</span></td><td><span style="font-family:monospace;font-weight:600;color:#7c3aed;">2001</span></td><td><span class="chip" style="background:#fef9c3;color:#92400e;">Aguard.</span></td><td>26/01/2027</td><td>CDC-2851</td><td>—</td></tr>
+              </tbody>
+            </table>
+            <p style="font-size:10px;color:#9ca3af;margin:6px 0 0;">Parto (T.E. de congelado) = data T.E. + 286 dias · Parto (FIV direto) = data FIV + 293 dias</p>
+          </div>
+        </div>
+        <!-- Doadora 2 -->
+        <div style="border-bottom:1px solid #f9fafb;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;" onclick="toggleEmbrioes('emb2')">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#fce7f3;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#be185d;">SH</div>
+              <div><p style="margin:0;font-weight:600;font-size:13px;color:#111;">SE Helena</p><p style="margin:0;font-size:11px;color:#9ca3af;">BoviGene · Touro: TE Magnata</p></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;font-size:12px;color:#6b7280;">
+              <div><p style="margin:0;font-size:10px;color:#9ca3af;">Oócitos</p><p style="margin:0;font-weight:600;color:#374151;">7</p></div>
+              <div><p style="margin:0;font-size:10px;color:#9ca3af;">Embriões</p><p style="margin:0;font-weight:600;color:#374151;">5</p></div>
+              <div><p style="margin:0;font-size:10px;color:#9ca3af;">Taxa</p><p style="margin:0;font-weight:600;color:#7c3aed;">71%</p></div>
+              <div><p style="margin:0;font-size:10px;color:#9ca3af;">P+</p><p style="margin:0;font-weight:600;color:#16a34a;">4</p></div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div id="emb2" style="display:none;padding:0 16px 12px;">
+            <table style="font-size:12px;">
+              <thead><tr><th>#</th><th>Status</th><th>Tipo</th><th>Brinco</th><th>DG</th><th>Prev. Parto</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td><span class="chip" style="background:#dcfce7;color:#166534;">Disponível</span></td><td><span class="chip" style="background:#dbeafe;color:#1e40af;">DT</span></td><td>—</td><td>—</td><td>—</td><td><button class="btn btn-demo" style="padding:3px 8px;font-size:11px;" onclick="showToast()">T.E.</button></td></tr>
+                <tr><td>2</td><td><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span></td><td><span class="chip" style="background:#fef3c7;color:#92400e;">Impl.</span></td><td><span style="font-family:monospace;font-weight:600;color:#7c3aed;">3344</span></td><td><span class="chip" style="background:#dcfce7;color:#166534;">P+</span></td><td>19/01/2027</td><td>—</td></tr>
+                <tr><td>3</td><td><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span></td><td><span class="chip" style="background:#fef3c7;color:#92400e;">Impl.</span></td><td><span style="font-family:monospace;font-weight:600;color:#7c3aed;">5501</span></td><td><span class="chip" style="background:#fef2f2;color:#991b1b;">Vazia</span></td><td>—</td><td>—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Doadora 3 -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;" onclick="toggleEmbrioes('emb3')">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#059669;">SD</div>
+              <div><p style="margin:0;font-weight:600;font-size:13px;color:#111;">SE Diamante</p><p style="margin:0;font-size:11px;color:#9ca3af;">BoviGene · Touro: GNS Império</p></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;font-size:12px;color:#6b7280;">
+              <div><p style="margin:0;font-size:10px;color:#9ca3af;">Oócitos</p><p style="margin:0;font-weight:600;color:#374151;">7</p></div>
+              <div><p style="margin:0;font-size:10px;color:#9ca3af;">Embriões</p><p style="margin:0;font-weight:600;color:#374151;">4</p></div>
+              <div><p style="margin:0;font-size:10px;color:#9ca3af;">Taxa</p><p style="margin:0;font-weight:600;color:#7c3aed;">57%</p></div>
+              <div><p style="margin:0;font-size:10px;color:#9ca3af;">P+</p><p style="margin:0;font-weight:600;color:#16a34a;">2</p></div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div id="emb3" style="display:none;padding:0 16px 12px;">
+            <table style="font-size:12px;">
+              <thead><tr><th>#</th><th>Status</th><th>Tipo</th><th>Brinco</th><th>DG</th><th>Sexagem</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td><span class="chip" style="background:#dcfce7;color:#166534;">Disponível</span></td><td><span class="chip" style="background:#e0e7ff;color:#3730a3;">Vitri.</span></td><td>—</td><td>—</td><td><span class="chip" style="background:#fce7f3;color:#be185d;">♀ Fêmea</span></td><td><button class="btn btn-demo" style="padding:3px 8px;font-size:11px;" onclick="showToast()">T.E.</button></td></tr>
+                <tr><td>2</td><td><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span></td><td><span class="chip" style="background:#fef3c7;color:#92400e;">Impl.</span></td><td><span style="font-family:monospace;font-weight:600;color:#7c3aed;">6612</span></td><td><span class="chip" style="background:#dcfce7;color:#166534;">P+</span></td><td>—</td><td>—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Março 2026 -->
+  <div class="accordion">
+    <div class="acc-header" onclick="toggleAcc('marco')">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div><p style="margin:0;font-weight:700;color:#111;font-size:15px;">Março 2026</p><p style="margin:2px 0 0;font-size:11px;color:#9ca3af;">2 sessões · 6 doadoras</p></div>
+        <div style="display:flex;gap:6px;">
+          <span class="chip" style="background:#f5f3ff;color:#7c3aed;">OPU</span>
+          <span class="chip" style="background:#eff6ff;color:#1d4ed8;">FIV</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px;font-size:12px;color:#6b7280;">
+        <span>Oócitos: <b style="color:#111;">47</b></span>
+        <span>Embriões: <b style="color:#111;">27</b></span>
+        <span>P+: <b style="color:#16a34a;">18</b></span>
+        <svg id="chevron-marco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="transition:.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="acc-body hidden" id="acc-marco">
+      <p style="padding:16px;color:#9ca3af;font-size:13px;text-align:center;margin:0;">Clique nas doadoras para expandir os embriões · 6 doadoras neste mês</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ REBANHO -->
+<div class="page" id="page-rebanho">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#111;margin:0;">Rebanho</h1>
+      <p style="font-size:13px;color:#9ca3af;margin:4px 0 0;">68 receptoras · Gestão do rebanho de campo</p>
+    </div>
+    <button class="btn btn-demo" onclick="showToast()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nova Receptora
+    </button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+    <div class="stat-card"><div><p style="font-size:20px;font-weight:700;color:#111;margin:0;">23</p><p style="font-size:12px;color:#9ca3af;margin:0;">Prenhes embrião</p></div></div>
+    <div class="stat-card"><div><p style="font-size:20px;font-weight:700;color:#111;margin:0;">8</p><p style="font-size:12px;color:#9ca3af;margin:0;">Prenhes natural</p></div></div>
+    <div class="stat-card"><div><p style="font-size:20px;font-weight:700;color:#111;margin:0;">31</p><p style="font-size:12px;color:#9ca3af;margin:0;">Ativas / vazias</p></div></div>
+    <div class="stat-card"><div><p style="font-size:20px;font-weight:700;color:#111;margin:0;">6</p><p style="font-size:12px;color:#9ca3af;margin:0;">Falhadas</p></div></div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table>
+      <thead><tr><th>Brinco</th><th>Nome</th><th>Status</th><th>Peso</th><th>Localização</th><th>Prev. Parto</th><th>Doadora / Touro</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><span style="font-family:monospace;font-weight:700;color:#7c3aed;">1234</span></td><td>Rec. 1234</td><td><span class="badge" style="background:#dcfce7;color:#166534;">Prenha embrião</span></td><td>468 kg</td><td>Pasto A</td><td><b style="color:#374151;">26/01/2027</b></td><td>LH Jurupari × GNS Império</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;" onclick="showToast()">Ver</button></td></tr>
+        <tr><td><span style="font-family:monospace;font-weight:700;color:#7c3aed;">1789</span></td><td>Rec. 1789</td><td><span class="badge" style="background:#dcfce7;color:#166534;">Prenha embrião</span></td><td>512 kg</td><td>Pasto A</td><td><b style="color:#374151;">26/01/2027</b></td><td>LH Jurupari × GNS Império</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;" onclick="showToast()">Ver</button></td></tr>
+        <tr><td><span style="font-family:monospace;font-weight:700;color:#7c3aed;">2001</span></td><td>Rec. 2001</td><td><span class="badge" style="background:#fef9c3;color:#92400e;">Aguard. DG</span></td><td>487 kg</td><td>Pasto B</td><td>—</td><td>LH Jurupari × GNS Império</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;" onclick="showToast()">Ver</button></td></tr>
+        <tr><td><span style="font-family:monospace;font-weight:700;color:#7c3aed;">3344</span></td><td>Rec. 3344</td><td><span class="badge" style="background:#dcfce7;color:#166534;">Prenha embrião</span></td><td>445 kg</td><td>Pasto C</td><td><b style="color:#374151;">19/01/2027</b></td><td>SE Helena × TE Magnata</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;" onclick="showToast()">Ver</button></td></tr>
+        <tr><td><span style="font-family:monospace;font-weight:700;color:#7c3aed;">4419</span></td><td>Rec. 4419</td><td><span class="badge" style="background:#f3f4f6;color:#374151;">Ativa</span></td><td>501 kg</td><td>Pasto B</td><td>—</td><td>—</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;" onclick="showToast()">Ver</button></td></tr>
+        <tr><td><span style="font-family:monospace;font-weight:700;color:#7c3aed;">5501</span></td><td>Rec. 5501</td><td><span class="badge" style="background:#fef2f2;color:#991b1b;">Falhada</span></td><td>479 kg</td><td>Pasto D</td><td>—</td><td>SE Helena × TE Magnata</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;" onclick="showToast()">Ver</button></td></tr>
+        <tr><td><span style="font-family:monospace;font-weight:700;color:#7c3aed;">6612</span></td><td>Rec. 6612</td><td><span class="badge" style="background:#dcfce7;color:#166534;">Prenha embrião</span></td><td>533 kg</td><td>Pasto A</td><td><b style="color:#374151;">12/02/2027</b></td><td>SE Diamante × GNS Império</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;" onclick="showToast()">Ver</button></td></tr>
+        <tr><td><span style="font-family:monospace;font-weight:700;color:#7c3aed;">7700</span></td><td>Rec. 7700</td><td><span class="badge" style="background:#dbeafe;color:#1e40af;">Prenha natural</span></td><td>494 kg</td><td>Pasto C</td><td><b style="color:#374151;">03/03/2027</b></td><td>—</td><td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;" onclick="showToast()">Ver</button></td></tr>
+      </tbody>
+    </table>
+    <div style="padding:12px 16px;border-top:1px solid #f3f4f6;text-align:center;color:#9ca3af;font-size:12px;">Mostrando 8 de 68 receptoras</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ FINANCEIRO -->
+<div class="page" id="page-financeiro">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#111;margin:0;">Financeiro</h1>
+      <p style="font-size:13px;color:#9ca3af;margin:4px 0 0;">Transações, leilões e parcelas</p>
+    </div>
+    <button class="btn btn-demo" onclick="showToast()">+ Nova Transação</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+    <div class="stat-card" style="border-left:3px solid #16a34a;">
+      <div><p style="font-size:11px;color:#9ca3af;margin:0;">Entradas (2026)</p><p style="font-size:22px;font-weight:700;color:#111;margin:4px 0 0;">R$ 485.000</p></div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid #dc2626;">
+      <div><p style="font-size:11px;color:#9ca3af;margin:0;">Saídas (2026)</p><p style="font-size:22px;font-weight:700;color:#111;margin:4px 0 0;">R$ 210.000</p></div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid #7c3aed;">
+      <div><p style="font-size:11px;color:#9ca3af;margin:0;">Parcelas pendentes</p><p style="font-size:22px;font-weight:700;color:#111;margin:4px 0 0;">R$ 165.000</p></div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:8px;">
+      <h3 style="font-size:14px;font-weight:600;color:#374151;margin:0;">Transações</h3>
+      <span class="badge" style="background:#f3f4f6;color:#374151;">2026</span>
+    </div>
+    <table>
+      <thead><tr><th>Data</th><th>Tipo</th><th>Animal</th><th>Evento</th><th>Valor</th><th>Parcelas</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr>
+          <td style="font-size:12px;color:#6b7280;">14/03/2026</td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534;">Venda</span></td>
+          <td><b>SE Helena</b></td>
+          <td style="font-size:12px;color:#6b7280;">Leilão Elite Nelore SP</td>
+          <td><b style="color:#16a34a;">R$ 120.000</b></td>
+          <td><span class="badge" style="background:#f3f4f6;color:#374151;">3/5 parc.</span></td>
+          <td><span class="badge" style="background:#fef9c3;color:#92400e;">Pendente</span></td>
+        </tr>
+        <tr>
+          <td style="font-size:12px;color:#6b7280;">20/02/2026</td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534;">Venda</span></td>
+          <td><b>LH Mimosa F1</b></td>
+          <td style="font-size:12px;color:#6b7280;">Venda direta</td>
+          <td><b style="color:#16a34a;">R$ 85.000</b></td>
+          <td><span class="badge" style="background:#f3f4f6;color:#374151;">À vista</span></td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534;">Liquidado</span></td>
+        </tr>
+        <tr>
+          <td style="font-size:12px;color:#6b7280;">10/02/2026</td>
+          <td><span class="badge" style="background:#fef2f2;color:#991b1b;">Compra</span></td>
+          <td><b>SE Diamante</b></td>
+          <td style="font-size:12px;color:#6b7280;">Leilão Geneplus MG</td>
+          <td><b style="color:#dc2626;">R$ 95.000</b></td>
+          <td><span class="badge" style="background:#f3f4f6;color:#374151;">2/4 parc.</span></td>
+          <td><span class="badge" style="background:#fef9c3;color:#92400e;">Pendente</span></td>
+        </tr>
+        <tr>
+          <td style="font-size:12px;color:#6b7280;">15/01/2026</td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534;">Venda</span></td>
+          <td><b>GNS Imperador F1</b></td>
+          <td style="font-size:12px;color:#6b7280;">Leilão Elite Nelore SP</td>
+          <td><b style="color:#16a34a;">R$ 280.000</b></td>
+          <td><span class="badge" style="background:#f3f4f6;color:#374151;">5/5 parc.</span></td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534;">Liquidado</span></td>
+        </tr>
+        <tr>
+          <td style="font-size:12px;color:#6b7280;">08/01/2026</td>
+          <td><span class="badge" style="background:#fef2f2;color:#991b1b;">Compra</span></td>
+          <td><b>LH Jurupari</b></td>
+          <td style="font-size:12px;color:#6b7280;">Compra direta</td>
+          <td><b style="color:#dc2626;">R$ 115.000</b></td>
+          <td><span class="badge" style="background:#f3f4f6;color:#374151;">À vista</span></td>
+          <td><span class="badge" style="background:#dcfce7;color:#166534;">Liquidado</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ═══ MODAIS ═══════════════════════════════════════════════════ -->
+
+<!-- Modal Doadora Jurupari -->
+<div class="modal-overlay" id="modal-jurupari" onclick="closeModal('jurupari')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div style="padding:20px 24px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#7c3aed;">LJ</div>
+        <div>
+          <h2 style="font-size:18px;font-weight:700;color:#111;margin:0;">LH Jurupari</h2>
+          <p style="font-size:12px;color:#9ca3af;margin:0;">RGN 3867-0 · RGD 04.567.321 · PO Nelore · 38m</p>
+        </div>
+      </div>
+      <button onclick="closeModal('jurupari')" style="border:none;background:none;cursor:pointer;color:#9ca3af;font-size:20px;">✕</button>
+    </div>
+    <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <h3 style="font-size:13px;font-weight:600;color:#374151;margin:0 0 10px;">Dados</h3>
+        <div class="gen-row"><span style="color:#9ca3af;">Peso atual</span><span style="font-weight:600;">542 kg</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Nasc.</span><span>14/02/2023</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Localizacao</span><span>Fazenda Principal</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Sócios</span><span>Mateus 50% · João 50%</span></div>
+      </div>
+      <div>
+        <h3 style="font-size:13px;font-weight:600;color:#374151;margin:0 0 10px;">Genealogia</h3>
+        <div class="gen-row"><span style="color:#9ca3af;">Pai</span><span style="font-weight:600;">GNS Porém</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Mãe</span><span style="font-weight:600;">LH Jucara</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Av. paterno</span><span>GNS Preto Velho</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Av. materno</span><span>LH Juriti</span></div>
+      </div>
+    </div>
+    <div style="padding:0 24px 20px;">
+      <h3 style="font-size:13px;font-weight:600;color:#374151;margin:0 0 10px;">Histórico de Aspirações</h3>
+      <table style="font-size:12px;">
+        <thead><tr><th>Data OPU</th><th>Touro</th><th>Oócitos</th><th>DT</th><th>Vitri.</th><th>Impl.</th><th>P+</th><th>Custo</th></tr></thead>
+        <tbody>
+          <tr><td>15/04/2026</td><td>GNS Império</td><td>8</td><td>2</td><td>0</td><td>3</td><td>3</td><td>R$ 3.200</td></tr>
+          <tr><td>28/03/2026</td><td>GNS Império</td><td>9</td><td>3</td><td>1</td><td>4</td><td>4</td><td>R$ 3.200</td></tr>
+          <tr><td>10/03/2026</td><td>TE Magnata</td><td>7</td><td>2</td><td>2</td><td>2</td><td>2</td><td>R$ 3.200</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="padding:12px 24px 20px;border-top:1px solid #f3f4f6;display:flex;gap:8px;">
+      <button class="btn btn-demo" onclick="showToast()">Editar</button>
+      <button class="btn btn-demo" onclick="showToast()">Registrar pesagem</button>
+      <button class="btn btn-demo" onclick="showToast()">Registrar prêmio</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Doadora Helena (simplificado) -->
+<div class="modal-overlay" id="modal-helena" onclick="closeModal('helena')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div style="padding:20px 24px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:#fce7f3;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#be185d;">SH</div>
+        <div>
+          <h2 style="font-size:18px;font-weight:700;color:#111;margin:0;">SE Helena</h2>
+          <p style="font-size:12px;color:#9ca3af;margin:0;">RGN 4201-3 · RGD 05.123.890 · PO Nelore · 52m</p>
+        </div>
+      </div>
+      <button onclick="closeModal('helena')" style="border:none;background:none;cursor:pointer;color:#9ca3af;font-size:20px;">✕</button>
+    </div>
+    <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <h3 style="font-size:13px;font-weight:600;color:#374151;margin:0 0 10px;">Dados</h3>
+        <div class="gen-row"><span style="color:#9ca3af;">Peso atual</span><span style="font-weight:600;">581 kg</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Nasc.</span><span>12/12/2021</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Sócios</span><span>Mateus 70% · Pedro 30%</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Prêmios</span><span style="font-weight:600;">3 premiações</span></div>
+      </div>
+      <div>
+        <h3 style="font-size:13px;font-weight:600;color:#374151;margin:0 0 10px;">Genealogia</h3>
+        <div class="gen-row"><span style="color:#9ca3af;">Pai</span><span style="font-weight:600;">TE Magnata</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Mãe</span><span style="font-weight:600;">GJ Helena</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Av. paterno</span><span>TE Supremo</span></div>
+        <div class="gen-row"><span style="color:#9ca3af;">Av. materno</span><span>GJ Helga</span></div>
+      </div>
+    </div>
+    <div style="padding:12px 24px 20px;border-top:1px solid #f3f4f6;display:flex;gap:8px;">
+      <button class="btn btn-demo" onclick="showToast()">Editar</button>
+      <button class="btn btn-demo" onclick="showToast()">Ver aspirações completas</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modals Mimosa e Diamante — simplificados -->
+<div class="modal-overlay" id="modal-mimosa" onclick="closeModal('mimosa')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div style="padding:20px 24px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:#fef9c3;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#ca8a04;">LM</div>
+        <div><h2 style="font-size:18px;font-weight:700;color:#111;margin:0;">LH Mimosa</h2><p style="font-size:12px;color:#9ca3af;margin:0;">RGN 2944-7 · PO Nelore · 61m · Solo</p></div>
+      </div>
+      <button onclick="closeModal('mimosa')" style="border:none;background:none;cursor:pointer;color:#9ca3af;font-size:20px;">✕</button>
+    </div>
+    <div style="padding:20px 24px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div><div class="gen-row"><span style="color:#9ca3af;">Pai</span><b>GNS Cacique</b></div><div class="gen-row"><span style="color:#9ca3af;">Mãe</span><b>LH Mimosinha</b></div><div class="gen-row"><span style="color:#9ca3af;">Peso</span><span>623 kg</span></div></div>
+        <div><div class="gen-row"><span style="color:#9ca3af;">Total embriões</span><b>31</b></div><div class="gen-row"><span style="color:#9ca3af;">Prêmios</span><b>5 premiações</b></div></div>
+      </div>
+    </div>
+    <div style="padding:12px 24px 20px;border-top:1px solid #f3f4f6;"><button class="btn btn-demo" onclick="showToast()">Ver ficha completa</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-diamante" onclick="closeModal('diamante')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div style="padding:20px 24px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#059669;">SD</div>
+        <div><h2 style="font-size:18px;font-weight:700;color:#111;margin:0;">SE Diamante</h2><p style="font-size:12px;color:#9ca3af;margin:0;">RGN 5103-2 · PO Nelore · 29m</p></div>
+      </div>
+      <button onclick="closeModal('diamante')" style="border:none;background:none;cursor:pointer;color:#9ca3af;font-size:20px;">✕</button>
+    </div>
+    <div style="padding:20px 24px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div><div class="gen-row"><span style="color:#9ca3af;">Pai</span><b>TE Magnata</b></div><div class="gen-row"><span style="color:#9ca3af;">Mãe</span><b>SE Diamantina</b></div><div class="gen-row"><span style="color:#9ca3af;">Peso</span><span>498 kg</span></div></div>
+        <div><div class="gen-row"><span style="color:#9ca3af;">Sócios</span><b>2 sócios</b></div><div class="gen-row"><span style="color:#9ca3af;">Embriões</span><b>11</b></div></div>
+      </div>
+    </div>
+    <div style="padding:12px 24px 20px;border-top:1px solid #f3f4f6;"><button class="btn btn-demo" onclick="showToast()">Ver ficha completa</button></div>
+  </div>
+</div>
+
+<script>
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+function toggleAcc(id) {
+  const body = document.getElementById('acc-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const hidden = body.classList.toggle('hidden');
+  if (chevron) chevron.style.transform = hidden ? '' : 'rotate(180deg)';
+}
+function toggleEmbrioes(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function openDoadora(name) {
+  document.getElementById('modal-' + name).classList.add('show');
+}
+function closeModal(name) {
+  document.getElementById('modal-' + name).classList.remove('show');
+}
+function showToast() {
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
+});
+</script>
+</body>
+</html>

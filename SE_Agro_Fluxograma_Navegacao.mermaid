@@ -1,0 +1,96 @@
+flowchart TD
+    ROOT(["/ raiz"]) -->|redirect| DASH
+
+    DASH["🏠 /dashboard\n━━━━━━━━━━━━━━\nVisão Geral\nStats · Nascimentos · Ranking\nAlertas Peso · Exposições"]
+
+    %% ── Navegação principal do Dashboard ──────────────────────────────────
+    DASH -->|Card Doadoras| DOA
+    DASH -->|Card Rebanho| REB
+    DASH -->|Card Reprodução| REP
+    DASH -->|Card Exposições| EXP
+    DASH -->|Card Financeiro| FIN
+    DASH -->|Menu| MAC
+    DASH -->|Menu| ASP
+    DASH -->|Menu| EMB
+    DASH -->|Menu| ELI
+
+    %% ── ANIMAIS ──────────────────────────────────────────────────────────
+    subgraph ANIMAIS ["🐄  ANIMAIS"]
+        direction TB
+
+        DOA["👩‍🌾 /doadoras\nListagem de Doadoras\nFiltros · Sócios · Prêmios"]
+        DOA_N["/doadoras/novo\nCadastrar Doadora\nGenealog. 5 gerações · Sócios"]
+        DOA_ID["/doadoras/[id]\nFicha Doadora\nAspirações · Genealogia\nPremios · Venda"]
+
+        DOA -->|"+ Cadastrar"| DOA_N
+        DOA_N -->|submit → redirect| DOA
+        DOA -->|clica doadora| DOA_ID
+        DOA_ID -->|voltar| DOA
+
+        MAC["🐂 /machos\nListagem de Touros\nAndrol. · CE · RGD · Filtros"]
+        MAC_N["/machos/novo\nCadastrar Touro\nDados Reprod. · CE · Sócios"]
+        MAC_ID["/machos/[id]\nFicha Touro\nExame Androl. · CE · Prêmios\nPesagens · Para Pista"]
+
+        MAC -->|"+ Cadastrar"| MAC_N
+        MAC_N -->|submit → redirect| MAC
+        MAC -->|clica touro| MAC_ID
+        MAC_ID -->|voltar| MAC
+
+        REB["🐾 /rebanho\nRebanho de Receptoras\nPrenh. Ativas · Classificação\nPeso · Status Reprod."]
+        REB_ID["/rebanho/[id]\nFicha do Animal\nPesagem · Status · Nascimento"]
+
+        REB -->|clica animal| REB_ID
+        REB_ID -->|voltar| REB
+    end
+
+    %% ── REPRODUÇÃO ───────────────────────────────────────────────────────
+    subgraph REPRO ["🔬  REPRODUÇÃO"]
+        direction TB
+
+        REP["/reproducao\nSessões OPU-FIV\nMês → Dia → Sessão → Aspirações\nEmbriões inline edit"]
+
+        OPU_N["/reproducao/opu/nova\nNova Sessão OPU\nMúltiplas doadoras · Lab · Touro"]
+        PRE_N["/reproducao/prenhez/nova\nRegistrar Prenhez Comprada\nReceptora · Doadora · Touro\nVendedor · Parcelas · DG"]
+        PRE_L["/reproducao/prenhezes\nLista de Prenhezes\nNo Brinco · ABCZ · Parto\nDesfecho · Excluir"]
+        PRE_ID["/reproducao/prenhezes/[aspId]\nFicha da Prenhez\nDoadora · Touro · Receptora\nReprodu. · Compra · Desfecho"]
+
+        REP -->|"+ Nova Sessão OPU"| OPU_N
+        REP -->|"+ Prenhez Comprada"| PRE_N
+        REP -->|aba Prenhezes| PRE_L
+        OPU_N -->|submit → redirect| REP
+        PRE_N -->|submit → redirect| PRE_L
+        PRE_L -->|clica doadora| PRE_ID
+        PRE_ID -->|voltar| PRE_L
+
+        ASP["/aspiracoes\nEstoque de Aspirações\nPor Doadora · Totais OPU"]
+        EMB["/embrioes\nEstoque de Embriões\nFiltros · CDC-FIV\nADT-TE · DNA · Sexagem"]
+    end
+
+    %% ── GESTÃO ───────────────────────────────────────────────────────────
+    subgraph GESTAO ["📊  GESTÃO"]
+        direction TB
+
+        EXP["/pista\nExposições & Pista\nGrupos ABCZ · Prêmios\nAnimais Selecionados"]
+        FIN["/financeiro\nFinanceiro\nTransações · Parcelas\nLeilões · Compras/Vendas"]
+        ELI["/elitia\n🤖 ElitIA\nChat IA com contexto\ndo banco de dados"]
+    end
+
+    %% ── Links entre módulos ──────────────────────────────────────────────
+    PRE_ID -->|"Nascimento ♀ → cria DOADORA"| DOA_ID
+    PRE_ID -->|"Nascimento ♂ → cria TOURO"| MAC_ID
+    REB_ID -->|"Registrar Nascimento"| DOA_ID
+    DOA_ID -->|"Registrar Venda → cria Transação"| FIN
+    MAC_ID -->|"Para Pista"| EXP
+    DOA_ID -->|"Para Pista"| EXP
+
+    %% ── Estilos ──────────────────────────────────────────────────────────
+    classDef page fill:#1E3A5F,stroke:#2E75B6,color:#ffffff,rx:8
+    classDef subpage fill:#2E75B6,stroke:#1E3A5F,color:#ffffff,rx:8
+    classDef gestao fill:#0D6E4E,stroke:#0A5A3F,color:#ffffff,rx:8
+    classDef root fill:#6B21A8,stroke:#4C1D95,color:#ffffff,rx:8
+
+    class DASH page
+    class DOA,MAC,REB,REP,ASP,EMB subpage
+    class DOA_N,DOA_ID,MAC_N,MAC_ID,REB_ID,OPU_N,PRE_N,PRE_L,PRE_ID subpage
+    class EXP,FIN,ELI gestao
+    class ROOT root

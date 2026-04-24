@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SE Agro Elite</title>
+
+  <!-- PWA / iPhone -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SE Agro">
+  <meta name="theme-color" content="#7c3aed">
+
+  <style>
+    :root {
+      --brand:       #7c3aed;
+      --brand-light: #f5f3ff;
+      --brand-mid:   #ede9fe;
+      --bg:          #f8f7fc;
+      --white:       #fff;
+      --text:        #111827;
+      --text-2:      #6b7280;
+      --border:      #e5e7eb;
+      --border-lt:   #f3f4f6;
+      --green:       #16a34a;
+      --green-bg:    #dcfce7;
+      --red:         #dc2626;
+      --red-bg:      #fef2f2;
+      --blue:        #1d4ed8;
+      --blue-bg:     #dbeafe;
+      --yellow-text: #92400e;
+      --yellow-bg:   #fef3c7;
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bot:    env(safe-area-inset-bottom, 0px);
+      --nav-h:       60px;
+      --hdr-h:       56px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overscroll-behavior: none;
+    }
+
+    #app {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      position: relative;
+    }
+
+    /* ── HEADER ────────────────────────────────────────── */
+    #header {
+      position: fixed;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%; max-width: 430px;
+      z-index: 40;
+      height: calc(var(--hdr-h) + var(--safe-top));
+      padding-top: var(--safe-top);
+      background: var(--white);
+      border-bottom: 1px solid var(--border-lt);
+      display: flex;
+      align-items: center;
+      padding-left: 16px;
+      padding-right: 16px;
+      gap: 10px;
+    }
+
+    .hdr-logo {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--brand-light);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    #hdr-title {
+      flex: 1;
+      font-size: 16px; font-weight: 700;
+      color: var(--text);
+    }
+
+    .demo-pill {
+      background: var(--brand); color: #fff;
+      font-size: 10px; font-weight: 700;
+      padding: 3px 8px; border-radius: 99px;
+      letter-spacing: .4px;
+    }
+
+    /* ── MAIN ──────────────────────────────────────────── */
+    #main {
+      padding-top: calc(var(--hdr-h) + var(--safe-top));
+      padding-bottom: calc(var(--nav-h) + var(--safe-bot) + 16px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      min-height: 100dvh;
+    }
+
+    .page { display: none; padding: 16px; }
+    .page.active { display: block; }
+
+    /* ── BOTTOM NAV ────────────────────────────────────── */
+    #bottomnav {
+      position: fixed;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%; max-width: 430px;
+      z-index: 40;
+      background: var(--white);
+      border-top: 1px solid var(--border);
+      display: flex;
+      height: calc(var(--nav-h) + var(--safe-bot));
+      padding-bottom: var(--safe-bot);
+    }
+
+    .nav-tab {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px;
+      border: none; background: none;
+      color: var(--text-2);
+      cursor: pointer;
+      padding: 8px 4px;
+      transition: color .15s;
+      min-height: 44px;
+    }
+
+    .nav-tab.active { color: var(--brand); }
+    .nav-tab svg { width: 22px; height: 22px; }
+    .nav-tab span { font-size: 10px; font-weight: 500; letter-spacing: .2px; }
+
+    /* ── SHARED CARDS ──────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+
+    .stat-icon {
+      width: 36px; height: 36px;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .stat-num { font-size: 26px; font-weight: 700; line-height: 1; }
+    .stat-lbl { font-size: 12px; color: var(--text-2); }
+
+    .sec-hd {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .sec-title { font-size: 14px; font-weight: 700; }
+
+    /* ── PAGE HEADER ───────────────────────────────────── */
+    .pg-hd {
+      display: flex; align-items: baseline; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .pg-title { font-size: 20px; font-weight: 700; }
+    .pg-count { font-size: 13px; color: var(--text-2); }
+
+    /* ── BADGES / CHIPS ────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 99px;
+      font-size: 11px; font-weight: 600;
+    }
+    .chip {
+      display: inline-flex; align-items: center;
+      padding: 2px 7px; border-radius: 6px;
+      font-size: 11px; font-weight: 600;
+    }
+
+    /* ── ALERT CARDS ───────────────────────────────────── */
+    .alert-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .alert-card {
+      border-radius: 12px; padding: 12px 14px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .alert-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0; margin-top: 4px;
+    }
+    .alert-card p  { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .alert-card small { font-size: 11px; }
+
+    /* ── OPU LIST ──────────────────────────────────────── */
+    .opu-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-lt);
+    }
+    .opu-row:last-child { border-bottom: none; }
+    .opu-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .opu-stat-n { font-size: 15px; font-weight: 700; }
+    .opu-stat-l { font-size: 10px; color: var(--text-2); }
+
+    /* ── ANIMAL CARDS (Doadoras) ───────────────────────── */
+    .animal-list { display: flex; flex-direction: column; gap: 10px; }
+    .animal-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer;
+    }
+    .animal-card:active { background: #fafafa; }
+
+    .avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; flex-shrink: 0;
+    }
+
+    .ani-info { flex: 1; min-width: 0; }
+    .ani-name { font-size: 14px; font-weight: 600; }
+    .ani-meta { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+    .ani-tags { margin-top: 5px; }
+
+    /* ── ACCORDION (Reprodução) ────────────────────────── */
+    .accordion { margin-bottom: 10px; }
+    .acc-hd {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex; align-items: center;
+      justify-content: space-between;
+      cursor: pointer; -webkit-user-select: none;
+    }
+    .acc-hd.open {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      border-bottom-color: var(--border-lt);
+    }
+    .acc-body {
+      display: none;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+    }
+    .acc-body.open { display: block; }
+
+    .doadora-row {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-lt);
+      cursor: pointer; -webkit-user-select: none;
+    }
+    .doadora-row:last-child { border-bottom: none; }
+    .dr-hd { display: flex; align-items: center; gap: 10px; }
+    .dr-stats { display: flex; gap: 14px; margin-top: 8px; padding-left: 42px; }
+
+    .mini-stat { display: flex; flex-direction: column; gap: 1px; }
+    .mini-n { font-size: 14px; font-weight: 700; }
+    .mini-l { font-size: 10px; color: var(--text-2); }
+
+    /* embryo rows */
+    .emb-list { padding: 6px 16px 12px; }
+    .emb-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-lt);
+    }
+    .emb-row:last-child { border-bottom: none; }
+    .emb-num {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--border-lt);
+      font-size: 10px; font-weight: 700; color: var(--text-2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .emb-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    /* ── RECEPTORA CARDS (Rebanho) ─────────────────────── */
+    .rec-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+    .rec-hd {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .rec-brinco {
+      font-family: ui-monospace, 'SF Mono', monospace;
+      font-size: 15px; font-weight: 700; color: var(--brand);
+    }
+    .rec-meta { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+    .rec-meta b { color: var(--text); }
+    .rec-origin { font-size: 11px; color: var(--text-2); margin-top: 5px; }
+
+    /* ── FINANCIAL ─────────────────────────────────────── */
+    .fin-row {
+      display: flex; gap: 10px;
+      margin-bottom: 16px;
+    }
+    .fin-card {
+      flex: 1;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .fin-lbl { font-size: 10px; color: var(--text-2); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 4px; }
+    .fin-val { font-size: 15px; font-weight: 700; }
+
+    .trans-row {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-lt);
+    }
+    .trans-row:last-child { border-bottom: none; }
+    .trans-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; flex-shrink: 0;
+    }
+    .trans-info { flex: 1; }
+    .trans-name { font-size: 13px; font-weight: 600; }
+    .trans-meta { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+    .trans-right { text-align: right; flex-shrink: 0; }
+    .trans-val { font-size: 14px; font-weight: 700; }
+    .trans-parc { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+
+    /* ── BOTTOM SHEET ──────────────────────────────────── */
+    #sheet-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 80;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    #sheet-overlay.show { display: flex; }
+
+    #sheet {
+      background: var(--white);
+      border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 430px;
+      max-height: 85dvh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(20px + var(--safe-bot));
+      animation: slideUp .28s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .sheet-handle {
+      width: 36px; height: 4px; border-radius: 2px;
+      background: var(--border); margin: 12px auto 0;
+    }
+
+    .sheet-hd {
+      padding: 14px 20px 14px;
+      border-bottom: 1px solid var(--border-lt);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .sheet-title { font-size: 17px; font-weight: 700; }
+    .sheet-sub   { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+
+    .sheet-sec { padding: 14px 20px; border-bottom: 1px solid var(--border-lt); }
+    .sheet-sec:last-child { border-bottom: none; }
+    .sheet-sec-title {
+      font-size: 11px; font-weight: 700; color: var(--text-2);
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px;
+    }
+
+    .data-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 5px 0;
+    }
+    .data-lbl { font-size: 13px; color: var(--text-2); }
+    .data-val  { font-size: 13px; font-weight: 600; }
+
+    .opu-history-row {
+      background: var(--border-lt);
+      border-radius: 10px; padding: 10px 12px;
+      margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* ── TOAST ─────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: calc(var(--nav-h) + var(--safe-bot) + 16px);
+      left: 50%; transform: translateX(-50%);
+      background: #1f2937; color: #fff;
+      padding: 10px 20px; border-radius: 10px;
+      font-size: 13px; font-weight: 500;
+      z-index: 200; opacity: 0; pointer-events: none;
+      transition: opacity .2s; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    .empty {
+      text-align: center; padding: 28px 16px;
+      color: var(--text-2); font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+<!-- ─── TOAST ──────────────────────────────────────── -->
+<div id="toast">Modo demo — ação desabilitada</div>
+
+<!-- ─── HEADER ─────────────────────────────────────── -->
+<header id="header">
+  <div class="hdr-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="18" height="18">
+      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+    </svg>
+  </div>
+  <span id="hdr-title">SE Agro Elite</span>
+  <span class="demo-pill">DEMO</span>
+</header>
+
+<!-- ─── MAIN ───────────────────────────────────────── -->
+<main id="main">
+
+<!-- ══════════════════ DASHBOARD ══════════════════ -->
+<section class="page active" id="pg-dashboard">
+
+  <div style="margin-bottom:4px;">
+    <div class="pg-title">Bom dia, Chefe 👋</div>
+    <div style="font-size:13px;color:var(--text-2);margin-top:4px;margin-bottom:16px;">Visão geral · Abril 2026</div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f5f3ff;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="20" height="20"><path d="M12 2a5 5 0 015 5v3a5 5 0 01-10 0V7a5 5 0 015-5z"/></svg>
+      </div>
+      <div class="stat-num">12</div>
+      <div class="stat-lbl">Doadoras ativas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" width="20" height="20"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-num">47</div>
+      <div class="stat-lbl">Embriões estoque</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef9c3;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" width="20" height="20"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="stat-num">23</div>
+      <div class="stat-lbl">Prenhezes ativas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      </div>
+      <div class="stat-num">8</div>
+      <div class="stat-lbl">Sessões OPU</div>
+    </div>
+  </div>
+
+  <div class="sec-hd"><span class="sec-title">Alertas</span></div>
+  <div class="alert-list">
+    <div class="alert-card" style="background:#fef3c7;">
+      <div class="alert-dot" style="background:#f59e0b;"></div>
+      <div><p style="color:#92400e;">Partos previstos</p><small style="color:#b45309;">4 receptoras com parto nos próximos 30 dias</small></div>
+    </div>
+    <div class="alert-card" style="background:#dbeafe;">
+      <div class="alert-dot" style="background:#2563eb;"></div>
+      <div><p style="color:#1e40af;">DG pendente</p><small style="color:#1d4ed8;">7 receptoras aguardam diagnóstico de gestação</small></div>
+    </div>
+    <div class="alert-card" style="background:#dcfce7;">
+      <div class="alert-dot" style="background:#16a34a;"></div>
+      <div><p style="color:#166534;">Estoque congelados</p><small style="color:#16a34a;">32 DT · 15 Vitrificados disponíveis</small></div>
+    </div>
+    <div class="alert-card" style="background:#fdf2f8;">
+      <div class="alert-dot" style="background:#be185d;"></div>
+      <div><p style="color:#9d174d;">Próxima OPU</p><small style="color:#be185d;">Agendada para 05/05/2026</small></div>
+    </div>
+  </div>
+
+  <div class="sec-hd"><span class="sec-title">Últimas Sessões OPU</span></div>
+  <div class="card">
+    <div class="opu-row">
+      <div>
+        <div style="font-size:13px;font-weight:600;">15/04/2026</div>
+        <div style="font-size:11px;color:var(--text-2);">3 doadoras · BoviGene</div>
+      </div>
+      <div style="display:flex;gap:18px;">
+        <div class="opu-stat"><div class="opu-stat-n">22</div><div class="opu-stat-l">Oóc.</div></div>
+        <div class="opu-stat"><div class="opu-stat-n">14</div><div class="opu-stat-l">Emb.</div></div>
+        <div class="opu-stat"><div class="opu-stat-n" style="color:var(--green);">9</div><div class="opu-stat-l">P+</div></div>
+      </div>
+    </div>
+    <div class="opu-row">
+      <div>
+        <div style="font-size:13px;font-weight:600;">28/03/2026</div>
+        <div style="font-size:11px;color:var(--text-2);">4 doadoras · BoviGene</div>
+      </div>
+      <div style="display:flex;gap:18px;">
+        <div class="opu-stat"><div class="opu-stat-n">31</div><div class="opu-stat-l">Oóc.</div></div>
+        <div class="opu-stat"><div class="opu-stat-n">19</div><div class="opu-stat-l">Emb.</div></div>
+        <div class="opu-stat"><div class="opu-stat-n" style="color:var(--green);">13</div><div class="opu-stat-l">P+</div></div>
+      </div>
+    </div>
+    <div class="opu-row">
+      <div>
+        <div style="font-size:13px;font-weight:600;">10/03/2026</div>
+        <div style="font-size:11px;color:var(--text-2);">2 doadoras · GenBovino</div>
+      </div>
+      <div style="display:flex;gap:18px;">
+        <div class="opu-stat"><div class="opu-stat-n">16</div><div class="opu-stat-l">Oóc.</div></div>
+        <div class="opu-stat"><div class="opu-stat-n">8</div><div class="opu-stat-l">Emb.</div></div>
+        <div class="opu-stat"><div class="opu-stat-n" style="color:var(--green);">5</div><div class="opu-stat-l">P+</div></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════ DOADORAS ══════════════════ -->
+<section class="page" id="pg-doadoras">
+
+  <div class="pg-hd">
+    <span class="pg-title">Doadoras</span>
+    <span class="pg-count">12 animais</span>
+  </div>
+
+  <div class="animal-list">
+    <div class="animal-card" onclick="openSheet('jurupari')">
+      <div class="avatar" style="background:#ede9fe;color:#7c3aed;">LJ</div>
+      <div class="ani-info">
+        <div class="ani-name">LH Jurupari</div>
+        <div class="ani-meta">RGN 3867-0 · 38m · 2 sócios</div>
+        <div class="ani-tags">
+          <span class="badge" style="background:var(--green-bg);color:var(--green);">18 emb.</span>
+          <span style="font-size:11px;color:var(--text-2);margin-left:6px;">OPU 15/04</span>
+        </div>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="color:var(--text-2);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+
+    <div class="animal-card" onclick="openSheet('helena')">
+      <div class="avatar" style="background:#fce7f3;color:#be185d;">SH</div>
+      <div class="ani-info">
+        <div class="ani-name">SE Helena</div>
+        <div class="ani-meta">RGN 4201-3 · 52m · 1 sócio</div>
+        <div class="ani-tags">
+          <span class="badge" style="background:var(--green-bg);color:var(--green);">24 emb.</span>
+          <span style="font-size:11px;color:var(--text-2);margin-left:6px;">OPU 28/03</span>
+        </div>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="color:var(--text-2);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+
+    <div class="animal-card" onclick="openSheet('mimosa')">
+      <div class="avatar" style="background:#fef9c3;color:#ca8a04;">LM</div>
+      <div class="ani-info">
+        <div class="ani-name">LH Mimosa</div>
+        <div class="ani-meta">RGN 2944-7 · 61m · Solo</div>
+        <div class="ani-tags">
+          <span class="badge" style="background:var(--green-bg);color:var(--green);">31 emb.</span>
+          <span style="font-size:11px;color:var(--text-2);margin-left:6px;">OPU 10/03</span>
+        </div>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="color:var(--text-2);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+
+    <div class="animal-card" onclick="openSheet('diamante')">
+      <div class="avatar" style="background:#ecfdf5;color:#059669;">SD</div>
+      <div class="ani-info">
+        <div class="ani-name">SE Diamante</div>
+        <div class="ani-meta">RGN 5103-2 · 29m · 2 sócios</div>
+        <div class="ani-tags">
+          <span class="badge" style="background:var(--green-bg);color:var(--green);">11 emb.</span>
+          <span style="font-size:11px;color:var(--text-2);margin-left:6px;">OPU 15/04</span>
+        </div>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="color:var(--text-2);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════ REPRODUÇÃO ══════════════════ -->
+<section class="page" id="pg-reproducao">
+
+  <div class="pg-hd"><span class="pg-title">Reprodução</span></div>
+
+  <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+    <div class="stat-card" style="padding:12px;">
+      <div class="stat-num" style="font-size:22px;">8</div>
+      <div class="stat-lbl">Sessões OPU</div>
+    </div>
+    <div class="stat-card" style="padding:12px;">
+      <div class="stat-num" style="font-size:22px;">84</div>
+      <div class="stat-lbl">Embriões</div>
+    </div>
+    <div class="stat-card" style="padding:12px;">
+      <div class="stat-num" style="font-size:22px;color:var(--green);">37</div>
+      <div class="stat-lbl">P+ total</div>
+    </div>
+  </div>
+
+  <!-- Abril 2026 -->
+  <div class="accordion">
+    <div class="acc-hd open" id="hd-abril" onclick="toggleAcc('abril')">
+      <div>
+        <div style="font-size:15px;font-weight:700;">Abril 2026</div>
+        <div style="font-size:11px;color:var(--text-2);margin-top:2px;">1 sessão · 3 doadoras · 22 oóc · 14 emb</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span class="chip" style="background:#f5f3ff;color:#7c3aed;">OPU</span>
+        <span class="chip" style="background:#eff6ff;color:#1d4ed8;">FIV</span>
+        <svg id="chv-abril" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="transform:rotate(180deg);transition:.2s;margin-left:4px;"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="acc-body open" id="body-abril">
+
+      <!-- LH Jurupari -->
+      <div class="doadora-row" onclick="toggleEmb('emb1')">
+        <div class="dr-hd">
+          <div class="avatar" style="width:32px;height:32px;font-size:10px;background:#ede9fe;color:#7c3aed;">LJ</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;">LH Jurupari</div>
+            <div style="font-size:11px;color:var(--text-2);">GNS Império · BoviGene</div>
+          </div>
+          <svg id="chv-emb1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="transition:.2s;color:var(--text-2);"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="dr-stats">
+          <div class="mini-stat"><div class="mini-n">8</div><div class="mini-l">Oóc.</div></div>
+          <div class="mini-stat"><div class="mini-n">5</div><div class="mini-l">Emb.</div></div>
+          <div class="mini-stat"><div class="mini-n" style="color:var(--brand);">63%</div><div class="mini-l">Taxa</div></div>
+          <div class="mini-stat"><div class="mini-n" style="color:var(--green);">3</div><div class="mini-l">P+</div></div>
+        </div>
+        <div id="emb1" class="emb-list" style="display:none;">
+          <div class="emb-row"><div class="emb-num">1</div><div class="emb-tags"><span class="chip" style="background:var(--green-bg);color:var(--green);">Disponível</span><span class="chip" style="background:#dbeafe;color:#1e40af;">DT</span><span class="chip" style="background:var(--green-bg);color:var(--green);">CDC-2847</span></div></div>
+          <div class="emb-row"><div class="emb-num">2</div><div class="emb-tags"><span class="chip" style="background:var(--green-bg);color:var(--green);">Disponível</span><span class="chip" style="background:#e0e7ff;color:#3730a3;">Vitri.</span><span class="chip" style="background:var(--green-bg);color:var(--green);">CDC-2848</span></div></div>
+          <div class="emb-row"><div class="emb-num">3</div><div class="emb-tags"><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span><span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--brand);">🏷 1234</span><span class="chip" style="background:var(--green-bg);color:var(--green);">P+</span><span style="font-size:11px;color:var(--text-2);">Parto 26/01/27</span></div></div>
+          <div class="emb-row"><div class="emb-num">4</div><div class="emb-tags"><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span><span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--brand);">🏷 1789</span><span class="chip" style="background:var(--green-bg);color:var(--green);">P+</span><span style="font-size:11px;color:var(--text-2);">Parto 26/01/27</span></div></div>
+          <div class="emb-row"><div class="emb-num">5</div><div class="emb-tags"><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span><span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--brand);">🏷 2001</span><span class="chip" style="background:var(--yellow-bg);color:var(--yellow-text);">Aguard.</span></div></div>
+        </div>
+      </div>
+
+      <!-- SE Helena -->
+      <div class="doadora-row" onclick="toggleEmb('emb2')">
+        <div class="dr-hd">
+          <div class="avatar" style="width:32px;height:32px;font-size:10px;background:#fce7f3;color:#be185d;">SH</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;">SE Helena</div>
+            <div style="font-size:11px;color:var(--text-2);">TE Magnata · BoviGene</div>
+          </div>
+          <svg id="chv-emb2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="transition:.2s;color:var(--text-2);"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="dr-stats">
+          <div class="mini-stat"><div class="mini-n">7</div><div class="mini-l">Oóc.</div></div>
+          <div class="mini-stat"><div class="mini-n">5</div><div class="mini-l">Emb.</div></div>
+          <div class="mini-stat"><div class="mini-n" style="color:var(--brand);">71%</div><div class="mini-l">Taxa</div></div>
+          <div class="mini-stat"><div class="mini-n" style="color:var(--green);">4</div><div class="mini-l">P+</div></div>
+        </div>
+        <div id="emb2" class="emb-list" style="display:none;">
+          <div class="emb-row"><div class="emb-num">1</div><div class="emb-tags"><span class="chip" style="background:var(--green-bg);color:var(--green);">Disponível</span><span class="chip" style="background:#dbeafe;color:#1e40af;">DT</span></div></div>
+          <div class="emb-row"><div class="emb-num">2</div><div class="emb-tags"><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span><span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--brand);">🏷 3344</span><span class="chip" style="background:var(--green-bg);color:var(--green);">P+</span><span style="font-size:11px;color:var(--text-2);">Parto 19/01/27</span></div></div>
+          <div class="emb-row"><div class="emb-num">3</div><div class="emb-tags"><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span><span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--brand);">🏷 5501</span><span class="chip" style="background:var(--red-bg);color:#991b1b;">Vazia</span></div></div>
+        </div>
+      </div>
+
+      <!-- SE Diamante -->
+      <div class="doadora-row" onclick="toggleEmb('emb3')">
+        <div class="dr-hd">
+          <div class="avatar" style="width:32px;height:32px;font-size:10px;background:#ecfdf5;color:#059669;">SD</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;">SE Diamante</div>
+            <div style="font-size:11px;color:var(--text-2);">GNS Império · BoviGene</div>
+          </div>
+          <svg id="chv-emb3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="transition:.2s;color:var(--text-2);"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="dr-stats">
+          <div class="mini-stat"><div class="mini-n">7</div><div class="mini-l">Oóc.</div></div>
+          <div class="mini-stat"><div class="mini-n">4</div><div class="mini-l">Emb.</div></div>
+          <div class="mini-stat"><div class="mini-n" style="color:var(--brand);">57%</div><div class="mini-l">Taxa</div></div>
+          <div class="mini-stat"><div class="mini-n" style="color:var(--green);">2</div><div class="mini-l">P+</div></div>
+        </div>
+        <div id="emb3" class="emb-list" style="display:none;">
+          <div class="emb-row"><div class="emb-num">1</div><div class="emb-tags"><span class="chip" style="background:var(--green-bg);color:var(--green);">Disponível</span><span class="chip" style="background:#e0e7ff;color:#3730a3;">Vitri.</span><span class="chip" style="background:#fce7f3;color:#be185d;">♀ Fêmea</span></div></div>
+          <div class="emb-row"><div class="emb-num">2</div><div class="emb-tags"><span class="chip" style="background:#dbeafe;color:#1e40af;">Implantado</span><span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--brand);">🏷 6612</span><span class="chip" style="background:var(--green-bg);color:var(--green);">P+</span><span style="font-size:11px;color:var(--text-2);">Parto 12/02/27</span></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Março 2026 -->
+  <div class="accordion">
+    <div class="acc-hd" id="hd-marco" onclick="toggleAcc('marco')">
+      <div>
+        <div style="font-size:15px;font-weight:700;">Março 2026</div>
+        <div style="font-size:11px;color:var(--text-2);margin-top:2px;">2 sessões · 6 doadoras · 47 oóc · 27 emb</div>
+      </div>
+      <svg id="chv-marco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="transition:.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="acc-body" id="body-marco">
+      <div class="empty">Toque para expandir as 6 doadoras desta sessão</div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════ REBANHO ══════════════════ -->
+<section class="page" id="pg-rebanho">
+
+  <div class="pg-hd">
+    <span class="pg-title">Rebanho</span>
+    <span class="pg-count">68 receptoras</span>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--green);">23</div>
+      <div class="stat-lbl">Prenha embrião</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--blue);">8</div>
+      <div class="stat-lbl">Prenha natural</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">31</div>
+      <div class="stat-lbl">Ativas / vazias</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--red);">6</div>
+      <div class="stat-lbl">Falhadas</div>
+    </div>
+  </div>
+
+  <div class="rec-card">
+    <div class="rec-hd"><span class="rec-brinco">🏷 1234</span><span class="badge" style="background:var(--green-bg);color:var(--green);">Prenha embrião</span></div>
+    <div class="rec-meta">468 kg · Pasto A · Parto: <b>26/01/2027</b></div>
+    <div class="rec-origin">LH Jurupari × GNS Império</div>
+  </div>
+  <div class="rec-card">
+    <div class="rec-hd"><span class="rec-brinco">🏷 1789</span><span class="badge" style="background:var(--green-bg);color:var(--green);">Prenha embrião</span></div>
+    <div class="rec-meta">512 kg · Pasto A · Parto: <b>26/01/2027</b></div>
+    <div class="rec-origin">LH Jurupari × GNS Império</div>
+  </div>
+  <div class="rec-card">
+    <div class="rec-hd"><span class="rec-brinco">🏷 2001</span><span class="badge" style="background:var(--yellow-bg);color:var(--yellow-text);">Aguard. DG</span></div>
+    <div class="rec-meta">487 kg · Pasto B</div>
+    <div class="rec-origin">LH Jurupari × GNS Império</div>
+  </div>
+  <div class="rec-card">
+    <div class="rec-hd"><span class="rec-brinco">🏷 3344</span><span class="badge" style="background:var(--green-bg);color:var(--green);">Prenha embrião</span></div>
+    <div class="rec-meta">445 kg · Pasto C · Parto: <b>19/01/2027</b></div>
+    <div class="rec-origin">SE Helena × TE Magnata</div>
+  </div>
+  <div class="rec-card">
+    <div class="rec-hd"><span class="rec-brinco">🏷 4419</span><span class="badge" style="background:#f3f4f6;color:#374151;">Ativa</span></div>
+    <div class="rec-meta">501 kg · Pasto B</div>
+  </div>
+  <div class="rec-card">
+    <div class="rec-hd"><span class="rec-brinco">🏷 5501</span><span class="badge" style="background:var(--red-bg);color:#991b1b;">Falhada</span></div>
+    <div class="rec-meta">479 kg · Pasto D</div>
+    <div class="rec-origin">SE Helena × TE Magnata</div>
+  </div>
+  <div class="rec-card">
+    <div class="rec-hd"><span class="rec-brinco">🏷 6612</span><span class="badge" style="background:var(--green-bg);color:var(--green);">Prenha embrião</span></div>
+    <div class="rec-meta">533 kg · Pasto A · Parto: <b>12/02/2027</b></div>
+    <div class="rec-origin">SE Diamante × GNS Império</div>
+  </div>
+  <div class="rec-card">
+    <div class="rec-hd"><span class="rec-brinco">🏷 7700</span><span class="badge" style="background:var(--blue-bg);color:var(--blue);">Prenha natural</span></div>
+    <div class="rec-meta">494 kg · Pasto C · Parto: <b>03/03/2027</b></div>
+  </div>
+
+  <div style="text-align:center;color:var(--text-2);font-size:12px;padding:8px 0 4px;">
+    Mostrando 8 de 68 receptoras
+  </div>
+
+</section>
+
+<!-- ══════════════════ FINANCEIRO ══════════════════ -->
+<section class="page" id="pg-financeiro">
+
+  <div class="pg-hd"><span class="pg-title">Financeiro</span></div>
+
+  <div class="fin-row">
+    <div class="fin-card" style="border-left:3px solid var(--green);">
+      <div class="fin-lbl">Entradas 2026</div>
+      <div class="fin-val" style="color:var(--green);">R$ 485k</div>
+    </div>
+    <div class="fin-card" style="border-left:3px solid var(--red);">
+      <div class="fin-lbl">Saídas 2026</div>
+      <div class="fin-val" style="color:var(--red);">R$ 210k</div>
+    </div>
+    <div class="fin-card" style="border-left:3px solid var(--brand);">
+      <div class="fin-lbl">A receber</div>
+      <div class="fin-val" style="color:var(--brand);">R$ 165k</div>
+    </div>
+  </div>
+
+  <div class="sec-hd"><span class="sec-title">Transações 2026</span></div>
+  <div class="card">
+    <div class="trans-row">
+      <div class="trans-icon" style="background:var(--green-bg);color:var(--green);">↑</div>
+      <div class="trans-info">
+        <div class="trans-name">SE Helena</div>
+        <div class="trans-meta">14/03/2026 · Leilão Elite Nelore SP</div>
+        <div style="margin-top:4px;"><span class="badge" style="background:var(--yellow-bg);color:var(--yellow-text);">3/5 parc. pendente</span></div>
+      </div>
+      <div class="trans-right">
+        <div class="trans-val" style="color:var(--green);">+R$ 120k</div>
+        <div class="trans-parc"><span class="badge" style="background:var(--green-bg);color:var(--green);">Venda</span></div>
+      </div>
+    </div>
+    <div class="trans-row">
+      <div class="trans-icon" style="background:var(--green-bg);color:var(--green);">↑</div>
+      <div class="trans-info">
+        <div class="trans-name">LH Mimosa F1</div>
+        <div class="trans-meta">20/02/2026 · Venda direta</div>
+        <div style="margin-top:4px;"><span class="badge" style="background:var(--green-bg);color:var(--green);">Liquidado</span></div>
+      </div>
+      <div class="trans-right">
+        <div class="trans-val" style="color:var(--green);">+R$ 85k</div>
+        <div class="trans-parc">À vista</div>
+      </div>
+    </div>
+    <div class="trans-row">
+      <div class="trans-icon" style="background:var(--red-bg);color:var(--red);">↓</div>
+      <div class="trans-info">
+        <div class="trans-name">SE Diamante</div>
+        <div class="trans-meta">10/02/2026 · Leilão Geneplus MG</div>
+        <div style="margin-top:4px;"><span class="badge" style="background:var(--yellow-bg);color:var(--yellow-text);">2/4 parc. pendente</span></div>
+      </div>
+      <div class="trans-right">
+        <div class="trans-val" style="color:var(--red);">−R$ 95k</div>
+        <div class="trans-parc"><span class="badge" style="background:var(--red-bg);color:#991b1b;">Compra</span></div>
+      </div>
+    </div>
+    <div class="trans-row">
+      <div class="trans-icon" style="background:var(--green-bg);color:var(--green);">↑</div>
+      <div class="trans-info">
+        <div class="trans-name">GNS Imperador F1</div>
+        <div class="trans-meta">15/01/2026 · Leilão Elite Nelore SP</div>
+        <div style="margin-top:4px;"><span class="badge" style="background:var(--green-bg);color:var(--green);">Liquidado</span></div>
+      </div>
+      <div class="trans-right">
+        <div class="trans-val" style="color:var(--green);">+R$ 280k</div>
+        <div class="trans-parc">5/5 parc.</div>
+      </div>
+    </div>
+    <div class="trans-row">
+      <div class="trans-icon" style="background:var(--red-bg);color:var(--red);">↓</div>
+      <div class="trans-info">
+        <div class="trans-name">LH Jurupari</div>
+        <div class="trans-meta">08/01/2026 · Compra direta</div>
+        <div style="margin-top:4px;"><span class="badge" style="background:var(--green-bg);color:var(--green);">Liquidado</span></div>
+      </div>
+      <div class="trans-right">
+        <div class="trans-val" style="color:var(--red);">−R$ 115k</div>
+        <div class="trans-parc">À vista</div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</main>
+
+<!-- ─── BOTTOM NAV ─────────────────────────────────── -->
+<nav id="bottomnav">
+  <button class="nav-tab active" onclick="navTo('dashboard',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+    <span>Início</span>
+  </button>
+  <button class="nav-tab" onclick="navTo('doadoras',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    <span>Doadoras</span>
+  </button>
+  <button class="nav-tab" onclick="navTo('reproducao',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18"/></svg>
+    <span>Reprodução</span>
+  </button>
+  <button class="nav-tab" onclick="navTo('rebanho',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    <span>Rebanho</span>
+  </button>
+  <button class="nav-tab" onclick="navTo('financeiro',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+    <span>Financeiro</span>
+  </button>
+</nav>
+
+</div><!-- /#app -->
+
+<!-- ─── BOTTOM SHEET ───────────────────────────────── -->
+<div id="sheet-overlay" onclick="closeSheet()">
+  <div id="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div id="sheet-content"></div>
+  </div>
+</div>
+
+<!-- Sheet templates -->
+<template id="tpl-jurupari">
+  <div class="sheet-hd">
+    <div class="avatar" style="width:48px;height:48px;font-size:15px;background:#ede9fe;color:#7c3aed;">LJ</div>
+    <div><div class="sheet-title">LH Jurupari</div><div class="sheet-sub">RGN 3867-0 · RGD 04.567.321 · PO Nelore · 38m</div></div>
+  </div>
+  <div class="sheet-sec">
+    <div class="sheet-sec-title">Dados</div>
+    <div class="data-row"><span class="data-lbl">Peso atual</span><span class="data-val">542 kg</span></div>
+    <div class="data-row"><span class="data-lbl">Nascimento</span><span class="data-val">14/02/2023</span></div>
+    <div class="data-row"><span class="data-lbl">Localização</span><span class="data-val">Fazenda Principal</span></div>
+    <div class="data-row"><span class="data-lbl">Sócios</span><span class="data-val">Mateus 50% · João 50%</span></div>
+  </div>
+  <div class="sheet-sec">
+    <div class="sheet-sec-title">Genealogia</div>
+    <div class="data-row"><span class="data-lbl">Pai</span><span class="data-val">GNS Porém</span></div>
+    <div class="data-row"><span class="data-lbl">Mãe</span><span class="data-val">LH Jucara</span></div>
+    <div class="data-row"><span class="data-lbl">Avô paterno</span><span class="data-val">GNS Preto Velho</span></div>
+    <div class="data-row"><span class="data-lbl">Avô materno</span><span class="data-val">LH Juriti</span></div>
+  </div>
+  <div class="sheet-sec">
+    <div class="sheet-sec-title">Histórico OPU</div>
+    <div class="opu-history-row">
+      <div><div style="font-size:13px;font-weight:600;">15/04/2026</div><div style="font-size:11px;color:var(--text-2);">GNS Império · R$ 3.200</div></div>
+      <div style="display:flex;gap:16px;">
+        <div class="mini-stat"><div class="mini-n">8</div><div class="mini-l">Oóc.</div></div>
+        <div class="mini-stat"><div class="mini-n">5</div><div class="mini-l">Emb.</div></div>
+        <div class="mini-stat"><div class="mini-n" style="color:var(--green);">3</div><div class="mini-l">P+</div></div>
+      </div>
+    </div>
+    <div class="opu-history-row">
+      <div><div style="font-size:13px;font-weight:600;">28/03/2026</div><div style="font-size:11px;color:var(--text-2);">GNS Império · R$ 3.200</div></div>
+      <div style="display:flex;gap:16px;">
+        <div class="mini-stat"><div class="mini-n">9</div><div class="mini-l">Oóc.</div></div>
+        <div class="mini-stat"><div class="mini-n">5</div><div class="mini-l">Emb.</div></div>
+        <div class="mini-stat"><div class="mini-n" style="color:var(--green);">4</div><div class="mini-l">P+</div></div>
+      </div>
+    </div>
+    <div class="opu-history-row">
+      <div><div style="font-size:13px;font-weight:600;">10/03/2026</div><div style="font-size:11px;color:var(--text-2);">TE Magnata · R$ 3.200</div></div>
+      <div style="display:flex;gap:16px;">
+        <div class="mini-stat"><div class="mini-n">7</div><div class="mini-l">Oóc.</div></div>
+        <div class="mini-stat"><div class="mini-n">4</div><div class="mini-l">Emb.</div></div>
+        <div class="mini-stat"><div class="mini-n" style="color:var(--green);">2</div><div class="mini-l">P+</div></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-helena">
+  <div class="sheet-hd">
+    <div class="avatar" style="width:48px;height:48px;font-size:15px;background:#fce7f3;color:#be185d;">SH</div>
+    <div><div class="sheet-title">SE Helena</div><div class="sheet-sub">RGN 4201-3 · RGD 05.123.890 · PO Nelore · 52m</div></div>
+  </div>
+  <div class="sheet-sec">
+    <div class="sheet-sec-title">Dados</div>
+    <div class="data-row"><span class="data-lbl">Peso atual</span><span class="data-val">581 kg</span></div>
+    <div class="data-row"><span class="data-lbl">Nascimento</span><span class="data-val">12/12/2021</span></div>
+    <div class="data-row"><span class="data-lbl">Sócios</span><span class="data-val">Mateus 70% · Pedro 30%</span></div>
+    <div class="data-row"><span class="data-lbl">Prêmios</span><span class="data-val">3 premiações</span></div>
+  </div>
+  <div class="sheet-sec">
+    <div class="sheet-sec-title">Genealogia</div>
+    <div class="data-row"><span class="data-lbl">Pai</span><span class="data-val">TE Magnata</span></div>
+    <div class="data-row"><span class="data-lbl">Mãe</span><span class="data-val">GJ Helena</span></div>
+    <div class="data-row"><span class="data-lbl">Avô paterno</span><span class="data-val">TE Supremo</span></div>
+    <div class="data-row"><span class="data-lbl">Avô materno</span><span class="data-val">GJ Helga</span></div>
+  </div>
+</template>
+
+<template id="tpl-mimosa">
+  <div class="sheet-hd">
+    <div class="avatar" style="width:48px;height:48px;font-size:15px;background:#fef9c3;color:#ca8a04;">LM</div>
+    <div><div class="sheet-title">LH Mimosa</div><div class="sheet-sub">RGN 2944-7 · PO Nelore · 61m · Solo</div></div>
+  </div>
+  <div class="sheet-sec">
+    <div class="sheet-sec-title">Dados</div>
+    <div class="data-row"><span class="data-lbl">Peso atual</span><span class="data-val">623 kg</span></div>
+    <div class="data-row"><span class="data-lbl">Total embriões</span><span class="data-val">31</span></div>
+    <div class="data-row"><span class="data-lbl">Prêmios</span><span class="data-val">5 premiações</span></div>
+  </div>
+  <div class="sheet-sec">
+    <div class="sheet-sec-title">Genealogia</div>
+    <div class="data-row"><span class="data-lbl">Pai</span><span class="data-val">GNS Cacique</span></div>
+    <div class="data-row"><span class="data-lbl">Mãe</span><span class="data-val">LH Mimosinha</span></div>
+  </div>
+</template>
+
+<template id="tpl-diamante">
+  <div class="sheet-hd">
+    <div class="avatar" style="width:48px;height:48px;font-size:15px;background:#ecfdf5;color:#059669;">SD</div>
+    <div><div class="sheet-title">SE Diamante</div><div class="sheet-sub">RGN 5103-2 · PO Nelore · 29m</div></div>
+  </div>
+  <div class="sheet-sec">
+    <div class="sheet-sec-title">Dados</div>
+    <div class="data-row"><span class="data-lbl">Peso atual</span><span class="data-val">498 kg</span></div>
+    <div class="data-row"><span class="data-lbl">Sócios</span><span class="data-val">2 sócios</span></div>
+    <div class="data-row"><span class="data-lbl">Total embriões</span><span class="data-val">11</span></div>
+  </div>
+  <div class="sheet-sec">
+    <div class="sheet-sec-title">Genealogia</div>
+    <div class="data-row"><span class="data-lbl">Pai</span><span class="data-val">TE Magnata</span></div>
+    <div class="data-row"><span class="data-lbl">Mãe</span><span class="data-val">SE Diamantina</span></div>
+  </div>
+</template>
+
+<script>
+  const HDR_TITLES = {
+    dashboard:  'SE Agro Elite',
+    doadoras:   'Doadoras',
+    reproducao: 'Reprodução',
+    rebanho:    'Rebanho',
+    financeiro: 'Financeiro',
+  };
+
+  function navTo(page, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('pg-' + page).classList.add('active');
+    btn.classList.add('active');
+    document.getElementById('hdr-title').textContent = HDR_TITLES[page];
+    document.getElementById('main').scrollTop = 0;
+  }
+
+  function toggleAcc(id) {
+    const hd   = document.getElementById('hd-' + id);
+    const body = document.getElementById('body-' + id);
+    const chv  = document.getElementById('chv-' + id);
+    const open = body.classList.toggle('open');
+    hd.classList.toggle('open', open);
+    if (chv) chv.style.transform = open ? 'rotate(180deg)' : '';
+  }
+
+  function toggleEmb(embId) {
+    const el  = document.getElementById(embId);
+    const chv = document.getElementById('chv-' + embId);
+    const open = el.style.display === 'none';
+    el.style.display = open ? 'block' : 'none';
+    if (chv) chv.style.transform = open ? 'rotate(180deg)' : '';
+  }
+
+  function openSheet(name) {
+    const tpl = document.getElementById('tpl-' + name);
+    if (!tpl) return;
+    document.getElementById('sheet-content').innerHTML = tpl.innerHTML;
+    document.getElementById('sheet-overlay').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSheet() {
+    document.getElementById('sheet-overlay').classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+</script>
+</body>
+</html>
