@@ -6,7 +6,7 @@
 
 ## 1. Visão Geral
 
-Aplicativo web de gestão de fazenda de gado **Nelore de Elite**. O dono é Mateus (Chefe), pecuarista em Minas Gerais. O sistema gerencia doadoras, touros, reprodução (OPU/FIV), rebanho de receptoras, exposições/pista e financeiro.
+Aplicativo web de gestão de fazenda de gado **Nelore de Elite**. O dono é SE Agropecuaria, fazenda de gado de elite no Piaui. O sistema gerencia doadoras, touros, reprodução (OPU/FIV), rebanho de receptoras, exposições/pista e financeiro.
 
 **Visão futura:** tornar-se SaaS multi-tenant para venda a outras fazendas de elite.
 
