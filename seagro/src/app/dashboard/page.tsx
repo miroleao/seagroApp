@@ -31,7 +31,8 @@ function StatCard({ label, value, sub, icon: Icon, color, href }: {
 }
 
 // ─── DiasBadge ────────────────────────────────────────────────────────────────
-function DiasBadge({ dias }: { dias: number }) {
+function DiasBadge({ dias }: { dias: number | null }) {
+  if (dias === null) return <span className="badge bg-gray-100 text-gray-400">—</span>;
   if (dias < 0)  return <span className="badge bg-red-100 text-red-700">Atrasado {Math.abs(dias)}d</span>;
   if (dias === 0) return <span className="badge bg-orange-100 text-orange-700">Hoje!</span>;
   if (dias <= 7)  return <span className="badge bg-yellow-100 text-yellow-700">{dias}d</span>;
