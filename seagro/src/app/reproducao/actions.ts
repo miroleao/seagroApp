@@ -3,7 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { FARM_ID } from "@/lib/utils";
+import { FARM_ID, calcularPrevisaoParto } from "@/lib/utils";
+import { resolveReceptora } from "@/lib/db/receptora";
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 /** Constrói a string de observacoes estruturada para aspirações */
@@ -402,39 +403,13 @@ export async function salvarLinhaEmbriao({
   await supabase.from("embryos").update({ sexagem: sexagem || "NAO_SEXADO" }).eq("id", embryoId);
 
   // 2 ── Receptora
-  let receptoraId: string | null = null;
-  let receptoraStatus: "existente" | "criada" | undefined;
-
-  if (receptoraBrinco.trim()) {
-    // Busca receptora existente pelo brinco
-    const { data: existente } = await supabase
-      .from("animals")
-      .select("id")
-      .eq("farm_id", FARM_ID)
-      .eq("brinco", receptoraBrinco.trim())
-      .maybeSingle();
-
-    if (existente?.id) {
-      receptoraId = existente.id;
-      receptoraStatus = "existente";
-    } else {
-      // Cria nova receptora no rebanho
-      const { data: nova } = await supabase
-        .from("animals")
-        .insert({
-          farm_id: FARM_ID,
-          tipo: "RECEPTORA",
-          classificacao: "RECEPTORA",
-          nome: `Receptora ${receptoraBrinco.trim()}`,
-          brinco: receptoraBrinco.trim(),
-          status_rebanho: dgResultado === "POSITIVO" ? "PRENHA_EMBRIAO" : "ATIVA",
-        })
-        .select("id")
-        .single();
-      receptoraId = nova?.id ?? null;
-      receptoraStatus = "criada";
-    }
-  }
+  // 2 ── Receptora (busca por brinco ou cria nova)
+  const receptoraResult = await resolveReceptora(supabase, {
+    brinco: receptoraBrinco,
+    statusRebanho: dgResultado === "POSITIVO" ? "PRENHA_EMBRIAO" : "ATIVA",
+  });
+  const receptoraId     = receptoraResult.id;
+  const receptoraStatus = receptoraResult.status === "nenhuma" ? undefined : receptoraResult.status;
 
   // 3 ── Transfer
   let finalTransferId = transferId;
@@ -469,13 +444,9 @@ export async function salvarLinhaEmbriao({
 
   // 4 ── DG + Previsão de parto automática
   if (finalTransferId && dgResultado) {
-    // Calcula previsão: dataFiv + 293 dias
-    let dataPrevisaoParto: string | null = null;
-    if (dataFiv) {
-      const d = new Date(dataFiv + "T12:00:00");
-      d.setDate(d.getDate() + 293);
-      dataPrevisaoParto = d.toISOString().split("T")[0];
-    }
+    const dataPrevisaoParto = dataFiv && dgResultado === "POSITIVO"
+      ? calcularPrevisaoParto(dataFiv)
+      : null;
 
     const dataDg = dataDgSessao || hoje;
 

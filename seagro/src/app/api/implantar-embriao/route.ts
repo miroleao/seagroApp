@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { FARM_ID } from "@/lib/utils";
+import { FARM_ID, calcularPrevisaoParto } from "@/lib/utils";
+import { resolveReceptora } from "@/lib/db/receptora";
 
 /**
  * POST /api/implantar-embriao
@@ -9,7 +10,7 @@ import { FARM_ID } from "@/lib/utils";
  * Implanta um embrião congelado (DT ou Vitrificado) em uma receptora via T.E.
  * - Atualiza embryo.status → IMPLANTADO
  * - Cria transfers (data_te, receptora_id / receptora_brinco)
- * - Cria pregnancy_diagnoses com data_previsao_parto = data_te + 286 dias
+ * - Cria pregnancy_diagnoses com data_previsao_parto = data_te + 293 dias (DIAS_GESTACAO)
  * - Atualiza receptora.status_rebanho → PRENHA_EMBRIAO
  */
 export async function POST(req: NextRequest) {
@@ -22,48 +23,17 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
 
-    // ── 1. Previsão de parto = T.E. + 286 dias ─────────────────────────
-    const dataPrevisaoParto = (() => {
-      const d = new Date(dataTE + "T12:00:00");
-      d.setDate(d.getDate() + 286);
-      return d.toISOString().split("T")[0];
-    })();
+    // ── 1. Previsão de parto = T.E. + DIAS_GESTACAO (293 dias) ─────────
+    const dataPrevisaoParto = calcularPrevisaoParto(dataTE);
 
     // ── 2. Resolve receptora (id existente ou brinco → busca/cria) ──────
-    let finalReceptoraId: string | null = receptoraId ?? null;
-    let receptoraStatus: "existente" | "criada" | "nenhuma" = "nenhuma";
-
-    if (!finalReceptoraId && receptoraBrinco?.trim()) {
-      const { data: existente } = await supabase
-        .from("animals")
-        .select("id")
-        .eq("farm_id", FARM_ID)
-        .eq("brinco", receptoraBrinco.trim())
-        .eq("tipo", "RECEPTORA")
-        .maybeSingle();
-
-      if (existente?.id) {
-        finalReceptoraId = existente.id;
-        receptoraStatus  = "existente";
-      } else {
-        const { data: nova } = await supabase
-          .from("animals")
-          .insert({
-            farm_id:        FARM_ID,
-            tipo:           "RECEPTORA",
-            classificacao:  "RECEPTORA",
-            nome:           `Receptora ${receptoraBrinco.trim()}`,
-            brinco:         receptoraBrinco.trim(),
-            status_rebanho: "PRENHA_EMBRIAO",
-          })
-          .select("id")
-          .single();
-        finalReceptoraId = nova?.id ?? null;
-        receptoraStatus  = "criada";
-      }
-    } else if (finalReceptoraId) {
-      receptoraStatus = "existente";
-    }
+    const receptoraResult = await resolveReceptora(supabase, {
+      receptoraId:   receptoraId ?? null,
+      brinco:        receptoraBrinco,
+      statusRebanho: "PRENHA_EMBRIAO",
+    });
+    const finalReceptoraId = receptoraResult.id;
+    const receptoraStatus  = receptoraResult.status;
 
     // ── 3. Atualiza status do embrião → IMPLANTADO ──────────────────────
     const { error: embErr } = await supabase

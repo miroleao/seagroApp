@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { FARM_ID } from "@/lib/utils";
+import { FARM_ID, calcularPrevisaoParto } from "@/lib/utils";
+import { resolveReceptora } from "@/lib/db/receptora";
 
 export async function POST(req: NextRequest) {
   try {
-    const { embryoId, transferId, sexagem, receptoraBrinco, receptoraAbcz, dgResultado, cdcFiv, adtTe, dataFiv, dataDgSessao } = await req.json();
+    const {
+      embryoId, transferId, sexagem,
+      receptoraBrinco, receptoraAbcz,
+      dgResultado, cdcFiv, adtTe,
+      dataFiv, dataDgSessao,
+    } = await req.json();
+
     if (!embryoId) return NextResponse.json({ ok: false, erro: "ID inválido" });
 
     const supabase = await createClient();
@@ -20,37 +27,14 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", embryoId);
 
-    // 2 — Receptora
-    let receptoraId: string | null = null;
-    let receptoraStatus: string | undefined;
-
-    if (receptoraBrinco?.trim()) {
-      const { data: existente } = await supabase
-        .from("animals").select("id")
-        .eq("farm_id", FARM_ID).eq("brinco", receptoraBrinco.trim())
-        .maybeSingle();
-
-      if (existente?.id) {
-        receptoraId = existente.id;
-        receptoraStatus = "existente";
-        // Atualiza rgn se fornecido
-        if (receptoraAbcz?.trim()) {
-          await supabase.from("animals").update({ rgn: receptoraAbcz.trim() }).eq("id", existente.id);
-        }
-      } else {
-        const { data: nova } = await supabase.from("animals").insert({
-          farm_id: FARM_ID,
-          tipo: "RECEPTORA",
-          classificacao: "RECEPTORA",
-          nome: `Receptora ${receptoraBrinco.trim()}`,
-          brinco: receptoraBrinco.trim(),
-          rgn: receptoraAbcz?.trim() || null,
-          status_rebanho: dgResultado === "POSITIVO" ? "PRENHA_EMBRIAO" : "ATIVA",
-        }).select("id").single();
-        receptoraId = nova?.id ?? null;
-        receptoraStatus = "criada";
-      }
-    }
+    // 2 — Receptora (busca por brinco ou cria nova)
+    const receptoraResult = await resolveReceptora(supabase, {
+      brinco: receptoraBrinco,
+      rgn:    receptoraAbcz,
+      statusRebanho: dgResultado === "POSITIVO" ? "PRENHA_EMBRIAO" : "ATIVA",
+    });
+    const receptoraId     = receptoraResult.id;
+    const receptoraStatus = receptoraResult.status;
 
     // 3 — Transfer
     let finalTransferId = transferId ?? null;
@@ -62,10 +46,10 @@ export async function POST(req: NextRequest) {
           .eq("id", transferId);
       } else {
         const { data: novoT } = await supabase.from("transfers").insert({
-          farm_id: FARM_ID,
-          embryo_id: embryoId,
-          receptora_id: receptoraId,
-          receptora_brinco: receptoraBrinco.trim(),
+          farm_id:          FARM_ID,
+          embryo_id:        embryoId,
+          receptora_id:     receptoraId,
+          receptora_brinco: receptoraBrinco?.trim(),
         }).select("id").single();
         finalTransferId = novoT?.id ?? null;
         await supabase.from("embryos").update({ status: "IMPLANTADO" }).eq("id", embryoId);
@@ -78,14 +62,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4 — DG + Previsão de parto (dataFiv + 293 dias)
+    // 4 — DG + Previsão de parto (FIV + DIAS_GESTACAO)
     if (finalTransferId && dgResultado) {
-      let dataPrevisaoParto: string | null = null;
-      if (dataFiv && dgResultado === "POSITIVO") {
-        const d = new Date(dataFiv + "T12:00:00");
-        d.setDate(d.getDate() + 293);
-        dataPrevisaoParto = d.toISOString().split("T")[0];
-      }
+      const dataPrevisaoParto = dataFiv && dgResultado === "POSITIVO"
+        ? calcularPrevisaoParto(dataFiv)
+        : null;
 
       const dataDg = dataDgSessao || hoje;
 
@@ -95,16 +76,16 @@ export async function POST(req: NextRequest) {
 
       if (dgExistente?.id) {
         await supabase.from("pregnancy_diagnoses").update({
-          resultado: dgResultado,
-          data_dg: dataDg,
+          resultado:           dgResultado,
+          data_dg:             dataDg,
           data_previsao_parto: dataPrevisaoParto,
         }).eq("id", dgExistente.id);
       } else {
         await supabase.from("pregnancy_diagnoses").insert({
-          farm_id: FARM_ID,
-          transfer_id: finalTransferId,
-          resultado: dgResultado,
-          data_dg: dataDg,
+          farm_id:             FARM_ID,
+          transfer_id:         finalTransferId,
+          resultado:           dgResultado,
+          data_dg:             dataDg,
           data_previsao_parto: dataPrevisaoParto,
         });
       }

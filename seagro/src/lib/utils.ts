@@ -27,3 +27,16 @@ export function diasParaParto(previsao: string | null | undefined): number | nul
 }
 
 export const FARM_ID = process.env.NEXT_PUBLIC_FARM_ID ?? "aaaaaaaa-0000-0000-0000-000000000001";
+
+/** Duração da gestação Nelore em dias — base para cálculo de previsão de parto (FIV ou TE). */
+export const DIAS_GESTACAO = 293;
+
+/**
+ * Calcula a data prevista de parto a partir de uma data base (FIV ou TE).
+ * Retorna string no formato ISO "YYYY-MM-DD".
+ */
+export function calcularPrevisaoParto(dataBase: string): string {
+  const d = new Date(dataBase + "T12:00:00");
+  d.setDate(d.getDate() + DIAS_GESTACAO);
+  return d.toISOString().split("T")[0];
+}
