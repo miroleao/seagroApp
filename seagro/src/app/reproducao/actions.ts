@@ -211,6 +211,8 @@ export async function registrarOPU(formData: FormData) {
   });
 
   revalidatePath("/reproducao");
+  revalidatePath("/aspiracoes");
+  revalidatePath("/dashboard");
   redirect("/reproducao");
 }
 

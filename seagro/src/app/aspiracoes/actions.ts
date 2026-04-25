@@ -25,6 +25,17 @@ export async function registrarOPU(formData: FormData) {
 
   const supabase = await createClient();
 
+  // Busca o nome canônico da doadora para salvar na aspiração
+  let doadora_nome: string | null = null;
+  if (doadora_id) {
+    const { data: animal } = await supabase
+      .from("animals")
+      .select("nome")
+      .eq("id", doadora_id)
+      .single();
+    doadora_nome = animal?.nome ?? null;
+  }
+
   const { data: session, error: sessErr } = await supabase
     .from("opu_sessions")
     .insert({ farm_id: FARM_ID, data, tipo: "REALIZADA", local, responsavel, laboratorio })
@@ -40,6 +51,7 @@ export async function registrarOPU(formData: FormData) {
     farm_id: FARM_ID,
     session_id: session.id,
     doadora_id:  doadora_id  || null,
+    doadora_nome,
     touro_nome,
     oocitos_viaveis,
     embryos_congelados,
