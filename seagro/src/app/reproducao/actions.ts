@@ -262,6 +262,8 @@ export async function excluirSessao(formData: FormData) {
   await supabase.from("opu_sessions").delete().in("id", session_ids);
   revalidatePath("/reproducao");
   revalidatePath("/rebanho");
+  revalidatePath("/aspiracoes");
+  revalidatePath("/dashboard");
   redirect("/reproducao");
 }
 

@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
 
     revalidatePath("/reproducao");
     revalidatePath("/rebanho");
+    revalidatePath("/aspiracoes");
+    revalidatePath("/dashboard");
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json({ ok: false, erro: e?.message ?? "Erro interno" }, { status: 500 });
