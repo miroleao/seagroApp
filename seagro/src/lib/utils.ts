@@ -28,6 +28,15 @@ export function diasParaParto(previsao: string | null | undefined): number | nul
 
 export const FARM_ID = process.env.NEXT_PUBLIC_FARM_ID ?? "aaaaaaaa-0000-0000-0000-000000000001";
 
+/** Calcula meses inteiros entre uma data ISO e hoje (ex: "2024-03-15" → 14). */
+export function idadeEmMeses(nascimento: string | null | undefined): number | null {
+  if (!nascimento) return null;
+  const inicio = new Date(nascimento);
+  const hoje   = new Date();
+  return (hoje.getFullYear() - inicio.getFullYear()) * 12
+       + (hoje.getMonth()   - inicio.getMonth());
+}
+
 /** Duração da gestação Nelore em dias — base para cálculo de previsão de parto (FIV ou TE). */
 export const DIAS_GESTACAO = 293;
 

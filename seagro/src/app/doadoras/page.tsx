@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
+import { formatDate, formatCurrency, FARM_ID, idadeEmMeses } from "@/lib/utils";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Star, Plus, Trophy } from "lucide-react";
@@ -18,13 +18,6 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   VENDIDA:    { label: "Vendida",    cls: "bg-blue-100   text-blue-700"   },
 };
 
-/** Calcula meses inteiros entre uma data ISO e hoje */
-function idadeEmMeses(nascimento: string | null): number | null {
-  if (!nascimento) return null;
-  const inicio = new Date(nascimento);
-  const hoje   = new Date();
-  return (hoje.getFullYear() - inicio.getFullYear()) * 12 + (hoje.getMonth() - inicio.getMonth());
-}
 
 export default async function DoadorasPage({
   searchParams,

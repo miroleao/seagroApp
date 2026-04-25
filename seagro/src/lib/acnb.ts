@@ -118,6 +118,19 @@ export function pesoMaximo(sexo: "M" | "F", meses: number, dias: number): number
   return col[d] ?? col[0];
 }
 
+/**
+ * Circunferência Escrotal mínima (cm) por faixa etária — tabela ABCZ.
+ * Usado para avaliar elegibilidade Para Pista de touros.
+ */
+export function ceMinimo(meses: number | null): number | null {
+  if (meses == null) return null;
+  if (meses <= 15) return 26;
+  if (meses <= 18) return 28;
+  if (meses <= 21) return 30;
+  if (meses <= 24) return 32;
+  return 34;
+}
+
 /** Calcula idade exata em meses e dias restantes, referenciada a uma data. */
 export function idadeExata(nascimento: string, dataRef: Date): { meses: number; dias: number } {
   const nasc = new Date(nascimento + "T12:00:00");

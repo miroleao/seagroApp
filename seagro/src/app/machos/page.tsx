@@ -1,31 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
-import { formatDate, FARM_ID } from "@/lib/utils";
+import { formatDate, FARM_ID, idadeEmMeses } from "@/lib/utils";
+import { ceMinimo } from "@/lib/acnb";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Plus, CheckCircle, XCircle, Clock, Star, Trophy } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
 
-/** Calcula meses inteiros entre uma data ISO e hoje */
-function idadeEmMeses(nascimento: string | null): number | null {
-  if (!nascimento) return null;
-  const inicio = new Date(nascimento);
-  const hoje   = new Date();
-  return (
-    (hoje.getFullYear() - inicio.getFullYear()) * 12 +
-    (hoje.getMonth() - inicio.getMonth())
-  );
-}
-
-/** Mínimo de CE (cm) por faixa etária segundo tabela ABCZ */
-function ceMinimo(meses: number | null): number | null {
-  if (meses == null) return null;
-  if (meses <= 15) return 26;
-  if (meses <= 18) return 28;
-  if (meses <= 21) return 30;
-  if (meses <= 24) return 32;
-  return 34;
-}
 
 function AndroChip({ status }: { status: string | null }) {
   if (status === "APTO")

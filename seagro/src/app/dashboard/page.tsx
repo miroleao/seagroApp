@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
+import { formatDate, formatCurrency, FARM_ID, diasParaParto } from "@/lib/utils";
 import { idadeExata, statusPeso } from "@/lib/acnb";
 import {
   Baby, FlaskConical, Heart, AlertTriangle,
@@ -168,12 +168,6 @@ export default async function DashboardPage() {
   const pistFemeas = (pistaCandidatos ?? []).filter((a: any) => a.tipo !== "TOURO").length;
   const pistMachos = (pistaCandidatos ?? []).filter((a: any) => a.tipo === "TOURO").length;
 
-  function diasRestantes(data: string) {
-    const d = new Date(data + "T12:00:00");
-    const h = new Date(); h.setHours(0, 0, 0, 0);
-    return Math.round((d.getTime() - h.getTime()) / 86400000);
-  }
-
   const TIPO_EXPO: Record<string, string> = {
     OFICIAL: "bg-brand-100 text-brand-700",
     OURO:    "bg-yellow-100 text-yellow-700",
@@ -245,7 +239,7 @@ export default async function DashboardPage() {
                 const doadoraId   = t?.embryo?.aspiration?.doadora_id;
                 const doadoraNome = t?.embryo?.aspiration?.doadora_nome || "—";
                 const touro       = t?.embryo?.aspiration?.touro_nome   || "—";
-                const dias        = diasRestantes(dg.data_previsao_parto!);
+                const dias        = diasParaParto(dg.data_previsao_parto!);
                 return (
                   <div key={dg.id} className="px-5 py-3 flex items-center gap-3">
                     <div className="flex-1 min-w-0 space-y-0.5">
@@ -327,7 +321,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="divide-y divide-gray-50">
             {(proxExpos ?? []).map((e: any) => {
-              const dias = diasRestantes(e.data_base);
+              const dias = diasParaParto(e.data_base);
               return (
                 <div key={e.id} className="px-5 py-3.5 flex items-center gap-4">
                   {/* Data destaque */}
