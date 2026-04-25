@@ -245,6 +245,7 @@ export default async function FichaRebanhoPage({
             <h2 className="font-semibold text-gray-900">Histórico Reprodutivo</h2>
             <span className="badge bg-brand-100 text-brand-700 ml-auto">{historico.length} implantações</span>
           </div>
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left">
@@ -282,6 +283,7 @@ export default async function FichaRebanhoPage({
               })}
             </tbody>
           </table>
+          </div>
         </section>
       )}
     </div>

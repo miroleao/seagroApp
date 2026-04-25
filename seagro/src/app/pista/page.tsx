@@ -184,6 +184,7 @@ export default async function PistaPage() {
             <h2 className="font-semibold text-red-700">Alertas de Peso</h2>
             <span className="badge bg-red-100 text-red-700 ml-auto">{alertasPeso.length} fora do padrão</span>
           </div>
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left">
@@ -209,6 +210,7 @@ export default async function PistaPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
       )}
 
@@ -270,6 +272,7 @@ export default async function PistaPage() {
               Nenhuma exposição agendada. Cadastre uma acima.
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left">
@@ -292,6 +295,7 @@ export default async function PistaPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </details>
       </section>
@@ -312,6 +316,7 @@ export default async function PistaPage() {
           </div>
         ) : (
           <>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left">
@@ -383,6 +388,7 @@ export default async function PistaPage() {
                 })}
               </tbody>
             </table>
+            </div>
 
             {/* Projeção por exposição */}
             {proxExpos.length > 0 && (
@@ -458,6 +464,7 @@ export default async function PistaPage() {
             <p className="text-xs text-gray-300 mt-1">Registre premiações na ficha individual de cada animal.</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left">
@@ -482,6 +489,7 @@ export default async function PistaPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </section>
 
@@ -494,6 +502,7 @@ export default async function PistaPage() {
               <span className="badge bg-gray-100 text-gray-500 ml-auto">{pastExpos.length}</span>
               <span className="text-gray-400 text-xs ml-1">▼</span>
             </summary>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left">
@@ -514,6 +523,7 @@ export default async function PistaPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </details>
         </section>
       )}

@@ -389,6 +389,7 @@ export default async function AspiracoesPage() {
                       <FlaskConical className="w-3 h-3 text-green-600" />
                       <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">OPU-FIV</span>
                     </div>
+                    <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 text-left">
@@ -455,7 +456,7 @@ export default async function AspiracoesPage() {
                                         {transferidas.length} transferido{transferidas.length !== 1 ? "s" : ""}
                                         <span className="ml-auto">▼</span>
                                       </summary>
-                                      <div className="px-4 py-2 bg-blue-50 border-t border-blue-100">
+                                      <div className="px-4 py-2 bg-blue-50 border-t border-blue-100 overflow-x-auto">
                                         <table className="w-full text-xs">
                                           <thead>
                                             <tr className="border-b border-blue-200 text-left">
@@ -517,6 +518,7 @@ export default async function AspiracoesPage() {
                         })}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
 
@@ -527,6 +529,7 @@ export default async function AspiracoesPage() {
                       <Baby className="w-3 h-3 text-amber-600" />
                       <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Prenhezes Compradas</span>
                     </div>
+                    <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 text-left">
@@ -580,6 +583,7 @@ export default async function AspiracoesPage() {
                         })}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
               </div>

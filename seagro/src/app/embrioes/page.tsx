@@ -200,7 +200,7 @@ export default async function EmbrioesPag({
               </summary>
 
               {/* ── Linhas expandidas ────────────────────────── */}
-              <div className="bg-gray-50 border-t border-gray-100">
+              <div className="bg-gray-50 border-t border-gray-100 overflow-x-auto">
                 {/* Link para a doadora quando expandido */}
                 {r.doadoraId && (
                   <div className="px-4 pt-2 pb-1">

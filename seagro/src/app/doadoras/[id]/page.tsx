@@ -849,6 +849,7 @@ export default async function DoadoraDetalhePage({
         {!aspiracoes?.length ? (
           <div className="px-5 py-8 text-center text-gray-400 text-sm">Nenhuma aspiração registrada</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-left">
@@ -881,6 +882,7 @@ export default async function DoadoraDetalhePage({
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -929,7 +931,7 @@ export default async function DoadoraDetalhePage({
                 </summary>
 
                 {/* Linhas expandidas */}
-                <div className="bg-gray-50 border-t border-gray-100">
+                <div className="bg-gray-50 border-t border-gray-100 overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-gray-200 text-left">
@@ -1074,6 +1076,7 @@ export default async function DoadoraDetalhePage({
           {!pesagens?.length ? (
             <div className="px-5 py-8 text-center text-gray-400 text-sm">Nenhuma pesagem registrada ainda.</div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100 text-left">
@@ -1136,6 +1139,7 @@ export default async function DoadoraDetalhePage({
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </details>
       </div>
@@ -1202,6 +1206,7 @@ export default async function DoadoraDetalhePage({
           {!premiacoes?.length ? (
             <div className="px-5 py-8 text-center text-gray-400 text-sm">Nenhuma premiação registrada.</div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100 text-left">
@@ -1228,6 +1233,7 @@ export default async function DoadoraDetalhePage({
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </details>
       </div>

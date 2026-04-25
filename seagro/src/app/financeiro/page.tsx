@@ -263,7 +263,7 @@ export default async function FinanceiroPage({
                     </summary>
 
                     {/* Tabela de transações */}
-                    <div className="bg-white">
+                    <div className="bg-white overflow-x-auto">
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="bg-gray-50 border-y border-gray-100 text-left">

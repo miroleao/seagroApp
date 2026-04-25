@@ -167,6 +167,7 @@ export default async function RebanhoPage({
             <h2 className="font-semibold text-green-800 text-sm">Prenhes Ativas</h2>
             <span className="badge bg-green-100 text-green-700 ml-auto">{prenhas.length}</span>
           </div>
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left">
@@ -205,6 +206,7 @@ export default async function RebanhoPage({
               })}
             </tbody>
           </table>
+          </div>
         </section>
       )}
 
