@@ -249,7 +249,9 @@ export async function vincularDoadora(formData: FormData) {
   redirect("/reproducao");
 }
 
-// ── Excluir sessão OPU (cascade completo) ────────────────────────────────────
+// ── Excluir sessão OPU ───────────────────────────────────────────────────────
+// O banco cuida do cascade: opu_sessions → aspirations → embryos
+//                                        → transfers → pregnancy_diagnoses
 export async function excluirSessao(formData: FormData) {
   const raw = formData.get("session_ids") as string | null;
   if (!raw?.trim()) return;
@@ -257,58 +259,19 @@ export async function excluirSessao(formData: FormData) {
   const session_ids = raw.split(",").map((s) => s.trim()).filter(Boolean);
   const supabase = await createClient();
 
-  const { data: asps } = await supabase
-    .from("aspirations").select("id").in("session_id", session_ids);
-  const aspIds = (asps ?? []).map((a: any) => a.id);
-
-  if (aspIds.length > 0) {
-    const { data: embs } = await supabase
-      .from("embryos").select("id").in("aspiration_id", aspIds);
-    const embIds = (embs ?? []).map((e: any) => e.id);
-
-    if (embIds.length > 0) {
-      const { data: trs } = await supabase
-        .from("transfers").select("id").in("embryo_id", embIds);
-      const trIds = (trs ?? []).map((t: any) => t.id);
-
-      if (trIds.length > 0) {
-        await supabase.from("pregnancy_diagnoses").delete().in("transfer_id", trIds);
-        await supabase.from("transfers").delete().in("id", trIds);
-      }
-      await supabase.from("embryos").delete().in("id", embIds);
-    }
-    await supabase.from("aspirations").delete().in("id", aspIds);
-  }
-
   await supabase.from("opu_sessions").delete().in("id", session_ids);
   revalidatePath("/reproducao");
   revalidatePath("/rebanho");
   redirect("/reproducao");
 }
 
-// ── Excluir aspiração (cascade: DG → transfers → embryos → aspiration) ───────
+// ── Excluir aspiração ────────────────────────────────────────────────────────
+// O banco cuida do cascade: aspirations → embryos → transfers → pregnancy_diagnoses
 export async function excluirAspiracao(formData: FormData) {
   const asp_id = formData.get("asp_id") as string | null;
   if (!asp_id?.trim()) return;
 
   const supabase = await createClient();
-
-  const { data: embryos } = await supabase
-    .from("embryos").select("id").eq("aspiration_id", asp_id);
-  const embryoIds = (embryos ?? []).map((e: any) => e.id);
-
-  if (embryoIds.length > 0) {
-    const { data: transfers } = await supabase
-      .from("transfers").select("id").in("embryo_id", embryoIds);
-    const transferIds = (transfers ?? []).map((t: any) => t.id);
-
-    if (transferIds.length > 0) {
-      await supabase.from("pregnancy_diagnoses").delete().in("transfer_id", transferIds);
-      await supabase.from("transfers").delete().in("id", transferIds);
-    }
-    await supabase.from("embryos").delete().in("id", embryoIds);
-  }
-
   await supabase.from("aspirations").delete().eq("id", asp_id);
   revalidatePath("/reproducao");
   revalidatePath("/rebanho");
@@ -328,26 +291,7 @@ export async function excluirPrenhez(formData: FormData): Promise<{ ok: boolean;
   const { data: asp } = await supabase
     .from("aspirations").select("session_id").eq("id", asp_id).single();
 
-  // Cascade igual ao excluirAspiracao
-  const { data: embryos } = await supabase
-    .from("embryos").select("id").eq("aspiration_id", asp_id);
-
-  const embryoIds = (embryos ?? []).map((e: any) => e.id);
-
-  if (embryoIds.length > 0) {
-    const { data: transfers } = await supabase
-      .from("transfers").select("id").in("embryo_id", embryoIds);
-
-    const transferIds = (transfers ?? []).map((t: any) => t.id);
-
-    if (transferIds.length > 0) {
-      await supabase.from("pregnancy_diagnoses").delete().in("transfer_id", transferIds);
-      await supabase.from("transfers").delete().in("id", transferIds);
-    }
-
-    await supabase.from("embryos").delete().in("id", embryoIds);
-  }
-
+  // Deleta aspiração — cascade cuida de embryos → transfers → pregnancy_diagnoses
   await supabase.from("aspirations").delete().eq("id", asp_id);
 
   // Deleta a sessão se não tiver mais aspirações
