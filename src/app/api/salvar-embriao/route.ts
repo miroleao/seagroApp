@@ -66,34 +66,38 @@ export async function POST(req: NextRequest) {
 
     // 3 — Transfer
     let finalTransferId = transferId ?? null;
+    const brincoFinal = receptoraBrinco?.trim() || null;
 
     if (receptoraId) {
       if (transferId) {
         await supabase.from("transfers")
-          .update({ receptora_id: receptoraId, receptora_brinco: receptoraBrinco?.trim() })
+          .update({ receptora_id: receptoraId, receptora_brinco: brincoFinal })
           .eq("id", transferId);
       } else {
         const { data: novoT } = await supabase.from("transfers").insert({
           farm_id: FARM_ID,
           embryo_id: embryoId,
           receptora_id: receptoraId,
-          receptora_brinco: receptoraBrinco.trim(),
+          receptora_brinco: brincoFinal,
         }).select("id").single();
         finalTransferId = novoT?.id ?? null;
         await supabase.from("embryos").update({ status: "IMPLANTADO" }).eq("id", embryoId);
       }
 
-      if (dgResultado === "POSITIVO") {
-        await supabase.from("animals")
-          .update({ status_rebanho: "PRENHA_EMBRIAO" })
-          .eq("id", receptoraId);
-      }
+      // Sempre marca a receptora como prenha quando vinculada a um embrião implantado
+      await supabase.from("animals")
+        .update({ status_rebanho: "PRENHA_EMBRIAO" })
+        .eq("id", receptoraId);
     }
 
     // 4 — DG + Previsão de parto (dataFiv + 293 dias)
-    if (finalTransferId && dgResultado) {
+    // Sempre cria pregnancy_diagnoses quando há transfer — sem DG usa "AGUARDANDO"
+    // Isso garante a cadeia doadora → touro → embrião no Rebanho
+    if (finalTransferId) {
+      // Sem DG informado → usa POSITIVO (receptora já está PRENHA_EMBRIAO)
+      const resultadoFinal = dgResultado || "POSITIVO";
       let dataPrevisaoParto: string | null = null;
-      if (dataFiv && dgResultado === "POSITIVO") {
+      if (dataFiv && resultadoFinal === "POSITIVO") {
         const d = new Date(dataFiv + "T12:00:00");
         d.setDate(d.getDate() + 293);
         dataPrevisaoParto = d.toISOString().split("T")[0];
@@ -107,7 +111,7 @@ export async function POST(req: NextRequest) {
 
       if (dgExistente?.id) {
         await supabase.from("pregnancy_diagnoses").update({
-          resultado: dgResultado,
+          resultado: resultadoFinal,
           data_dg: dataDg,
           data_previsao_parto: dataPrevisaoParto,
         }).eq("id", dgExistente.id);
@@ -115,7 +119,7 @@ export async function POST(req: NextRequest) {
         await supabase.from("pregnancy_diagnoses").insert({
           farm_id: FARM_ID,
           transfer_id: finalTransferId,
-          resultado: dgResultado,
+          resultado: resultadoFinal,
           data_dg: dataDg,
           data_previsao_parto: dataPrevisaoParto,
         });

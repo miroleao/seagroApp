@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Pencil, Check, X, AlertCircle, Trash2, Syringe } from "lucide-react";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ interface TEForm {
 
 // ── Componente ─────────────────────────────────────────────────────────────────
 export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: Props) {
+  const router = useRouter();
   // Qual linha está em modo edição
   const [editando, setEditando] = useState<Record<string, RowEdit>>({});
   const [salvando, setSalvando] = useState<Record<string, boolean>>({});
@@ -168,7 +170,7 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
           : `✓ Implantado! Previsão de parto: ${formatDate(data.dataPrevisaoParto)}`;
         setAvisos(prev => ({ ...prev, [emb.id]: msg }));
         setTeOpen(prev => { const c = {...prev}; delete c[emb.id]; return c; });
-        setTimeout(() => window.location.reload(), 1500);
+        setTimeout(() => router.refresh(), 1500);
       } else {
         setErros(prev => ({ ...prev, [emb.id]: data.erro ?? "Erro ao implantar" }));
       }
@@ -224,7 +226,7 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
       });
       const data = await res.json();
       if (data.ok) {
-        window.location.reload();
+        router.refresh();
       } else {
         setErros(prev => ({ ...prev, [emb.id]: data.erro ?? "Erro ao excluir" }));
         setExcluindo(prev => ({ ...prev, [emb.id]: false }));
@@ -277,7 +279,7 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
           setAvisos(prev => ({ ...prev, [emb.id]: `✓ Receptora "${form.brinco}" criada no rebanho.` }));
         }
         setEditando(prev => { const c = {...prev}; delete c[emb.id]; return c; });
-        window.location.reload();
+        router.refresh();
       } else {
         setErros(prev => ({ ...prev, [emb.id]: data.erro ?? "Erro ao salvar" }));
       }
