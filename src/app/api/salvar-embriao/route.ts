@@ -5,7 +5,7 @@ import { FARM_ID } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   try {
-    const { embryoId, transferId, sexagem, receptoraBrinco, receptoraAbcz, dgResultado, cdcFiv, adtTe, dataFiv, dataDgSessao } = await req.json();
+    const { embryoId, transferId, sexagem, receptoraId: receptoraIdEnviado, receptoraBrinco, receptoraAbcz, dgResultado, cdcFiv, adtTe, dataFiv, dataDgSessao } = await req.json();
     if (!embryoId) return NextResponse.json({ ok: false, erro: "ID inválido" });
 
     const supabase = await createClient();
@@ -20,11 +20,24 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", embryoId);
 
-    // 2 — Receptora
+    // 2 — Receptora: prioriza receptoraId (uuid direto), depois lookup por brinco, senão cria nova
     let receptoraId: string | null = null;
     let receptoraStatus: string | undefined;
 
-    if (receptoraBrinco?.trim()) {
+    if (receptoraIdEnviado) {
+      // Selecionada da lista — verifica se existe no banco
+      const { data: rec } = await supabase
+        .from("animals").select("id, brinco")
+        .eq("farm_id", FARM_ID).eq("id", receptoraIdEnviado).maybeSingle();
+      if (rec?.id) {
+        receptoraId = rec.id;
+        receptoraStatus = "existente";
+        if (receptoraAbcz?.trim()) {
+          await supabase.from("animals").update({ rgn: receptoraAbcz.trim() }).eq("id", rec.id);
+        }
+      }
+    } else if (receptoraBrinco?.trim()) {
+      // Modo manual: busca pelo brinco, cria se não encontrar
       const { data: existente } = await supabase
         .from("animals").select("id")
         .eq("farm_id", FARM_ID).eq("brinco", receptoraBrinco.trim())
@@ -33,7 +46,6 @@ export async function POST(req: NextRequest) {
       if (existente?.id) {
         receptoraId = existente.id;
         receptoraStatus = "existente";
-        // Atualiza rgn se fornecido
         if (receptoraAbcz?.trim()) {
           await supabase.from("animals").update({ rgn: receptoraAbcz.trim() }).eq("id", existente.id);
         }

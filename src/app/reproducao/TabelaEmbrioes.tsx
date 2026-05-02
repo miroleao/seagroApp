@@ -96,12 +96,13 @@ const SEX_CLS: Record<string, string> = {
 
 // ── Estado de edição por linha ─────────────────────────────────────────────────
 interface RowEdit {
-  brinco: string;
-  abcz: string;
-  dgResultado: string;
-  sexagem: string;
-  cdcFiv: string;
-  adtTe: boolean;
+  receptoraId:    string;   // uuid da receptora selecionada, "" = nenhuma, "__nova__" = criar nova
+  brinco:         string;   // brinco livre (usado quando receptoraId === "__nova__")
+  abcz:           string;
+  dgResultado:    string;
+  sexagem:        string;
+  cdcFiv:         string;
+  adtTe:          boolean;
 }
 
 // Estado do formulário de T.E.
@@ -180,15 +181,21 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
 
   function iniciarEdicao(emb: Embriao) {
     try {
-      const transfer = emb.transfers?.[0] ?? null;
-      const dg       = transfer?.pregnancy_diagnoses?.[0] ?? null;
-      const brinco   = transfer?.receptora?.brinco ?? transfer?.receptora_brinco ?? "";
-      const abcz     = transfer?.receptora?.rgn ?? "";
+      const transfer    = emb.transfers?.[0] ?? null;
+      const dg          = transfer?.pregnancy_diagnoses?.[0] ?? null;
+      const brincoAtual = transfer?.receptora?.brinco ?? transfer?.receptora_brinco ?? "";
+      const abcz        = transfer?.receptora?.rgn ?? "";
+      // Tenta pré-selecionar a receptora pelo id ou pelo brinco
+      const recId = transfer?.receptora?.id ?? null;
+      const recMatch = recId
+        ? receptoras.find(r => r.id === recId)
+        : receptoras.find(r => r.brinco === brincoAtual);
       setEditando(prev => ({
         ...prev,
         [emb.id]: {
-          brinco:      brinco,
-          abcz:        abcz,
+          receptoraId: recMatch?.id ?? (brincoAtual ? "__nova__" : ""),
+          brinco:      brincoAtual,
+          abcz,
           dgResultado: dg?.resultado ?? "",
           sexagem:     emb.sexagem ?? "NAO_SEXADO",
           cdcFiv:      emb.numero_cdc_fiv ?? "",
@@ -237,6 +244,15 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
 
     try {
       const transfer = emb.transfers?.[0] ?? null;
+      // Resolve receptora: se selecionou da lista usa o brinco do objeto
+      const isNova = form.receptoraId === "__nova__";
+      let receptoraBrinco = form.brinco;
+      let receptoraIdEnvio: string | null = null;
+      if (!isNova && form.receptoraId) {
+        const rec = receptoras.find(r => r.id === form.receptoraId);
+        receptoraBrinco = rec?.brinco ?? form.brinco;
+        receptoraIdEnvio = form.receptoraId;
+      }
       const res = await fetch("/api/salvar-embriao", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -244,7 +260,8 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
           embryoId:        emb.id,
           transferId:      transfer?.id ?? null,
           sexagem:         form.sexagem,
-          receptoraBrinco: form.brinco,
+          receptoraId:     receptoraIdEnvio,
+          receptoraBrinco,
           receptoraAbcz:   form.abcz,
           dgResultado:     form.dgResultado,
           cdcFiv:          form.cdcFiv,
@@ -332,13 +349,42 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
                   {/* No Brinco (tag number) */}
                   <td className="py-1.5 px-2">
                     {isEdit ? (
-                      <input
-                        type="text"
-                        value={form.brinco}
-                        onChange={e => setEditando(prev => ({ ...prev, [emb.id]: { ...prev[emb.id], brinco: e.target.value }}))}
-                        placeholder="Nº brinco"
-                        className="border border-violet-300 rounded px-1.5 py-0.5 text-xs w-24 focus:outline-none focus:ring-1 focus:ring-violet-400"
-                      />
+                      <div className="flex flex-col gap-1">
+                        <select
+                          value={form.receptoraId}
+                          onChange={e => {
+                            const val = e.target.value;
+                            const rec = receptoras.find(r => r.id === val);
+                            setEditando(prev => ({
+                              ...prev,
+                              [emb.id]: {
+                                ...prev[emb.id],
+                                receptoraId: val,
+                                brinco: rec?.brinco ?? (val === "__nova__" ? prev[emb.id].brinco : ""),
+                              }
+                            }));
+                          }}
+                          className="border border-violet-300 rounded px-1.5 py-0.5 text-xs w-36 focus:outline-none focus:ring-1 focus:ring-violet-400 bg-white"
+                        >
+                          <option value="">— Sem receptora —</option>
+                          {receptoras.map(r => (
+                            <option key={r.id} value={r.id}>
+                              {r.brinco ?? "?"}{r.status_rebanho ? ` [${r.status_rebanho}]` : ""}
+                            </option>
+                          ))}
+                          <option value="__nova__">✏ Nova receptora…</option>
+                        </select>
+                        {form.receptoraId === "__nova__" && (
+                          <input
+                            type="text"
+                            value={form.brinco}
+                            onChange={e => setEditando(prev => ({ ...prev, [emb.id]: { ...prev[emb.id], brinco: e.target.value }}))}
+                            placeholder="Nº brinco"
+                            autoFocus
+                            className="border border-violet-300 rounded px-1.5 py-0.5 text-xs w-28 focus:outline-none focus:ring-1 focus:ring-violet-400"
+                          />
+                        )}
+                      </div>
                     ) : receptora?.id ? (
                       <Link href={`/rebanho/${receptora.id}`}
                         className="font-mono text-brand-700 hover:underline font-semibold">
