@@ -19,6 +19,8 @@ function formatVendedores(raw: string): string {
     .join(", ");
 }
 
+export const revalidate = 0;
+
 export default async function PrenhezesList({
   searchParams,
 }: {

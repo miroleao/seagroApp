@@ -47,6 +47,8 @@ function AndroChip({ status }: { status: string | null }) {
   );
 }
 
+export const revalidate = 0;
+
 export default async function MachosPage({
   searchParams,
 }: {

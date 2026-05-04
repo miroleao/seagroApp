@@ -167,17 +167,39 @@ export async function atualizarDataEntrega(formData: FormData) {
 // ── Desfecho: Aborto ou Óbito da Receptora ────────────────────────────────────
 
 export async function registrarDesfecho(formData: FormData) {
-  const asp_id        = (formData.get("asp_id")        as string)?.trim();
-  const resultado     = (formData.get("resultado")     as string)?.trim(); // ABORTO | OBITO_RECEPTORA
+  const asp_id         = (formData.get("asp_id")         as string)?.trim();
+  const resultado      = (formData.get("resultado")      as string)?.trim(); // ABORTO | OBITO_RECEPTORA
   const data_resultado = (formData.get("data_resultado") as string)?.trim() || null;
+  const transfer_id    = (formData.get("transfer_id")    as string)?.trim() || null;
+  const receptora_id   = (formData.get("receptora_id")   as string)?.trim() || null;
   if (!asp_id || !resultado) return;
 
   const supabase = await createClient();
+
+  // 1 — Salva resultado na aspiração
   const { data: asp } = await supabase.from("aspirations").select("observacoes").eq("id", asp_id).single();
   const novaObs = buildObs(asp?.observacoes ?? null, { RESULTADO: resultado, DATA_RESULTADO: data_resultado });
   await supabase.from("aspirations").update({ observacoes: novaObs || null }).eq("id", asp_id);
 
+  // 2 — Atualiza status da receptora
+  if (receptora_id) {
+    const novoStatus = resultado === "OBITO_RECEPTORA" ? "MORTA" : "FALHADA";
+    await supabase.from("animals")
+      .update({ status_rebanho: novoStatus })
+      .eq("id", receptora_id)
+      .eq("farm_id", FARM_ID);
+  }
+
+  // 3 — Marca DG como NEGATIVO
+  if (transfer_id) {
+    await supabase.from("pregnancy_diagnoses")
+      .update({ resultado: "NEGATIVO" })
+      .eq("transfer_id", transfer_id);
+  }
+
   revalidatePath("/reproducao/prenhezes");
+  revalidatePath("/rebanho");
+  revalidatePath("/dashboard");
 }
 
 // ── Nascimento ────────────────────────────────────────────────────────────────
@@ -186,7 +208,10 @@ export async function registrarNascimento(formData: FormData) {
   const nome         = (formData.get("nome")         as string)?.trim();
   const nascimento   = (formData.get("nascimento")   as string);
   const sexo         = (formData.get("sexo")         as string);
+  const rgn          = (formData.get("rgn")          as string)?.trim() || null;
   const asp_id       = (formData.get("asp_id")       as string)?.trim() || null;
+  const transfer_id  = (formData.get("transfer_id")  as string)?.trim() || null;
+  const receptora_id = (formData.get("receptora_id") as string)?.trim() || null;
   const doadora_nome = (formData.get("doadora_nome") as string)?.trim() || null;
   const touro_nome   = (formData.get("touro_nome")   as string)?.trim() || null;
 
@@ -197,7 +222,7 @@ export async function registrarNascimento(formData: FormData) {
 
   const { data: animal, error } = await supabase
     .from("animals")
-    .insert({ farm_id: FARM_ID, tipo, nome, nascimento, sexo, mae_nome: doadora_nome, pai_nome: touro_nome, situacao: "ATIVA" })
+    .insert({ farm_id: FARM_ID, tipo, nome, nascimento, sexo, rgn, mae_nome: doadora_nome, pai_nome: touro_nome, situacao: "ATIVA" })
     .select("id")
     .single();
 
@@ -214,9 +239,26 @@ export async function registrarNascimento(formData: FormData) {
     await supabase.from("aspirations").update({ observacoes: novaObs || null }).eq("id", asp_id);
   }
 
+  // Libera a receptora após parto
+  if (receptora_id) {
+    await supabase.from("animals")
+      .update({ status_rebanho: "VAZIA" })
+      .eq("id", receptora_id)
+      .eq("farm_id", FARM_ID);
+  }
+
+  // Marca DG com resultado do nascimento
+  if (transfer_id) {
+    await supabase.from("pregnancy_diagnoses")
+      .update({ resultado: "POSITIVO" })
+      .eq("transfer_id", transfer_id);
+  }
+
   revalidatePath("/reproducao/prenhezes");
+  revalidatePath("/rebanho");
   revalidatePath("/doadoras");
   revalidatePath("/machos");
+  revalidatePath("/dashboard");
 
   redirect(sexo === "F" ? `/doadoras/${animal.id}` : `/machos/${animal.id}`);
 }

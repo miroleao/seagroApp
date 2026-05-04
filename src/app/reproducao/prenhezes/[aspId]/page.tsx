@@ -337,6 +337,8 @@ export default async function FichaPrenhez({ params }: { params: Promise<{ aspId
 
       <DesfechoFichaForm
         aspId={asp.id}
+        transferId={transfer?.id ?? null}
+        receptoraId={receptora?.id ?? null}
         doadoraNome={asp.doadora_nome ?? null}
         touroNome={asp.touro_nome ?? null}
         sexoDefault={sexoDefault}

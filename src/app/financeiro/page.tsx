@@ -71,6 +71,8 @@ function labelMes(chave: string): string {
   return `${nomes[idx] ?? mes} / ${ano}`;
 }
 
+export const revalidate = 0;
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default async function FinanceiroPage({
   searchParams,

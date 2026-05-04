@@ -3,13 +3,14 @@ import { formatDate, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import {
   ArrowLeft, Scale, Plus, Trophy, CheckCircle, XCircle, Clock,
-  AlertTriangle, Star,
+  AlertTriangle, Star, Edit2,
 } from "lucide-react";
 import {
   toggleParaPistaMacho,
   atualizarExameAndrologico,
   atualizarCE,
   atualizarRGD,
+  atualizarRgn,
   atualizarLocalizacaoMacho,
   atualizarPesoMacho,
   registrarPesagemMacho,
@@ -228,6 +229,8 @@ function Genealogia({ animal }: { animal: any }) {
   );
 }
 
+export const revalidate = 0;
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default async function MachoDetalhePage({
   params,
@@ -300,13 +303,30 @@ export default async function MachoDetalhePage({
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{macho.nome}</h1>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              {(macho.rgd || macho.rgn) && (
-                <span className="text-sm text-gray-500 font-mono">
-                  {registroTipo}: {registroLabel}
-                </span>
-              )}
-            </div>
+            {/* RGN com edição inline (só quando ainda não tem RGD) */}
+            {!temRGD && (
+              <details className="group mt-0.5">
+                <summary className="list-none flex items-center gap-1.5 cursor-pointer w-fit">
+                  <span className="text-sm text-gray-500 font-mono">
+                    {macho.rgn ? `RGN: ${macho.rgn}` : <span className="text-gray-300 italic text-xs">RGN não informado</span>}
+                  </span>
+                  <Edit2 className="w-3 h-3 text-gray-300 group-hover:text-gray-500 transition-colors shrink-0" />
+                </summary>
+                <form action={atualizarRgn} className="mt-1.5 flex items-center gap-2">
+                  <input type="hidden" name="id" value={macho.id} />
+                  <input name="rgn" type="text" defaultValue={macho.rgn ?? ""}
+                    placeholder="Número do RGN…"
+                    className="w-36 border border-gray-200 rounded-lg px-2.5 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                  <button type="submit"
+                    className="text-xs bg-brand-600 hover:bg-brand-700 text-white px-3 py-1 rounded-lg transition-colors">
+                    Salvar
+                  </button>
+                </form>
+              </details>
+            )}
+            {temRGD && (
+              <span className="text-sm text-gray-500 font-mono mt-0.5 block">RGD: {macho.rgd}</span>
+            )}
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <span className="badge bg-blue-100 text-blue-700 text-sm px-3 py-1 font-semibold">TOURO</span>

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2 } from "lucide-react";
-import { toggleParaPista, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia } from "./actions";
+import { toggleParaPista, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn } from "./actions";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
 import { EditReprodutivoInline } from "@/app/rebanho/EditReprodutivoInline";
@@ -357,6 +357,8 @@ function ROISection({
   );
 }
 
+export const revalidate = 0;
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default async function DoadoraDetalhePage({
   params,
@@ -543,9 +545,25 @@ export default async function DoadoraDetalhePage({
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{doadora.nome}</h1>
-            {doadora.rgn && (
-              <p className="text-sm text-gray-500 font-mono mt-0.5">RGN: {doadora.rgn}</p>
-            )}
+            {/* RGN com edição inline */}
+            <details className="group mt-0.5">
+              <summary className="list-none flex items-center gap-1.5 cursor-pointer w-fit">
+                <span className="text-sm text-gray-500 font-mono">
+                  {doadora.rgn ? `RGN: ${doadora.rgn}` : <span className="text-gray-300 italic text-xs">RGN não informado</span>}
+                </span>
+                <Edit2 className="w-3 h-3 text-gray-300 group-hover:text-gray-500 transition-colors shrink-0" />
+              </summary>
+              <form action={atualizarRgn} className="mt-1.5 flex items-center gap-2">
+                <input type="hidden" name="id" value={doadora.id} />
+                <input name="rgn" type="text" defaultValue={doadora.rgn ?? ""}
+                  placeholder="Número do RGN…"
+                  className="w-36 border border-gray-200 rounded-lg px-2.5 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                <button type="submit"
+                  className="text-xs bg-brand-600 hover:bg-brand-700 text-white px-3 py-1 rounded-lg transition-colors">
+                  Salvar
+                </button>
+              </form>
+            </details>
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <span className="badge bg-pink-100 text-pink-700 text-sm px-3 py-1">DOADORA</span>

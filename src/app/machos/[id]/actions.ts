@@ -64,6 +64,16 @@ export async function atualizarCE(formData: FormData) {
   redirect(`/machos/${id}`);
 }
 
+export async function atualizarRgn(formData: FormData) {
+  const id  = formData.get("id") as string;
+  const rgn = (formData.get("rgn") as string)?.trim() || null;
+  if (!id) return;
+  const supabase = await createClient();
+  await supabase.from("animals").update({ rgn }).eq("id", id);
+  revalidatePath(`/machos/${id}`);
+  redirect(`/machos/${id}`);
+}
+
 export async function atualizarRGD(formData: FormData) {
   const id  = formData.get("id") as string;
   const rgd = formData.get("rgd") as string || null;

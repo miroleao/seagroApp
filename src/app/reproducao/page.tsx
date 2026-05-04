@@ -13,6 +13,8 @@ function mesAno(dateStr: string | null): string {
   return `${MESES[parseInt(month) - 1]} ${year}`;
 }
 
+export const revalidate = 0;
+
 export default async function ReproducaoPage() {
   const supabase = await createClient();
 

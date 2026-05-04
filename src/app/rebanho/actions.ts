@@ -226,10 +226,10 @@ export async function registrarDesfecho(formData: FormData) {
 
   // Mapeia desfecho para status do animal
   const novoStatus: Record<string, string> = {
-    PARIDA:           "VAZIA",
-    ABORTOU:          "VAZIA",
-    REABSORVEU:       "VAZIA",
-    OBITO_RECEPTORA:  "DESCARTE",
+    PARIDA:           "VAZIA",    // parida → libera para novo ciclo
+    ABORTOU:          "FALHADA",  // aborto → descarte do programa
+    REABSORVEU:       "FALHADA",  // absorção → descarte do programa
+    OBITO_RECEPTORA:  "MORTA",    // óbito → sai do rebanho
   };
 
   // Atualiza pregnancy_diagnoses

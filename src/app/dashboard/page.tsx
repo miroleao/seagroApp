@@ -96,6 +96,8 @@ function RankingBar({ data }: {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
+export const revalidate = 0;
+
 export default async function DashboardPage() {
   const supabase = await createClient();
 

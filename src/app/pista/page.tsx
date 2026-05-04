@@ -79,6 +79,8 @@ function PrêmioBadge({ tipo }: { tipo: string }) {
   );
 }
 
+export const revalidate = 0;
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function PistaPage() {

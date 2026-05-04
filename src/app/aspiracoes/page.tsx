@@ -43,6 +43,8 @@ type DoadoraCard = {
   totalEmbrioes: number;
 };
 
+export const revalidate = 0;
+
 export default async function AspiracoesPage() {
   const supabase = await createClient();
 

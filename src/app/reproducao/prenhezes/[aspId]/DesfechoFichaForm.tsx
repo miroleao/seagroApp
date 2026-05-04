@@ -7,6 +7,8 @@ import { registrarNascimento, registrarDesfecho } from "../actions";
 
 type Props = {
   aspId:        string;
+  transferId:   string | null;
+  receptoraId:  string | null;
   doadoraNome:  string | null;
   touroNome:    string | null;
   sexoDefault:  string;          // "F" | "M" | ""
@@ -55,7 +57,7 @@ function ResultadoBadge({ resultado, dataResultado }: { resultado: string; dataR
   );
 }
 
-export default function DesfechoFichaForm({ aspId, doadoraNome, touroNome, sexoDefault, resultado, dataResultado }: Props) {
+export default function DesfechoFichaForm({ aspId, transferId, receptoraId, doadoraNome, touroNome, sexoDefault, resultado, dataResultado }: Props) {
   const [tipo, setTipo] = useState<"NASCIMENTO" | "ABORTO" | "OBITO_RECEPTORA">("NASCIMENTO");
 
   // Se já tem resultado registrado, mostra só o badge
@@ -114,6 +116,8 @@ export default function DesfechoFichaForm({ aspId, doadoraNome, touroNome, sexoD
             <input type="hidden" name="asp_id"       value={aspId} />
             <input type="hidden" name="doadora_nome" value={doadoraNome ?? ""} />
             <input type="hidden" name="touro_nome"   value={touroNome   ?? ""} />
+            {transferId  && <input type="hidden" name="transfer_id"  value={transferId} />}
+            {receptoraId && <input type="hidden" name="receptora_id" value={receptoraId} />}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-1">
@@ -137,6 +141,15 @@ export default function DesfechoFichaForm({ aspId, doadoraNome, touroNome, sexoD
               </div>
             </div>
 
+            {/* RGN opcional */}
+            <div className="max-w-xs">
+              <label className="text-xs text-gray-500 mb-1 block">
+                RGN <span className="text-gray-400 font-normal">(opcional — pode preencher depois)</span>
+              </label>
+              <input name="rgn" type="text" placeholder="Ex: 3224"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white" />
+            </div>
+
             <button type="submit"
               className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
               <Baby className="w-3.5 h-3.5" /> Salvar e abrir ficha do animal
@@ -149,6 +162,8 @@ export default function DesfechoFichaForm({ aspId, doadoraNome, touroNome, sexoD
           <form action={registrarDesfecho} className="flex items-end gap-3">
             <input type="hidden" name="asp_id"    value={aspId} />
             <input type="hidden" name="resultado" value={tipo} />
+            {transferId  && <input type="hidden" name="transfer_id"  value={transferId} />}
+            {receptoraId && <input type="hidden" name="receptora_id" value={receptoraId} />}
             <div>
               <label className="text-xs text-gray-500 mb-1 block">
                 {tipo === "ABORTO" ? "Data do aborto" : "Data do óbito"} <span className="text-red-500">*</span>

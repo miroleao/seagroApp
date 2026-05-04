@@ -51,6 +51,8 @@ function SexagemBadge({ sexagem }: { sexagem: string | null }) {
   return <span className="text-gray-300 text-[11px]">—</span>;
 }
 
+export const revalidate = 0;
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function RebanhoPage({
   searchParams,

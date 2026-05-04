@@ -26,6 +26,8 @@ function idadeEmMeses(nascimento: string | null): number | null {
   return (hoje.getFullYear() - inicio.getFullYear()) * 12 + (hoje.getMonth() - inicio.getMonth());
 }
 
+export const revalidate = 0;
+
 export default async function DoadorasPage({
   searchParams,
 }: {
