@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { FARM_ID } from "@/lib/utils";
-import { Baby, Plus } from "lucide-react";
+import { Baby, CheckCircle2, Plus } from "lucide-react";
 import Link from "next/link";
 import PrenhezeTabela, { PrenheZListRow } from "./PrenhezeTabela";
 
@@ -10,7 +10,23 @@ function parseKey(obs: string | null | undefined, key: string): string | null {
   return m ? m[1].trim() : null;
 }
 
-export default async function PrenhezesList() {
+/** Formata a string serializada de vendedores para exibição legível.
+ *  Ex: "José(50%),Maria(50%)" → "José (50%), Maria (50%)" */
+function formatVendedores(raw: string): string {
+  return raw
+    .split(",")
+    .map(v => v.trim().replace(/\((\d+(?:\.\d+)?)%\)$/, " ($1%)"))
+    .join(", ");
+}
+
+export default async function PrenhezesList({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  const { saved } = await searchParams;
+  const savedCount = saved ? parseInt(saved) : null;
+
   const supabase = await createClient();
 
   const { data: doadoras } = await supabase
@@ -72,7 +88,11 @@ export default async function PrenhezesList() {
         dataParto:
           transfer?.pregnancy_diagnoses?.[0]?.data_previsao_parto ??
           parseKey(obs, "PARTO"),
-        vendedor:      parseKey(obs, "VENDEDOR"),
+        vendedor: (() => {
+          const multi = parseKey(obs, "VENDEDORES");
+          if (multi) return formatVendedores(multi);
+          return parseKey(obs, "VENDEDOR") ?? null;
+        })(),
         dataCompra:    parseKey(obs, "DATA_COMPRA") ?? s.data ?? null,
         dataEntrega:   parseKey(obs, "DATA_ENTREGA"),
         resultado:     parseKey(obs, "RESULTADO"),
@@ -83,6 +103,19 @@ export default async function PrenhezesList() {
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+
+      {/* Banner de confirmação de salvamento */}
+      {savedCount !== null && (
+        <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+          <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+          <p className="text-sm text-green-800 font-medium">
+            {savedCount > 0
+              ? `${savedCount} prenhe${savedCount !== 1 ? "zes" : "z"} registrada${savedCount !== 1 ? "s" : ""} com sucesso!`
+              : "Nenhuma prenhez foi salva. Verifique se as linhas estavam preenchidas corretamente."}
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Prenhezes</h1>

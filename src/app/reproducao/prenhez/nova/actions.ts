@@ -13,12 +13,26 @@ import { FARM_ID } from "@/lib/utils";
 export async function registrarPrenhezesBatch(formData: FormData) {
   const data_compra  = (formData.get("data_compra") as string)  || new Date().toISOString().split("T")[0];
   const fazenda      = (formData.get("fazenda") as string)?.trim()     || null;
-  const vendedor     = (formData.get("vendedor") as string)?.trim()    || null;
   const nParcelasRaw = formData.get("n_parcelas") as string;
   const n_parcelas   = parseInt(nParcelasRaw) || 30;
 
+  // ── Serializa múltiplos vendedores ──────────────────────────────────────────
+  const vendorParts: string[] = [];
+  let vi = 0;
+  while (formData.get(`vendedor_nome_${vi}`) !== null) {
+    const nome = (formData.get(`vendedor_nome_${vi}`) as string)?.trim();
+    const pct  = (formData.get(`vendedor_pct_${vi}`)  as string)?.trim();
+    if (nome) {
+      vendorParts.push(pct ? `${nome}(${pct}%)` : nome);
+    }
+    vi++;
+  }
+  const vendedoresStr     = vendorParts.join(",") || null;
+  const primeiroVendedor  = vendorParts[0]?.replace(/\(.*?\)$/, "").trim() || null;
+
   const supabase = await createClient();
 
+  let salvos = 0;
   let i = 0;
   while (true) {
     const brinco       = (formData.get(`brinco_${i}`) as string)?.trim()      || null;
@@ -81,33 +95,40 @@ export async function registrarPrenhezesBatch(formData: FormData) {
 
     const receptora = receptoraId ? { id: receptoraId } : null;
 
-    if (!receptora) { i++; continue; }
+    if (!receptora) {
+      console.error(`[prenhez] linha ${i}: falha ao criar/encontrar receptora (brinco=${brinco})`);
+      i++; continue;
+    }
 
     // 2 — Sessão OPU (COMPRADA) — uma por linha para manter isolamento
-    const { data: session } = await supabase
+    const { data: session, error: errSession } = await supabase
       .from("opu_sessions")
       .insert({
         farm_id:     FARM_ID,
         tipo:        "COMPRADA",
         data:        data_compra,
         local:       fazenda,
-        responsavel: vendedor,
+        responsavel: primeiroVendedor,
       })
       .select("id")
       .single();
 
-    if (!session) { i++; continue; }
+    if (!session) {
+      console.error(`[prenhez] linha ${i}: falha ao criar opu_session`, errSession);
+      i++; continue;
+    }
 
-    // 3 — Obs estruturada
+    // 3 — Obs estruturada (inclui VENDEDORES se informado)
     const obsParts: string[] = [];
-    if (doadora_rgn)  obsParts.push(`DOADORA_RGN:${doadora_rgn}`);
-    if (touro_rgn)    obsParts.push(`TOURO_RGN:${touro_rgn}`);
-    if (data_parto)   obsParts.push(`PARTO:${data_parto}`);
+    if (doadora_rgn)   obsParts.push(`DOADORA_RGN:${doadora_rgn}`);
+    if (touro_rgn)     obsParts.push(`TOURO_RGN:${touro_rgn}`);
+    if (data_parto)    obsParts.push(`PARTO:${data_parto}`);
     if (valor_parcela) obsParts.push(`PARCELA:${valor_parcela}`);
-    if (fazenda)      obsParts.push(`FAZENDA:${fazenda}`);
+    if (fazenda)       obsParts.push(`FAZENDA:${fazenda}`);
+    if (vendedoresStr) obsParts.push(`VENDEDORES:${vendedoresStr}`);
 
     // 4 — Aspiração
-    const { data: asp } = await supabase
+    const { data: asp, error: errAsp } = await supabase
       .from("aspirations")
       .insert({
         farm_id:      FARM_ID,
@@ -119,10 +140,13 @@ export async function registrarPrenhezesBatch(formData: FormData) {
       .select("id")
       .single();
 
-    if (!asp) { i++; continue; }
+    if (!asp) {
+      console.error(`[prenhez] linha ${i}: falha ao criar aspiration`, errAsp);
+      i++; continue;
+    }
 
     // 5 — Embrião (IMPLANTADO)
-    const { data: embriao } = await supabase
+    const { data: embriao, error: errEmb } = await supabase
       .from("embryos")
       .insert({
         farm_id:        FARM_ID,
@@ -133,10 +157,13 @@ export async function registrarPrenhezesBatch(formData: FormData) {
       .select("id")
       .single();
 
-    if (!embriao) { i++; continue; }
+    if (!embriao) {
+      console.error(`[prenhez] linha ${i}: falha ao criar embryo`, errEmb);
+      i++; continue;
+    }
 
     // 6 — Transfer
-    const { data: transfer } = await supabase
+    const { data: transfer, error: errTr } = await supabase
       .from("transfers")
       .insert({
         farm_id:          FARM_ID,
@@ -144,33 +171,37 @@ export async function registrarPrenhezesBatch(formData: FormData) {
         receptora_id:     receptora.id,
         receptora_brinco: brinco,
         data_te:          data_compra,
-        responsavel:      vendedor,
+        responsavel:      primeiroVendedor,
       })
       .select("id")
       .single();
 
-    if (!transfer) { i++; continue; }
+    if (!transfer) {
+      console.error(`[prenhez] linha ${i}: falha ao criar transfer`, errTr);
+      i++; continue;
+    }
 
     // 7 — DG positivo
     if (data_parto) {
-      await supabase.from("pregnancy_diagnoses").insert({
+      const { error: errDg } = await supabase.from("pregnancy_diagnoses").insert({
         farm_id:              FARM_ID,
         transfer_id:          transfer.id,
         data_dg:              data_compra,
         resultado:            "POSITIVO",
         data_previsao_parto:  data_parto,
       });
+      if (errDg) console.error(`[prenhez] linha ${i}: falha ao criar pregnancy_diagnose`, errDg);
     }
 
     // 8 — Parcelas (se informadas)
     if (valor_parcela && n_parcelas > 0) {
-      const { data: transaction } = await supabase
+      const { data: transaction, error: errTx } = await supabase
         .from("transactions")
         .insert({
           farm_id:      FARM_ID,
           tipo:         "COMPRA",
           animal_nome:  doadora_nome ?? brinco ?? "Prenhez",
-          contraparte:  vendedor,
+          contraparte:  primeiroVendedor,
           valor_total:  valor_parcela * n_parcelas,
           n_parcelas,
         })
@@ -192,11 +223,14 @@ export async function registrarPrenhezesBatch(formData: FormData) {
           };
         });
         await supabase.from("installments").insert(parcelas);
+      } else {
+        console.error(`[prenhez] linha ${i}: falha ao criar transaction`, errTx);
       }
     }
 
+    salvos++;
     i++;
   }
 
-  redirect("/reproducao/prenhezes");
+  redirect(`/reproducao/prenhezes?saved=${salvos}`);
 }

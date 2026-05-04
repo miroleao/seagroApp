@@ -46,6 +46,32 @@ function diasEntre(a: string | null, b: string | null): number | null {
   return Math.round((db.getTime() - da.getTime()) / 86400000);
 }
 
+// ─── Grupos ABCZ — Regulamento ExpZebu 2025/2026 (Art. 29°) ─────────────────
+const GRUPOS_ABCZ: { nome: string; sexo: "F" | "M"; min: number; max: number }[] = [
+  { nome: "Bezerra Menor",  sexo: "F", min:  6, max:  9 },
+  { nome: "Bezerra Maior",  sexo: "F", min:  9, max: 12 },
+  { nome: "Novilha Menor",  sexo: "F", min: 12, max: 16 },
+  { nome: "Novilha",        sexo: "F", min: 16, max: 20 },
+  { nome: "Novilha Maior",  sexo: "F", min: 20, max: 24 },
+  { nome: "Vaca Jovem",     sexo: "F", min: 24, max: 30 },
+  { nome: "Vaca",           sexo: "F", min: 30, max: 36 },
+  { nome: "Vaca Adulta",    sexo: "F", min: 36, max: 42 },
+  { nome: "Bezerro Menor",  sexo: "M", min:  6, max:  9 },
+  { nome: "Bezerro Maior",  sexo: "M", min:  9, max: 12 },
+  { nome: "Júnior Menor",   sexo: "M", min: 12, max: 16 },
+  { nome: "Júnior",         sexo: "M", min: 16, max: 20 },
+  { nome: "Júnior Maior",   sexo: "M", min: 20, max: 24 },
+  { nome: "Touro Jovem",    sexo: "M", min: 24, max: 30 },
+  { nome: "Touro Sênior",   sexo: "M", min: 30, max: 36 },
+];
+
+function categoriaPista(nascimento: string | null, sexo: "F" | "M"): string | null {
+  const hoje = new Date().toISOString().split("T")[0];
+  const meses = mesesEntre(nascimento, hoje);
+  if (meses == null) return null;
+  return GRUPOS_ABCZ.find(g => g.sexo === sexo && meses >= g.min && meses < g.max)?.nome ?? null;
+}
+
 /** Ponderal (g/dia) = peso_kg × 1000 / dias_de_vida */
 function calcPonderal(pesoKg: number, nascimento: string | null, dataPesagem: string): number | null {
   const dias = diasEntre(nascimento, dataPesagem);
@@ -76,18 +102,33 @@ function classificarPonderal(gdia: number, meses: number): { label: string; cls:
 
 // ── Genealogia ──────────────────────────────────────────────────────────────
 function PedCell({
-  label, name, sub, highlight,
+  label, name, sub, highlight, linhagem,
 }: {
-  label: string; name?: string | null; sub?: string | null; highlight?: boolean;
+  label: string; name?: string | null; sub?: string | null; highlight?: boolean; linhagem?: "pai" | "mae";
 }) {
-  const base  = "flex flex-col justify-center px-2.5 py-2 rounded-lg border text-xs h-full overflow-hidden";
-  const style = highlight
-    ? "bg-blue-50 border-blue-200"
-    : name ? "bg-gray-50 border-gray-200" : "bg-white border-dashed border-gray-200";
+  const base = "flex flex-col justify-center px-2.5 py-2 rounded-lg border text-xs h-full overflow-hidden";
+
+  let style: string;
+  if (highlight)               style = "bg-indigo-50 border-indigo-300";
+  else if (linhagem === "pai") style = name ? "bg-blue-50 border-blue-200"  : "bg-white border-dashed border-blue-100";
+  else if (linhagem === "mae") style = name ? "bg-rose-50 border-rose-200"  : "bg-white border-dashed border-rose-100";
+  else                         style = name ? "bg-gray-50 border-gray-200"  : "bg-white border-dashed border-gray-200";
+
+  const labelColor = highlight         ? "text-indigo-500"
+    : linhagem === "pai"               ? "text-blue-400"
+    : linhagem === "mae"               ? "text-rose-400"
+    : "text-gray-400";
+
+  const nameColor = highlight          ? "text-indigo-900"
+    : linhagem === "pai"               ? "text-blue-900"
+    : linhagem === "mae"               ? "text-rose-900"
+    : name                             ? "text-gray-800"
+    : "text-gray-300";
+
   return (
     <div className={`${base} ${style}`}>
-      <p className="text-[9px] uppercase tracking-wide text-gray-400 mb-0.5 leading-none">{label}</p>
-      <p className={`font-semibold leading-tight truncate ${highlight ? "text-blue-800" : name ? "text-gray-800" : "text-gray-300"}`}>
+      <p className={`text-[9px] uppercase tracking-wide mb-0.5 leading-none ${labelColor}`}>{label}</p>
+      <p className={`font-semibold leading-tight truncate ${nameColor}`}>
         {name ?? "—"}
       </p>
       {sub && <p className="text-[9px] text-gray-400 leading-none mt-0.5 font-mono truncate">{sub}</p>}
@@ -107,13 +148,23 @@ function Genealogia({ animal }: { animal: any }) {
   if (!hasAny) return <p className="text-sm text-gray-400 italic">Genealogia não cadastrada.</p>;
 
   // Layout: 4 colunas × 8 linhas
-  // Col 1: Animal (linhas 1–8)
-  // Col 2: Pai (1–4) / Mãe (5–8)
-  // Col 3: Avô Pat. (1–2) / Avó Pat. (3–4) / Avô Mat. (5–6) / Avó Mat. (7–8)
-  // Col 4: 8 bisavós (1 linha cada)
-  const ROW_H = 40, ROWS = 8, GAP = 3;
+  const ROW_H = 46, ROWS = 8, GAP = 3;
+
   return (
     <div className="overflow-x-auto">
+      {/* Cabeçalhos das colunas */}
+      <div
+        className="min-w-[580px] mb-1"
+        style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: `${GAP}px` }}
+      >
+        <div />
+        {(["Pais", "Avós", "Bisavós"] as const).map((col) => (
+          <div key={col} className="text-center">
+            <span className="text-[9px] font-semibold uppercase tracking-widest text-gray-400">{col}</span>
+          </div>
+        ))}
+      </div>
+
       <div className="min-w-[580px]" style={{
         display: "grid",
         gridTemplateColumns: "repeat(4, 1fr)",
@@ -127,50 +178,50 @@ function Genealogia({ animal }: { animal: any }) {
 
         {/* Col 2 — Pai / Mãe */}
         <div style={{ gridColumn: "2", gridRow: "1 / span 4" }}>
-          <PedCell label="Pai" name={animal.pai_nome} />
+          <PedCell label="Pai" name={animal.pai_nome} linhagem="pai" />
         </div>
         <div style={{ gridColumn: "2", gridRow: "5 / span 4" }}>
-          <PedCell label="Mãe" name={animal.mae_nome} />
+          <PedCell label="Mãe" name={animal.mae_nome} linhagem="mae" />
         </div>
 
         {/* Col 3 — Avós */}
         <div style={{ gridColumn: "3", gridRow: "1 / span 2" }}>
-          <PedCell label="Avô Paterno" name={animal.avo_paterno} />
+          <PedCell label="Avô Paterno" name={animal.avo_paterno} linhagem="pai" />
         </div>
         <div style={{ gridColumn: "3", gridRow: "3 / span 2" }}>
-          <PedCell label="Avó Paterna" name={animal.avo_paterna} />
+          <PedCell label="Avó Paterna" name={animal.avo_paterna} linhagem="pai" />
         </div>
         <div style={{ gridColumn: "3", gridRow: "5 / span 2" }}>
-          <PedCell label="Avô Materno" name={animal.avo_materno} />
+          <PedCell label="Avô Materno" name={animal.avo_materno} linhagem="mae" />
         </div>
         <div style={{ gridColumn: "3", gridRow: "7 / span 2" }}>
-          <PedCell label="Avó Materna" name={animal.avo_materna} />
+          <PedCell label="Avó Materna" name={animal.avo_materna} linhagem="mae" />
         </div>
 
         {/* Col 4 — Bisavós (1 linha cada) */}
         <div style={{ gridColumn: "4", gridRow: "1" }}>
-          <PedCell label="Pai do Avô Pat." name={animal.bisavo_pat_pat} />
+          <PedCell label="Bisavô" name={animal.bisavo_pat_pat} linhagem="pai" />
         </div>
         <div style={{ gridColumn: "4", gridRow: "2" }}>
-          <PedCell label="Mãe do Avô Pat." name={animal.bisava_pat_pat} />
+          <PedCell label="Bisavó" name={animal.bisava_pat_pat} linhagem="pai" />
         </div>
         <div style={{ gridColumn: "4", gridRow: "3" }}>
-          <PedCell label="Pai da Avó Pat." name={animal.bisavo_pat_mat} />
+          <PedCell label="Bisavô" name={animal.bisavo_pat_mat} linhagem="pai" />
         </div>
         <div style={{ gridColumn: "4", gridRow: "4" }}>
-          <PedCell label="Mãe da Avó Pat." name={animal.bisava_pat_mat} />
+          <PedCell label="Bisavó" name={animal.bisava_pat_mat} linhagem="pai" />
         </div>
         <div style={{ gridColumn: "4", gridRow: "5" }}>
-          <PedCell label="Pai do Avô Mat." name={animal.bisavo_materno} />
+          <PedCell label="Bisavô" name={animal.bisavo_materno} linhagem="mae" />
         </div>
         <div style={{ gridColumn: "4", gridRow: "6" }}>
-          <PedCell label="Mãe do Avô Mat." name={animal.bisava_mat_pat} />
+          <PedCell label="Bisavó" name={animal.bisava_mat_pat} linhagem="mae" />
         </div>
         <div style={{ gridColumn: "4", gridRow: "7" }}>
-          <PedCell label="Pai da Avó Mat." name={animal.bisavo_materna} />
+          <PedCell label="Bisavô" name={animal.bisavo_materna} linhagem="mae" />
         </div>
         <div style={{ gridColumn: "4", gridRow: "8" }}>
-          <PedCell label="Mãe da Avó Mat." name={animal.bisavo} />
+          <PedCell label="Bisavó" name={animal.bisavo} linhagem="mae" />
         </div>
       </div>
     </div>
@@ -275,21 +326,31 @@ export default async function MachoDetalhePage({
               <span className="badge bg-gray-100 text-gray-600 text-sm px-3 py-1">{macho.localizacao}</span>
             )}
             {/* Toggle Para Pista */}
-            <form action={toggleParaPistaMacho}>
-              <input type="hidden" name="id" value={macho.id} />
-              <input type="hidden" name="para_pista" value={(macho as any).para_pista ? "false" : "true"} />
-              <button type="submit"
-                className={`inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full font-medium transition-colors cursor-pointer border ${
-                  (macho as any).para_pista
-                    ? "bg-yellow-400 text-yellow-900 border-yellow-400 hover:bg-yellow-300"
-                    : "bg-white text-gray-500 border-gray-200 hover:border-yellow-400 hover:text-yellow-600"
-                }`}
-                title={(macho as any).para_pista ? "Remover da Pista" : "Marcar para Pista"}
-              >
-                <Star className={`w-3.5 h-3.5 ${(macho as any).para_pista ? "fill-yellow-700" : ""}`} />
-                {(macho as any).para_pista ? "Selecionado para Pista" : "Marcar para Pista"}
-              </button>
-            </form>
+            <div className="flex flex-col gap-0.5">
+              <form action={toggleParaPistaMacho}>
+                <input type="hidden" name="id" value={macho.id} />
+                <input type="hidden" name="para_pista" value={(macho as any).para_pista ? "false" : "true"} />
+                <button type="submit"
+                  className={`inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full font-medium transition-colors cursor-pointer border ${
+                    (macho as any).para_pista
+                      ? "bg-yellow-400 text-yellow-900 border-yellow-400 hover:bg-yellow-300"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-yellow-400 hover:text-yellow-600"
+                  }`}
+                  title={(macho as any).para_pista ? "Remover da Pista" : "Marcar para Pista"}
+                >
+                  <Star className={`w-3.5 h-3.5 ${(macho as any).para_pista ? "fill-yellow-700" : ""}`} />
+                  {(macho as any).para_pista ? "Selecionado para Pista" : "Marcar para Pista"}
+                </button>
+              </form>
+              {(macho as any).para_pista && (() => {
+                const cat = categoriaPista(macho.nascimento ?? null, "M");
+                return cat ? (
+                  <p className="text-[10px] text-gray-400 pl-1">
+                    Categoria ABCZ: <span className="font-medium text-gray-500">{cat}</span>
+                  </p>
+                ) : null;
+              })()}
+            </div>
           </div>
         </div>
 
