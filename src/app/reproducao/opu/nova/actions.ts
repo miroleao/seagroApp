@@ -7,7 +7,7 @@ import { FARM_ID } from "@/lib/utils";
 /**
  * Registra uma sessão OPU com múltiplas doadoras.
  *
- * Campos do lote: data, data_fiv, data_dg, data_sexagem,
+ * Campos do lote: data, data_fiv, data_te, data_dg, data_sexagem,
  *   tipo_sessao, local, responsavel, laboratorio
  *
  * Campos por linha (índice i):
@@ -27,6 +27,7 @@ function calcParto(dataBase: string, dias: number): string {
 export async function registrarOPUBatch(formData: FormData) {
   const data         = (formData.get("data")         as string) || new Date().toISOString().split("T")[0];
   const data_fiv     = (formData.get("data_fiv")     as string)?.trim() || null;
+  const data_te      = (formData.get("data_te")      as string)?.trim() || null;
   const data_dg      = (formData.get("data_dg")      as string)?.trim() || null;
   const data_sexagem = (formData.get("data_sexagem") as string)?.trim() || null;
   const tipo_sessao  = (formData.get("tipo_sessao")  as string)?.trim() || "PROPRIA";
@@ -49,6 +50,7 @@ export async function registrarOPUBatch(formData: FormData) {
       responsavel,
       laboratorio,
       data_fiv,
+      data_te,
       data_dg,
       data_sexagem,
     })
@@ -201,7 +203,7 @@ export async function registrarOPUBatch(formData: FormData) {
           embryo_id:        embriao.id,
           receptora_id:     finalReceptoraId,
           receptora_brinco: receptora_brinco,
-          data_te:          data,
+          data_te:          data_te ?? data,   // usa data_te se informada, senão data OPU
           responsavel,
         }).select("id").single();
 

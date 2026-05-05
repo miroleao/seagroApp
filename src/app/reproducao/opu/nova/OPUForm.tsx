@@ -129,7 +129,7 @@ export default function OPUForm({
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b border-gray-100 pb-2">
           Dados da Sessão
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Data da OPU *</label>
             <input name="data" type="date" required className={inputCls} />
@@ -137,6 +137,10 @@ export default function OPUForm({
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Data da FIV</label>
             <input name="data_fiv" type="date" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Data da T.E.</label>
+            <input name="data_te" type="date" className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Data DG</label>
