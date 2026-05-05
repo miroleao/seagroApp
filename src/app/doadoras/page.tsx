@@ -256,7 +256,7 @@ export default async function DoadorasPage({
                       >
                         {d.nome}
                       </Link>
-                      {d.mae_nome && (
+                      {(d.nome ?? "").toUpperCase().includes("DA SE") && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src="/logo-se.png"

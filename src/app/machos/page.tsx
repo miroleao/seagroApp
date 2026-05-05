@@ -230,7 +230,7 @@ export default async function MachosPage({
                         >
                           {m.nome}
                         </Link>
-                        {m.mae_nome && (
+                        {(m.nome ?? "").toUpperCase().includes("DA SE") && (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src="/logo-se.png"
