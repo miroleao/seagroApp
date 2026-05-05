@@ -146,7 +146,16 @@ export default async function RebanhoPage({
     return passaTermo && passaCls && passaSt;
   });
 
-  const prenhas = animais.filter(a => a.status_rebanho === "PRENHA" || a.status_rebanho === "PRENHA_EMBRIAO");
+  const prenhas = animais
+    .filter(a => a.status_rebanho === "PRENHA" || a.status_rebanho === "PRENHA_EMBRIAO")
+    .sort((a, b) => {
+      const pa = prenhezesMapa.get(a.id)?.previsao ?? null;
+      const pb = prenhezesMapa.get(b.id)?.previsao ?? null;
+      if (!pa && !pb) return 0;
+      if (!pa) return 1;
+      if (!pb) return -1;
+      return pa < pb ? -1 : pa > pb ? 1 : 0;
+    });
 
   return (
     <div className="p-6 space-y-6">
@@ -203,7 +212,6 @@ export default async function RebanhoPage({
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Doadora</th>
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Touro</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Embrião</th>
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Sexagem</th>
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Data T.E.</th>
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Prev. Parto</th>
@@ -227,15 +235,6 @@ export default async function RebanhoPage({
                       ) : p?.doadoraNome ?? <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-xs text-gray-600">{p?.touroNome ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-xs text-gray-500">
-                      {p?.embryoCdc
-                        ? <span className="font-mono">{p.embryoCdc}</span>
-                        : p?.embryoAdt
-                        ? <span className="font-mono text-gray-400">{p.embryoAdt}</span>
-                        : p?.embryoId
-                        ? <span className="font-mono text-gray-300 text-[10px]">{p.embryoId.slice(0,8)}…</span>
-                        : <span className="text-gray-300">—</span>}
-                    </td>
                     <td className="px-4 py-2.5"><SexagemBadge sexagem={p?.sexagem ?? null} /></td>
                     <td className="px-4 py-2.5 text-xs text-gray-600">{formatDate(p?.dataTe ?? null)}</td>
                     <td className="px-4 py-2.5 text-xs font-semibold text-green-700">{formatDate(p?.previsao ?? null)}</td>
