@@ -101,7 +101,6 @@ export default function OPUForm({
   const totalDt          = rows.reduce((s, r) => s + (parseInt(r.dt)           || 0), 0);
   const totalVitri       = rows.reduce((s, r) => s + (parseInt(r.vitrificados) || 0), 0);
   const totalImplantados = rows.reduce((s, r) => s + (parseInt(r.implantados)  || 0), 0);
-  const totalPrenhezes   = rows.reduce((s, r) => s + (parseInt(r.prenhezes)    || 0), 0);
   const totalCusto       = rows.reduce((s, r) => s + (parseFloat(r.custo)      || 0), 0);
   const totalEmbrioes    = totalDt + totalVitri + totalImplantados;
 
@@ -209,8 +208,7 @@ export default function OPUForm({
                 <th className="px-3 py-2 text-xs text-gray-500 font-medium w-24">Oócitos</th>
                 <th className="px-3 py-2 text-xs text-blue-600 font-semibold w-20 bg-blue-50/50">DT</th>
                 <th className="px-3 py-2 text-xs text-indigo-600 font-semibold w-20 bg-indigo-50/50">Vitri.</th>
-                <th className="px-3 py-2 text-xs text-amber-600 font-semibold w-20 bg-amber-50/50">Impl.</th>
-                <th className="px-3 py-2 text-xs text-gray-500 font-medium w-20">Prenhez.</th>
+                <th className="px-3 py-2 text-xs text-amber-600 font-semibold w-28 bg-amber-50/50">Impl.</th>
                 <th className="px-3 py-2 text-xs text-gray-500 font-medium w-28">Custo (R$)</th>
                 <th className="px-3 py-2 w-10"></th>
               </tr>
@@ -277,12 +275,12 @@ export default function OPUForm({
                       </td>
 
                       {/* Implantados */}
-                      <td className="px-3 py-2 bg-amber-50/30">
+                      <td className="px-2 py-2 bg-amber-50/30">
                         <div className="flex items-center gap-1">
                           <input name={`implantados_${i}`} type="number" min="0" placeholder="0"
                             value={row.implantados}
                             onChange={e => updateRow(row.uid, "implantados", e.target.value)}
-                            className="w-full border border-amber-200 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white" />
+                            className="min-w-0 flex-1 border border-amber-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white" />
                           {(parseInt(row.implantados) || 0) > 0 && (
                             <button type="button"
                               onClick={() => updateRow(row.uid, "showReceptoras", !row.showReceptoras)}
@@ -292,11 +290,6 @@ export default function OPUForm({
                             </button>
                           )}
                         </div>
-                      </td>
-
-                      <td className="px-3 py-2">
-                        <input name={`prenhezes_${i}`} type="number" min="0" placeholder="0"
-                          value={row.prenhezes} onChange={e => updateRow(row.uid, "prenhezes", e.target.value)} className={inputCls} />
                       </td>
                       <td className="px-3 py-2">
                         <input name={`custo_${i}`} type="number" min="0" step="0.01" placeholder="0,00"
@@ -316,7 +309,7 @@ export default function OPUForm({
                     {/* Mini-resumo por linha */}
                     {totalRow > 0 && (
                       <tr className="border-t border-gray-50">
-                        <td colSpan={colsDoadoras + 9} className="px-3 py-1 text-right">
+                        <td colSpan={colsDoadoras + 8} className="px-3 py-1 text-right">
                           <span className="text-[11px] text-gray-400">
                             Total embriões:{" "}
                             <span className="font-semibold text-gray-600">{totalRow}</span>
@@ -382,7 +375,6 @@ export default function OPUForm({
           <span className="border-l border-gray-200 pl-4">
             <strong className="text-gray-800">{totalEmbrioes}</strong> embriões totais
           </span>
-          <span><strong className="text-gray-800">{totalPrenhezes}</strong> prenhezes</span>
           <span className="ml-auto">
             <strong className="text-gray-800">
               {totalCusto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}

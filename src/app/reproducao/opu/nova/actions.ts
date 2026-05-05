@@ -209,17 +209,16 @@ export async function registrarOPUBatch(formData: FormData): Promise<{ error: st
 
         // Cria pregnancy_diagnoses para vincular doadora/touro à receptora no Rebanho
         if (transfer) {
-          // Previsão de parto: data_fiv + 293 dias (padrão Nelore via FIV),
-          // ou data OPU + 286 dias se não houver data_fiv
-          const dataBase   = data_fiv ?? data;
-          const diasParto  = data_fiv ? 293 : 286;
-          const previsao   = calcParto(dataBase, diasParto);
+          // Previsão de parto: T.E. + 292 dias
+          // Fallback: data OPU se data_te não informada
+          const dataBase = data_te ?? data;
+          const previsao = calcParto(dataBase, 292);
 
           const { error: dgErr } = await supabase.from("pregnancy_diagnoses").insert({
             farm_id:             FARM_ID,
             transfer_id:         transfer.id,
             resultado:           "POSITIVO",
-            data_dg:             data_fiv ?? data,   // NOT NULL — usa data_fiv ou data OPU
+            data_dg:             data_dg ?? data_te ?? data,   // NOT NULL
             data_previsao_parto: previsao,
           });
           if (dgErr) console.error("⚠️ pregnancy_diagnoses insert error:", dgErr.message);
