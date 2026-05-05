@@ -232,19 +232,21 @@ export async function registrarDesfecho(formData: FormData) {
     OBITO_RECEPTORA:  "MORTA",    // óbito → sai do rebanho
   };
 
+  // resultado no DG: PARIDA = POSITIVO (nasceu), todo resto = NEGATIVO
+  const resultadoDG = tipo_desfecho === "PARIDA" ? "POSITIVO" : "NEGATIVO";
+
   // Atualiza pregnancy_diagnoses
-  if (transfer_id) {
+  async function updateDG(tid: string) {
     await supabase
       .from("pregnancy_diagnoses")
-      .update({
-        resultado:     tipo_desfecho,
-        tipo_desfecho: tipo_desfecho,
-        data_desfecho: data_desfecho ?? null,
-      })
-      .eq("transfer_id", transfer_id)
+      .update({ resultado: resultadoDG, data_desfecho: data_desfecho ?? null })
+      .eq("transfer_id", tid)
       .eq("farm_id", FARM_ID);
+  }
+
+  if (transfer_id) {
+    await updateDG(transfer_id);
   } else {
-    // Sem transfer_id: busca pelo receptora_id via join
     const { data: transfers } = await supabase
       .from("transfers")
       .select("id")
@@ -252,19 +254,7 @@ export async function registrarDesfecho(formData: FormData) {
       .eq("farm_id", FARM_ID)
       .order("data_te", { ascending: false })
       .limit(1);
-
-    const tid = transfers?.[0]?.id;
-    if (tid) {
-      await supabase
-        .from("pregnancy_diagnoses")
-        .update({
-          resultado:     tipo_desfecho,
-          tipo_desfecho: tipo_desfecho,
-          data_desfecho: data_desfecho ?? null,
-        })
-        .eq("transfer_id", tid)
-        .eq("farm_id", FARM_ID);
-    }
+    if (transfers?.[0]?.id) await updateDG(transfers[0].id);
   }
 
   // Atualiza status do animal
@@ -276,6 +266,7 @@ export async function registrarDesfecho(formData: FormData) {
     .eq("farm_id", FARM_ID);
 
   revalidatePath("/rebanho");
+  revalidatePath("/dashboard");
   redirect("/rebanho");
 }
 
@@ -296,8 +287,12 @@ export async function registrarDesfechoUnificado(formData: FormData) {
   if (["PARIDA", "ABORTOU", "REABSORVEU"].includes(tipo)) {
     // ── Desfecho de prenhez ───────────────────────────────────────────────────
     const novoStatus: Record<string, string> = {
-      PARIDA: "VAZIA", ABORTOU: "VAZIA", REABSORVEU: "VAZIA",
+      PARIDA:     "VAZIA",    // parida → libera para novo ciclo
+      ABORTOU:    "FALHADA",  // aborto → descarte
+      REABSORVEU: "FALHADA",  // absorção → descarte
     };
+    // resultado DG: PARIDA = POSITIVO (nasceu), aborto/absorção = NEGATIVO
+    const resultadoDG = tipo === "PARIDA" ? "POSITIVO" : "NEGATIVO";
 
     let tid = transfer_id;
     if (!tid) {
@@ -311,7 +306,7 @@ export async function registrarDesfechoUnificado(formData: FormData) {
     }
     if (tid) {
       await supabase.from("pregnancy_diagnoses")
-        .update({ resultado: tipo, tipo_desfecho: tipo, data_desfecho: data_evento ?? null })
+        .update({ resultado: resultadoDG, data_desfecho: data_evento ?? null })
         .eq("transfer_id", tid)
         .eq("farm_id", FARM_ID);
     }
@@ -325,6 +320,19 @@ export async function registrarDesfechoUnificado(formData: FormData) {
     await supabase.from("animals")
       .update({ status_rebanho: "MORTA", observacoes: obsUpd || null })
       .eq("id", animal_id).eq("farm_id", FARM_ID);
+    // Marca DG como NEGATIVO para sair do dashboard
+    let tid = transfer_id;
+    if (!tid) {
+      const { data: ts } = await supabase.from("transfers")
+        .select("id").eq("receptora_id", animal_id).eq("farm_id", FARM_ID)
+        .order("data_te", { ascending: false }).limit(1);
+      tid = ts?.[0]?.id ?? null;
+    }
+    if (tid) {
+      await supabase.from("pregnancy_diagnoses")
+        .update({ resultado: "NEGATIVO", data_desfecho: data_evento ?? null })
+        .eq("transfer_id", tid).eq("farm_id", FARM_ID);
+    }
 
   } else if (tipo === "VENDA") {
     // ── Venda ─────────────────────────────────────────────────────────────────
@@ -356,6 +364,7 @@ export async function registrarDesfechoUnificado(formData: FormData) {
   }
 
   revalidatePath("/rebanho");
+  revalidatePath("/dashboard");
   redirect("/rebanho");
 }
 

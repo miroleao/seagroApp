@@ -139,7 +139,10 @@ export default async function RebanhoPage({
     const term = (q ?? "").toLowerCase();
     const passaTermo = !term || [a.brinco, a.nome, a.localizacao].some(v => v?.toLowerCase().includes(term));
     const passaCls  = !cls || (a.classificacao ?? (a.tipo === "DESCARTE" ? "DESCARTE" : "OUTRO")) === cls;
-    const passaSt   = !st  || a.status_rebanho === st;
+    // Sem filtro ativo: oculta MORTA e VENDIDA por padrão
+    const passaSt = st
+      ? a.status_rebanho === st
+      : a.status_rebanho !== "MORTA" && a.status_rebanho !== "VENDIDA";
     return passaTermo && passaCls && passaSt;
   });
 

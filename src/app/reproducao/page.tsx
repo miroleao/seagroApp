@@ -56,12 +56,12 @@ export default async function ReproducaoPage() {
       )
     `)
     .eq("farm_id", FARM_ID)
+    .in("tipo", ["REALIZADA", "ADQUIRIDA"])
     .order("data", { ascending: false });
 
-  // REALIZADA = OPU própria, ADQUIRIDA = OPU de outra fazenda, COMPRADA = prenhez comprada de terceiro
-  const opuSessoes = ((sessoes ?? []) as any[]).filter((s) =>
-    s.tipo === "REALIZADA" || s.tipo === "ADQUIRIDA" || s.tipo === "COMPRADA"
-  );
+  // Apenas sessões OPU (REALIZADA = própria, ADQUIRIDA = de outra fazenda)
+  // Prenhezes compradas (COMPRADA) ficam exclusivamente em /reproducao/prenhezes
+  const opuSessoes = (sessoes ?? []) as any[];
 
   // ── Stats globais ──────────────────────────────────────────────────
   const allEmbryos = opuSessoes.flatMap((s: any) =>

@@ -2,18 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, FARM_ID } from "@/lib/utils";
 import { FlaskConical, Baby, Plus, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
-import { registrarOPU, registrarPrenhez, alternarTipoSessao, salvarPrevisaoParto } from "./actions";
-
-function parsePartoDate(obs: string | null | undefined): string | null {
-  if (!obs) return null;
-  const m = obs.match(/PARTO:(\d{4}-\d{2}-\d{2})/);
-  return m ? m[1] : null;
-}
-
-function parseObsExtra(obs: string | null | undefined): string {
-  if (!obs) return "";
-  return obs.replace(/PARTO:\d{4}-\d{2}-\d{2}\s*\|?\s*/, "").trim();
-}
+import { registrarOPU, alternarTipoSessao } from "./actions";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 type AspItem = {
@@ -38,7 +27,6 @@ type DoadoraCard = {
   doadoraDbId: string | null;  // UUID real do animal
   doadoraNome: string;
   opuItems: AspItem[];
-  prenhezes: AspItem[];
   totalOocitos: number;
   totalEmbrioes: number;
 };
@@ -79,6 +67,7 @@ export default async function AspiracoesPage() {
       )
     `)
     .eq("farm_id", FARM_ID)
+    .in("tipo", ["REALIZADA", "ADQUIRIDA"])
     .order("data", { ascending: false });
 
   const { data: doadoras } = await supabase
@@ -124,20 +113,14 @@ export default async function AspiracoesPage() {
         doadoraDbId:  item.doadora_db_id,
         doadoraNome:  item.doadora_nome_raw,
         opuItems:     [],
-        prenhezes:    [],
         totalOocitos: 0,
         totalEmbrioes: 0,
       };
     }
     const card = mapaDoadora[chave];
-    if (item.sessao_tipo === "REALIZADA" || item.sessao_tipo === "ADQUIRIDA") {
-      card.opuItems.push(item);
-      card.totalOocitos  += item.oocitos ?? 0;
-      card.totalEmbrioes += item.embryos_congelados ?? 0;
-    } else {
-      // COMPRADA = prenhez comprada de terceiro
-      card.prenhezes.push(item);
-    }
+    card.opuItems.push(item);
+    card.totalOocitos  += item.oocitos ?? 0;
+    card.totalEmbrioes += item.embryos_congelados ?? 0;
   }
 
   const doadoraCards = Object.values(mapaDoadora)
@@ -147,14 +130,9 @@ export default async function AspiracoesPage() {
     });
 
   // ── Stats globais ────────────────────────────────────────────────────────
-  const sessoesOPU      = all.filter(s => s.tipo === "REALIZADA" || s.tipo === "ADQUIRIDA");
-  const sessoesPrenhez  = all.filter(s => s.tipo === "COMPRADA");
-  const isOPU           = (tipo: string) => tipo === "REALIZADA" || tipo === "ADQUIRIDA";
-  const totalOocitos    = aspItems.filter(i => isOPU(i.sessao_tipo))
-                            .reduce((s, i) => s + (i.oocitos ?? 0), 0);
-  const totalEmbrioes   = aspItems.filter(i => isOPU(i.sessao_tipo))
-                            .reduce((s, i) => s + (i.embryos_congelados ?? 0), 0);
-  const totalPrenhezes  = aspItems.filter(i => i.sessao_tipo === "COMPRADA").length;
+  const sessoesOPU   = all; // já filtrado na query: apenas REALIZADA e ADQUIRIDA
+  const totalOocitos  = aspItems.reduce((s, i) => s + (i.oocitos ?? 0), 0);
+  const totalEmbrioes = aspItems.reduce((s, i) => s + (i.embryos_congelados ?? 0), 0);
 
   const inputCls = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white";
   const labelCls = "text-xs text-gray-500 mb-1 block";
@@ -162,9 +140,9 @@ export default async function AspiracoesPage() {
   return (
     <div className="p-6 space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Prenhezes / Aspirações</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Aspirações</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          {sessoesOPU.length} eventos OPU · {doadoraCards.length} doadoras · {totalPrenhezes} prenhezes compradas
+          {sessoesOPU.length} eventos OPU · {doadoraCards.length} doadoras
         </p>
       </div>
 
@@ -174,91 +152,35 @@ export default async function AspiracoesPage() {
         </div>
       )}
 
-      {/* ── Formulários (colapsáveis) ───────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-        <details className="card overflow-hidden">
-          <summary className="px-5 py-4 border-b border-gray-100 flex items-center gap-2 cursor-pointer select-none list-none hover:bg-gray-50 transition-colors">
-            <FlaskConical className="w-4 h-4 text-brand-600" />
-            <span className="font-semibold text-gray-900 text-sm">Registrar OPU-FIV</span>
-            <Plus className="w-4 h-4 text-brand-400 ml-auto" />
-          </summary>
-          <form action={registrarOPU} className="px-5 py-4 space-y-4 bg-gray-50">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Data *</label>
-                <input name="data" type="date" required className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Local</label>
-                <input name="local" placeholder="Ex: Fazenda SE Agro" className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Responsável</label>
-                <input name="responsavel" placeholder="Ex: Dr. João" className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Laboratório</label>
-                <input name="laboratorio" placeholder="Ex: LabVitro" className={inputCls} />
-              </div>
+      {/* ── Formulário OPU (colapsável) ─────────────────────────── */}
+      <details className="card overflow-hidden">
+        <summary className="px-5 py-4 border-b border-gray-100 flex items-center gap-2 cursor-pointer select-none list-none hover:bg-gray-50 transition-colors">
+          <FlaskConical className="w-4 h-4 text-brand-600" />
+          <span className="font-semibold text-gray-900 text-sm">Registrar OPU-FIV</span>
+          <Plus className="w-4 h-4 text-brand-400 ml-auto" />
+        </summary>
+        <form action={registrarOPU} className="px-5 py-4 space-y-4 bg-gray-50">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Data *</label>
+              <input name="data" type="date" required className={inputCls} />
             </div>
-            <div className="border-t border-gray-200 pt-3">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Doadora × Acasalamento</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Doadora</label>
-                  <select name="doadora_id" className={inputCls}>
-                    <option value="">— selecione —</option>
-                    {(doadoras ?? []).map((d: any) => (
-                      <option key={d.id} value={d.id}>{d.nome}{d.rgn ? ` (${d.rgn})` : ""}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Touro</label>
-                  <input name="touro_nome" placeholder="Nome do touro" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Oócitos Viáveis</label>
-                  <input name="oocitos_viaveis" type="number" min="0" placeholder="Ex: 12" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Embriões Congelados</label>
-                  <input name="embryos_congelados" type="number" min="0" placeholder="Ex: 8" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Custo Total (R$)</label>
-                  <input name="custo_total" type="number" step="0.01" min="0" placeholder="Ex: 2500.00" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Observações</label>
-                  <input name="observacoes" placeholder="Opcional" className={inputCls} />
-                </div>
-              </div>
+            <div>
+              <label className={labelCls}>Local</label>
+              <input name="local" placeholder="Ex: Fazenda SE Agro" className={inputCls} />
             </div>
-            <button type="submit"
-              className="w-full bg-brand-600 text-white text-sm py-2.5 px-4 rounded-lg hover:bg-brand-700 transition-colors font-medium flex items-center justify-center gap-2">
-              <Plus className="w-4 h-4" /> Salvar OPU
-            </button>
-          </form>
-        </details>
-
-        <details className="card overflow-hidden">
-          <summary className="px-5 py-4 border-b border-gray-100 flex items-center gap-2 cursor-pointer select-none list-none hover:bg-gray-50 transition-colors">
-            <Baby className="w-4 h-4 text-amber-500" />
-            <span className="font-semibold text-gray-900 text-sm">Registrar Prenhez Comprada</span>
-            <Plus className="w-4 h-4 text-amber-400 ml-auto" />
-          </summary>
-          <form action={registrarPrenhez} className="px-5 py-4 space-y-4 bg-amber-50">
+            <div>
+              <label className={labelCls}>Responsável</label>
+              <input name="responsavel" placeholder="Ex: Dr. João" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Laboratório</label>
+              <input name="laboratorio" placeholder="Ex: LabVitro" className={inputCls} />
+            </div>
+          </div>
+          <div className="border-t border-gray-200 pt-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Doadora × Acasalamento</p>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Data *</label>
-                <input name="data" type="date" required className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Local / Haras Vendedor</label>
-                <input name="local" placeholder="Ex: Haras XYZ" className={inputCls} />
-              </div>
               <div>
                 <label className={labelCls}>Doadora</label>
                 <select name="doadora_id" className={inputCls}>
@@ -273,35 +195,35 @@ export default async function AspiracoesPage() {
                 <input name="touro_nome" placeholder="Nome do touro" className={inputCls} />
               </div>
               <div>
-                <label className={labelCls}>Previsão de Parto</label>
-                <input name="data_previsao_parto" type="date" className={inputCls} />
+                <label className={labelCls}>Oócitos Viáveis</label>
+                <input name="oocitos_viaveis" type="number" min="0" placeholder="Ex: 12" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Embriões Congelados</label>
+                <input name="embryos_congelados" type="number" min="0" placeholder="Ex: 8" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Custo Total (R$)</label>
-                <input name="custo_total" type="number" step="0.01" min="0" placeholder="Ex: 15000.00" className={inputCls} />
+                <input name="custo_total" type="number" step="0.01" min="0" placeholder="Ex: 2500.00" className={inputCls} />
               </div>
-              <div className="col-span-2">
+              <div>
                 <label className={labelCls}>Observações</label>
-                <input name="observacoes" placeholder="Ex: Prenhez confirmada, FIV 120d" className={inputCls} />
+                <input name="observacoes" placeholder="Opcional" className={inputCls} />
               </div>
             </div>
-            <button type="submit"
-              className="w-full bg-amber-500 text-white text-sm py-2.5 px-4 rounded-lg hover:bg-amber-600 transition-colors font-medium flex items-center justify-center gap-2">
-              <Plus className="w-4 h-4" /> Salvar Prenhez
-            </button>
-          </form>
-        </details>
-      </div>
+          </div>
+          <button type="submit"
+            className="w-full bg-brand-600 text-white text-sm py-2.5 px-4 rounded-lg hover:bg-brand-700 transition-colors font-medium flex items-center justify-center gap-2">
+            <Plus className="w-4 h-4" /> Salvar OPU
+          </button>
+        </form>
+      </details>
 
       {/* ── Contadores globais ────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="card p-4 text-center">
           <p className="text-3xl font-bold text-brand-600">{sessoesOPU.length}</p>
           <p className="text-sm text-gray-500 mt-1">Eventos OPU</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-3xl font-bold text-amber-500">{totalPrenhezes}</p>
-          <p className="text-sm text-gray-500 mt-1">Prenhezes compradas</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-3xl font-bold text-blue-500">{totalOocitos.toLocaleString("pt-BR")}</p>
@@ -344,11 +266,6 @@ export default async function AspiracoesPage() {
                     {card.opuItems.length > 0 && (
                       <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-100">
                         {card.opuItems.length} OPU
-                      </span>
-                    )}
-                    {card.prenhezes.length > 0 && (
-                      <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-100">
-                        {card.prenhezes.length} prenhez
                       </span>
                     )}
                     {card.totalOocitos > 0 && (
@@ -524,68 +441,6 @@ export default async function AspiracoesPage() {
                   </div>
                 )}
 
-                {/* Sub-seção Prenhezes */}
-                {card.prenhezes.length > 0 && (
-                  <div>
-                    <div className="px-4 py-2 bg-amber-50 flex items-center gap-1.5">
-                      <Baby className="w-3 h-3 text-amber-600" />
-                      <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Prenhezes Compradas</span>
-                    </div>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-gray-50 text-left">
-                          <th className="px-4 py-2 font-medium text-gray-500 text-xs">Data</th>
-                          <th className="px-4 py-2 font-medium text-gray-500 text-xs">Touro</th>
-                          <th className="px-4 py-2 font-medium text-gray-500 text-xs">Prev. Parto</th>
-                          <th className="px-4 py-2 font-medium text-gray-500 text-xs">Obs.</th>
-                          <th className="px-4 py-2 font-medium text-gray-500 text-xs">Tipo</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-amber-50">
-                        {card.prenhezes.map((item) => {
-                          const partoDate = parsePartoDate(item.observacoes);
-                          const obsExtra  = parseObsExtra(item.observacoes);
-                          return (
-                            <tr key={item.id} className="table-row-hover align-top">
-                              <td className="px-4 py-2.5 text-gray-700 text-xs">{formatDate(item.sessao_data)}</td>
-                              <td className="px-4 py-2.5 text-gray-600 text-xs">{item.touro}</td>
-                              <td className="px-4 py-2.5">
-                                <form action={salvarPrevisaoParto} className="flex items-center gap-1.5">
-                                  <input type="hidden" name="aspiration_id" value={item.id} />
-                                  <input type="hidden" name="obs_extra" value={obsExtra} />
-                                  <input
-                                    name="data_previsao_parto"
-                                    type="date"
-                                    defaultValue={partoDate ?? ""}
-                                    className="border border-amber-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white"
-                                  />
-                                  <button type="submit"
-                                    className="text-xs text-amber-700 hover:text-amber-900 px-1.5 py-1 border border-amber-200 rounded hover:bg-amber-100 transition-colors whitespace-nowrap">
-                                    ✓
-                                  </button>
-                                </form>
-                              </td>
-                              <td className="px-4 py-2.5 text-gray-400 text-xs">{obsExtra || "—"}</td>
-                              <td className="px-4 py-2.5">
-                                <form action={alternarTipoSessao}>
-                                  <input type="hidden" name="session_id" value={item.sessao_id} />
-                                  <input type="hidden" name="tipo_atual" value={item.sessao_tipo} />
-                                  <button
-                                    type="submit"
-                                    className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold border bg-amber-100 text-amber-700 border-amber-200 hover:bg-green-100 hover:text-green-700 hover:border-green-200 transition-colors cursor-pointer"
-                                  >
-                                    <Baby className="w-2.5 h-2.5" /> Prenhez
-                                    <ArrowLeftRight className="w-2 h-2 opacity-40" />
-                                  </button>
-                                </form>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
               </div>
             </details>
           );
