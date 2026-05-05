@@ -10,6 +10,7 @@ interface Props {
   isPrenha:           boolean;   // se tem prenhez ativa → mostra opções de parto/aborto
   transferId?:        string | null;
   tipoDesfechoAtual?: string | null;
+  redirectTo?:        string;    // rota de redirect após salvar (default: /rebanho)
 }
 
 const OPCOES_PRENHA = [
@@ -29,7 +30,7 @@ const LABEL_MAP: Record<string, string> = {
 };
 
 export function DesfechoUnificadoInline({
-  animalId, brinco, isPrenha, transferId, tipoDesfechoAtual,
+  animalId, brinco, isPrenha, transferId, tipoDesfechoAtual, redirectTo = "/rebanho",
 }: Props) {
   const [open, setOpen]  = useState(false);
   const [tipo, setTipo]  = useState("");
@@ -111,9 +112,10 @@ export function DesfechoUnificadoInline({
 
             {tipo && (
               <form action={registrarDesfechoUnificado} onSubmit={() => setOpen(false)}>
-                <input type="hidden" name="animal_id"   value={animalId} />
-                <input type="hidden" name="brinco"      value={brinco} />
-                <input type="hidden" name="tipo"        value={tipo} />
+                <input type="hidden" name="animal_id"    value={animalId} />
+                <input type="hidden" name="brinco"       value={brinco} />
+                <input type="hidden" name="tipo"         value={tipo} />
+                <input type="hidden" name="redirect_to"  value={redirectTo} />
                 {transferId && <input type="hidden" name="transfer_id" value={transferId} />}
 
                 <div className="space-y-2.5">
@@ -124,6 +126,47 @@ export function DesfechoUnificadoInline({
                     <input name="data_evento" type="date" required
                       className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
                   </div>
+
+                  {/* Campos do bezerro — só aparecem no Nascimento */}
+                  {tipo === "PARIDA" && (
+                    <>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                          Sexo do Bezerro <span className="text-red-400">*</span>
+                        </label>
+                        <div className="flex gap-2">
+                          {[{ v: "F", label: "🐮 Fêmea" }, { v: "M", label: "🐂 Macho" }].map(op => (
+                            <label key={op.v} className="flex-1 flex items-center justify-center gap-1.5 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="bezerro_sexo"
+                                value={op.v}
+                                required
+                                className="accent-brand-600"
+                              />
+                              <span className="text-xs font-medium text-gray-700">{op.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                          Nome do Bezerro
+                        </label>
+                        <input name="bezerro_nome" type="text"
+                          placeholder="Nome do filhote…"
+                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                          RGN do Bezerro
+                        </label>
+                        <input name="bezerro_rgn" type="text"
+                          placeholder="Registro genealógico…"
+                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                      </div>
+                    </>
+                  )}
 
                   {tipo === "VENDA" && (
                     <div>

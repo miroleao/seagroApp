@@ -278,6 +278,12 @@ export async function registrarDesfechoUnificado(formData: FormData) {
   const data_evento = (formData.get("data_evento")  as string)?.trim() || null;
   const valor_str   = (formData.get("valor")        as string)?.trim() || null;
   const obs         = (formData.get("observacoes")  as string)?.trim() || null;
+  const redirect_to = (formData.get("redirect_to")  as string)?.trim() || "/rebanho";
+
+  // Campos do bezerro (apenas para tipo PARIDA)
+  const bezerro_nome = (formData.get("bezerro_nome") as string)?.trim() || null;
+  const bezerro_rgn  = (formData.get("bezerro_rgn")  as string)?.trim() || null;
+  const bezerro_sexo = (formData.get("bezerro_sexo") as string)?.trim() || null; // "M" | "F"
 
   if (!animal_id || !tipo) return;
 
@@ -304,6 +310,21 @@ export async function registrarDesfechoUnificado(formData: FormData) {
         .limit(1);
       tid = ts?.[0]?.id ?? null;
     }
+
+    // Busca genealogia do embrião (doadora + touro) para preencher no bezerro
+    let doadora_nome: string | null = null;
+    let touro_nome:   string | null = null;
+    if (tid) {
+      const { data: tr } = await supabase
+        .from("transfers")
+        .select("aspiration_id, aspirations(doadora_nome, touro_nome)")
+        .eq("id", tid)
+        .maybeSingle();
+      const asp = (tr as any)?.aspirations;
+      doadora_nome = asp?.doadora_nome ?? null;
+      touro_nome   = asp?.touro_nome   ?? null;
+    }
+
     if (tid) {
       await supabase.from("pregnancy_diagnoses")
         .update({ resultado: resultadoDG, data_desfecho: data_evento ?? null })
@@ -313,6 +334,23 @@ export async function registrarDesfechoUnificado(formData: FormData) {
     await supabase.from("animals")
       .update({ status_rebanho: novoStatus[tipo] ?? "VAZIA" })
       .eq("id", animal_id).eq("farm_id", FARM_ID);
+
+    // ── Criar bezerro quando há nascimento ───────────────────────────────────
+    if (tipo === "PARIDA" && bezerro_sexo) {
+      const tipoAnimal = bezerro_sexo === "F" ? "DOADORA" : "TOURO";
+      const nomeAnimal = bezerro_nome || (bezerro_sexo === "F" ? "Bezerra SE" : "Bezerro SE");
+      await supabase.from("animals").insert({
+        farm_id:    FARM_ID,
+        tipo:       tipoAnimal,
+        nome:       nomeAnimal,
+        rgn:        bezerro_rgn ?? null,
+        nascimento: data_evento ?? null,
+        sexo:       bezerro_sexo,
+        mae_nome:   doadora_nome,
+        pai_nome:   touro_nome,
+        nascido_se_agro: true,
+      });
+    }
 
   } else if (tipo === "OBITO") {
     // ── Óbito ─────────────────────────────────────────────────────────────────
@@ -364,8 +402,11 @@ export async function registrarDesfechoUnificado(formData: FormData) {
   }
 
   revalidatePath("/rebanho");
+  revalidatePath("/reproducao");
+  revalidatePath("/doadoras");
+  revalidatePath("/machos");
   revalidatePath("/dashboard");
-  redirect("/rebanho");
+  redirect(redirect_to);
 }
 
 // ─── Editar localização de receptora ─────────────────────────────────────────

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pencil, Check, X, AlertCircle, Trash2, Syringe } from "lucide-react";
+import { DesfechoUnificadoInline } from "@/app/rebanho/DesfechoUnificadoInline";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 interface DG {
@@ -568,6 +569,17 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
                           <Pencil className="w-3 h-3" />
                           Editar
                         </button>
+                        {/* Desfecho — só para embriões implantados com receptora vinculada */}
+                        {emb.status === "IMPLANTADO" && receptora?.id && (
+                          <DesfechoUnificadoInline
+                            animalId={receptora.id}
+                            brinco={brinco ?? receptora.id}
+                            isPrenha={true}
+                            transferId={transfer?.id ?? null}
+                            tipoDesfechoAtual={dg?.resultado ?? null}
+                            redirectTo="/reproducao"
+                          />
+                        )}
                         <button
                           onClick={() => setConfirmDel(prev => ({ ...prev, [emb.id]: true }))}
                           title="Excluir embrião"
