@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useActionState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2, ChevronDown, ChevronRight, AlertCircle } from "lucide-react";
 import { registrarOPUBatch } from "./actions";
 
@@ -37,18 +38,6 @@ function emptySlot(uid: string): ReceptoraSlot {
 const inputCls   = "w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white";
 const inputXsCls = "w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white";
 
-async function registrarOPUAction(
-  _prev: { erro: string | null },
-  formData: FormData
-): Promise<{ erro: string | null }> {
-  try {
-    await registrarOPUBatch(formData);
-    return { erro: null };
-  } catch (e: any) {
-    if (e?.digest?.startsWith?.("NEXT_REDIRECT")) throw e;
-    return { erro: e?.message ?? "Erro desconhecido ao salvar" };
-  }
-}
 
 export default function OPUForm({
   doadoras,
@@ -57,6 +46,21 @@ export default function OPUForm({
   doadoras: { id: string; nome: string; rgn?: string | null }[];
   receptoras: { id: string; brinco: string | null; nome: string | null }[];
 }) {
+  const router = useRouter();
+
+  async function registrarOPUAction(
+    _prev: { erro: string | null },
+    formData: FormData
+  ): Promise<{ erro: string | null }> {
+    try {
+      await registrarOPUBatch(formData);
+      router.push("/reproducao");
+      return { erro: null };
+    } catch (e: any) {
+      return { erro: e?.message ?? "Erro desconhecido ao salvar" };
+    }
+  }
+
   const [state, formAction, pending] = useActionState(registrarOPUAction, { erro: null });
   const [tipoSessao, setTipoSessao] = useState<"PROPRIA" | "ADQUIRIDA">("PROPRIA");
   const [rows, setRows] = useState<DoadoraRow[]>([emptyRow("row-0")]);

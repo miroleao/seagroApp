@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { FARM_ID } from "@/lib/utils";
 
 /**
@@ -233,5 +233,5 @@ export async function registrarOPUBatch(formData: FormData) {
     i++;
   }
 
-  redirect("/reproducao");
+  revalidatePath("/reproducao");
 }
