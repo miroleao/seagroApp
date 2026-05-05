@@ -24,7 +24,7 @@ function calcParto(dataBase: string, dias: number): string {
   return d.toISOString().split("T")[0];
 }
 
-export async function registrarOPUBatch(formData: FormData) {
+export async function registrarOPUBatch(formData: FormData): Promise<{ error: string | null }> {
   const data         = (formData.get("data")         as string) || new Date().toISOString().split("T")[0];
   const data_fiv     = (formData.get("data_fiv")     as string)?.trim() || null;
   const data_te      = (formData.get("data_te")      as string)?.trim() || null;
@@ -59,7 +59,7 @@ export async function registrarOPUBatch(formData: FormData) {
 
   if (sessErr || !session) {
     console.error("❌ ERRO ao criar sessão OPU:", JSON.stringify(sessErr));
-    throw new Error(sessErr?.message ?? "Erro ao criar sessão OPU no banco de dados");
+    return { error: `[sessão] ${sessErr?.message ?? "Erro desconhecido"}` };
   }
 
   let i = 0;
@@ -125,7 +125,7 @@ export async function registrarOPUBatch(formData: FormData) {
 
     if (aspErr) {
       console.error("❌ ERRO ao inserir aspiração:", JSON.stringify(aspErr));
-      throw new Error(`Erro ao salvar aspiração ${i + 1}: ${aspErr.message}`);
+      return { error: `[aspiração ${i + 1}] ${aspErr.message}` };
     }
 
     if (!asp) { i++; continue; }
@@ -236,4 +236,5 @@ export async function registrarOPUBatch(formData: FormData) {
   }
 
   revalidatePath("/reproducao");
+  return { error: null };
 }

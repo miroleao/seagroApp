@@ -52,13 +52,10 @@ export default function OPUForm({
     _prev: { erro: string | null },
     formData: FormData
   ): Promise<{ erro: string | null }> {
-    try {
-      await registrarOPUBatch(formData);
-      router.push("/reproducao");
-      return { erro: null };
-    } catch (e: any) {
-      return { erro: e?.message ?? "Erro desconhecido ao salvar" };
-    }
+    const resultado = await registrarOPUBatch(formData);
+    if (resultado.error) return { erro: resultado.error };
+    router.push("/reproducao");
+    return { erro: null };
   }
 
   const [state, formAction, pending] = useActionState(registrarOPUAction, { erro: null });
