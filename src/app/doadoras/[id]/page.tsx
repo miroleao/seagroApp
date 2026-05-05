@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2 } from "lucide-react";
-import { toggleParaPista, toggleNascidoSeAgro, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn } from "./actions";
+import { toggleParaPista, toggleNascidoSeAgro, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio } from "./actions";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
 import { EditReprodutivoInline } from "@/app/rebanho/EditReprodutivoInline";
@@ -648,10 +648,31 @@ export default async function DoadoraDetalhePage({
             )}
           </div>
 
-          {/* % Próprio */}
+          {/* % Próprio — editável inline */}
           <div>
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">% Próprio</p>
-            <p className="font-medium text-gray-900">{percentualProprio}</p>
+            <form action={atualizarPercentualProprio} className="flex items-center gap-2">
+              <input type="hidden" name="id" value={doadora.id} />
+              <input
+                name="percentual_proprio"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                defaultValue={
+                  doadora.percentual_proprio != null
+                    ? Math.round(doadora.percentual_proprio * 100)
+                    : ""
+                }
+                placeholder="Ex: 75"
+                className="w-20 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-300"
+              />
+              <span className="text-sm text-gray-500">%</span>
+              <button type="submit"
+                className="text-xs text-brand-600 hover:text-brand-800 font-medium px-2 py-1.5 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors">
+                Salvar
+              </button>
+            </form>
           </div>
 
           {/* Vl. Parcela */}

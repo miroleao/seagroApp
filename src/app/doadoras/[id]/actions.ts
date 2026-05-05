@@ -461,6 +461,24 @@ export async function atualizarGenealogia(formData: FormData) {
   redirect(`/doadoras/${id}`);
 }
 
+export async function atualizarPercentualProprio(formData: FormData) {
+  const id  = formData.get("id") as string;
+  const pct = parseFloat(formData.get("percentual_proprio") as string);
+
+  if (!id || isNaN(pct)) return;
+
+  const supabase = await createClient();
+  await supabase
+    .from("animals")
+    .update({ percentual_proprio: pct / 100 })  // converte % para decimal (75 → 0.75)
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+
+  revalidatePath(`/doadoras/${id}`);
+  revalidatePath("/doadoras");
+  redirect(`/doadoras/${id}`);
+}
+
 export async function adicionarPremiacao(formData: FormData) {
   const animal_id     = formData.get("animal_id") as string;
   const exhibition_id = formData.get("exhibition_id") as string || null;
