@@ -20,6 +20,7 @@ interface Receptora {
 interface Transfer {
   id: string;
   receptora_brinco: string | null;
+  data_te: string | null;
   receptora: Receptora | null;
   pregnancy_diagnoses: DG[];
 }
@@ -52,17 +53,11 @@ function formatDate(d: string | null) {
   return `${day}/${m}/${y}`;
 }
 
-function calcPrevisao(dataFiv: string | null): string | null {
-  if (!dataFiv) return null;
-  const d = new Date(dataFiv + "T12:00:00");
-  d.setDate(d.getDate() + 293);
-  return d.toISOString().split("T")[0];
-}
-
-// Para T.E. de embrião congelado: embrião já tem 7 dias → restam 286 dias
-function calcPrevisaoTE(dataTE: string): string {
+// Previsão de parto: T.E. + 292 dias (padrão único)
+function calcPrevisao(dataTE: string | null): string | null {
+  if (!dataTE) return null;
   const d = new Date(dataTE + "T12:00:00");
-  d.setDate(d.getDate() + 286);
+  d.setDate(d.getDate() + 292);
   return d.toISOString().split("T")[0];
 }
 
@@ -292,14 +287,12 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
 
   if (embryos.length === 0) return null;
 
-  const previsaoAuto = dataFiv ? calcPrevisao(dataFiv) : null;
-
   return (
     <div className="px-5 pb-3 overflow-x-auto border-t border-gray-50">
       <table className="w-full text-xs text-left mt-2">
         <thead>
           <tr className="border-b border-gray-100">
-            {["#", "Status", "Tipo", "No Brinco", "#ABCZ", "DG", "Sexagem", "Prev. Parto", "CDC-FIV", "ADT-TE", ""].map((h) => (
+            {["#", "Status", "Tipo", "No Brinco", "#ABCZ", "Data T.E.", "DG", "Sexagem", "Prev. Parto", "CDC-FIV", "ADT-TE", ""].map((h) => (
               <th key={h} className="py-1.5 px-2 text-gray-400 font-semibold whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -320,8 +313,9 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
             const teFormData  = teForm[emb.id];
             const isTeManual  = teFormData?.receptoraId === "__manual__";
 
-            // Previsão de parto: usa o valor salvo se existir, senão sempre calcula (data_fiv + 293)
-            const previsao = dg?.data_previsao_parto ?? previsaoAuto;
+            // Previsão de parto: T.E. + 292 dias (recalcula sempre a partir da data_te do transfer)
+            const dataTeTransfer = transfer?.data_te ?? null;
+            const previsao = calcPrevisao(dataTeTransfer);
 
             return (
               <React.Fragment key={emb.id}>
@@ -412,6 +406,11 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
                     )}
                   </td>
 
+                  {/* Data T.E. */}
+                  <td className="py-1.5 px-2 text-gray-500 whitespace-nowrap">
+                    {dataTeTransfer ? formatDate(dataTeTransfer) : <span className="text-gray-300">—</span>}
+                  </td>
+
                   {/* DG */}
                   <td className="py-1.5 px-2">
                     {isEdit ? (
@@ -455,11 +454,11 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
                     )}
                   </td>
 
-                  {/* Prev. Parto — sempre data_fiv + 293 */}
+                  {/* Prev. Parto — T.E. + 292 dias */}
                   <td className="py-1.5 px-2 text-gray-500 whitespace-nowrap">
-                    {previsaoAuto ? (
+                    {previsao ? (
                       <span className={isEdit ? "text-violet-600 font-medium" : ""}>
-                        {formatDate(previsaoAuto)}
+                        {formatDate(previsao)}
                       </span>
                     ) : (
                       <span className="text-gray-300">—</span>
@@ -584,7 +583,7 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
                 {/* Formulário inline de T.E. */}
                 {isTeOpen && teFormData && (
                   <tr className="bg-green-50/60">
-                    <td colSpan={11} className="px-4 py-3">
+                    <td colSpan={12} className="px-4 py-3">
                       <div className="flex flex-wrap items-end gap-3">
                         <div>
                           <label className="block text-[10px] font-semibold text-gray-500 mb-1">Data T.E.</label>
@@ -596,7 +595,7 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
                           />
                           {teFormData.dataTE && (
                             <p className="text-[10px] text-gray-400 mt-0.5">
-                              Prev. parto: {formatDate(calcPrevisaoTE(teFormData.dataTE))}
+                              Prev. parto: {formatDate(calcPrevisao(teFormData.dataTE))}
                             </p>
                           )}
                         </div>
@@ -654,7 +653,7 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
                 {/* Avisos / erros inline abaixo da linha */}
                 {(erros[emb.id] || avisos[emb.id]) && (
                   <tr>
-                    <td colSpan={11} className="px-2 pb-1.5">
+                    <td colSpan={12} className="px-2 pb-1.5">
                       {erros[emb.id] && (
                         <div className="flex items-center gap-1.5 text-[11px] text-red-600 bg-red-50 rounded px-2 py-1">
                           <AlertCircle className="w-3 h-3 shrink-0" />
@@ -677,14 +676,9 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
       </table>
 
       {/* Legenda previsão de parto */}
-      <div className="mt-2 flex flex-col gap-0.5">
-        {dataFiv && (
-          <p className="text-[10px] text-gray-400">
-            Parto (FIV direto) = data FIV ({formatDate(dataFiv)}) + 293 dias
-          </p>
-        )}
+      <div className="mt-2">
         <p className="text-[10px] text-gray-400">
-          Parto (T.E. de congelado) = data T.E. + 286 dias (embrião já tem 7 dias de desenvolvimento)
+          Previsão de parto = data T.E. + 292 dias
         </p>
       </div>
     </div>
