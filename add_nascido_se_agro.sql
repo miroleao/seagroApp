@@ -1,0 +1,2 @@
+ALTER TABLE animals
+ADD COLUMN IF NOT EXISTS nascido_se_agro BOOLEAN NOT NULL DEFAULT false;

@@ -38,7 +38,7 @@ export default async function DoadorasPage({
 
   const { data: doadoras } = await supabase
     .from("animals")
-    .select("id, nome, rgn, nascimento, pai_nome, mae_nome, localizacao, percentual_proprio, valor_parcela, status_reprodutivo, touro_prenhez, touro_ultimo_parto, para_pista")
+    .select("id, nome, rgn, nascimento, pai_nome, mae_nome, localizacao, percentual_proprio, valor_parcela, status_reprodutivo, touro_prenhez, touro_ultimo_parto, para_pista, nascido_se_agro")
     .eq("farm_id", FARM_ID)
     .eq("tipo", "DOADORA")
     .order("nome", { ascending: true });
@@ -256,7 +256,7 @@ export default async function DoadorasPage({
                       >
                         {d.nome}
                       </Link>
-                      {(d.nome ?? "").toUpperCase().includes("DA SE") && (
+                      {d.nascido_se_agro && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src="/logo-se.png"

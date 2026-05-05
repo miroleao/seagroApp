@@ -30,6 +30,22 @@ export async function toggleParaPista(formData: FormData) {
   redirect(`/doadoras/${id}`);
 }
 
+export async function toggleNascidoSeAgro(formData: FormData) {
+  const id    = formData.get("id") as string;
+  const valor = formData.get("nascido_se_agro") === "true";
+
+  const supabase = await createClient();
+  await supabase
+    .from("animals")
+    .update({ nascido_se_agro: valor })
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+
+  revalidatePath(`/doadoras/${id}`);
+  revalidatePath("/doadoras");
+  redirect(`/doadoras/${id}`);
+}
+
 export async function atualizarPeso(formData: FormData) {
   const id   = formData.get("id") as string;
   const peso = parseFloat(formData.get("peso_atual") as string);

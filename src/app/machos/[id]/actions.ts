@@ -20,6 +20,22 @@ export async function toggleParaPistaMacho(formData: FormData) {
   redirect(`/machos/${id}`);
 }
 
+export async function toggleNascidoSeAgroMacho(formData: FormData) {
+  const id    = formData.get("id") as string;
+  const valor = formData.get("nascido_se_agro") === "true";
+
+  const supabase = await createClient();
+  await supabase
+    .from("animals")
+    .update({ nascido_se_agro: valor })
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+
+  revalidatePath(`/machos/${id}`);
+  revalidatePath("/machos");
+  redirect(`/machos/${id}`);
+}
+
 export async function atualizarExameAndrologico(formData: FormData) {
   const id                   = formData.get("id") as string;
   const exame_andrologico    = formData.get("exame_andrologico") as string || null;

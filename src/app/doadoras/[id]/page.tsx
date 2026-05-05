@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2 } from "lucide-react";
-import { toggleParaPista, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn } from "./actions";
+import { toggleParaPista, toggleNascidoSeAgro, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn } from "./actions";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
 import { EditReprodutivoInline } from "@/app/rebanho/EditReprodutivoInline";
@@ -570,6 +570,24 @@ export default async function DoadoraDetalhePage({
             {doadora.localizacao && (
               <span className="badge bg-gray-100 text-gray-600 text-sm px-3 py-1">{doadora.localizacao}</span>
             )}
+            {/* Toggle Nascido SE Agro */}
+            <form action={toggleNascidoSeAgro}>
+              <input type="hidden" name="id" value={doadora.id} />
+              <input type="hidden" name="nascido_se_agro" value={(doadora as any).nascido_se_agro ? "false" : "true"} />
+              <button
+                type="submit"
+                className={`inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full font-medium transition-colors cursor-pointer border ${
+                  (doadora as any).nascido_se_agro
+                    ? "bg-brand-600 text-white border-brand-600 hover:bg-brand-700"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-brand-400 hover:text-brand-600"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-se.png" alt="" className="h-4 w-auto" style={{ filter: (doadora as any).nascido_se_agro ? "brightness(0) invert(1)" : "brightness(0)" }} />
+                {(doadora as any).nascido_se_agro ? "Nascido SE Agro" : "Marcar como SE Agro"}
+              </button>
+            </form>
+
             {/* Toggle Para Pista */}
             <div className="flex flex-col gap-0.5">
               <form action={toggleParaPista}>

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import {
   toggleParaPistaMacho,
+  toggleNascidoSeAgroMacho,
   atualizarExameAndrologico,
   atualizarCE,
   atualizarRGD,
@@ -345,6 +346,23 @@ export default async function MachoDetalhePage({
             {macho.localizacao && (
               <span className="badge bg-gray-100 text-gray-600 text-sm px-3 py-1">{macho.localizacao}</span>
             )}
+            {/* Toggle Nascido SE Agro */}
+            <form action={toggleNascidoSeAgroMacho}>
+              <input type="hidden" name="id" value={macho.id} />
+              <input type="hidden" name="nascido_se_agro" value={(macho as any).nascido_se_agro ? "false" : "true"} />
+              <button type="submit"
+                className={`inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full font-medium transition-colors cursor-pointer border ${
+                  (macho as any).nascido_se_agro
+                    ? "bg-brand-600 text-white border-brand-600 hover:bg-brand-700"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-brand-400 hover:text-brand-600"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-se.png" alt="" className="h-4 w-auto" style={{ filter: (macho as any).nascido_se_agro ? "brightness(0) invert(1)" : "brightness(0)" }} />
+                {(macho as any).nascido_se_agro ? "Nascido SE Agro" : "Marcar como SE Agro"}
+              </button>
+            </form>
+
             {/* Toggle Para Pista */}
             <div className="flex flex-col gap-0.5">
               <form action={toggleParaPistaMacho}>
