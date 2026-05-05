@@ -97,8 +97,9 @@ export default async function PrenhezesList({
         })(),
         dataCompra:    parseKey(obs, "DATA_COMPRA") ?? s.data ?? null,
         dataEntrega:   parseKey(obs, "DATA_ENTREGA"),
-        resultado:     parseKey(obs, "RESULTADO"),
-        dataResultado: parseKey(obs, "DATA_RESULTADO"),
+        resultado:          parseKey(obs, "RESULTADO"),
+        dataResultado:      parseKey(obs, "DATA_RESULTADO"),
+        situacaoReposicao:  parseKey(obs, "SITUACAO_REPOSICAO"),
       });
     }
   }

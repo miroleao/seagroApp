@@ -9,23 +9,25 @@ import {
   atualizarReceptoraBrinco,
   registrarDesfecho,
   registrarNascimento,
+  atualizarSituacaoReposicao,
 } from "./actions";
 import { excluirPrenhez } from "../actions";
 
 export type PrenheZListRow = {
-  aspId:           string;
-  embryoId:        string | null;
-  transferId:      string | null;
-  receptoraId:     string | null;
-  receptoraBrinco: string | null;
-  doadoraNome:     string | null;
-  touroNome:       string | null;
-  dataParto:       string | null;
-  vendedor:        string | null;
-  dataCompra:      string | null;
-  dataEntrega:     string | null;
-  resultado:       string | null;   // NASCIMENTO | ABORTO | OBITO_RECEPTORA
-  dataResultado:   string | null;
+  aspId:              string;
+  embryoId:           string | null;
+  transferId:         string | null;
+  receptoraId:        string | null;
+  receptoraBrinco:    string | null;
+  doadoraNome:        string | null;
+  touroNome:          string | null;
+  dataParto:          string | null;
+  vendedor:           string | null;
+  dataCompra:         string | null;
+  dataEntrega:        string | null;
+  resultado:          string | null;   // NASCIMENTO | ABORTO | OBITO_RECEPTORA
+  dataResultado:      string | null;
+  situacaoReposicao:  string | null;
 };
 
 // ── Célula com lock (texto) ───────────────────────────────────────────────────
@@ -110,6 +112,49 @@ function LockCell({
   );
 }
 
+// ── Dropdown de situação de reposição ────────────────────────────────────────
+const SITUACOES = [
+  { value: "",                       label: "—"                      },
+  { value: "Reposição Solicitada",   label: "Reposição Solicitada"   },
+  { value: "Reposição a Caminho",    label: "Reposição a Caminho"    },
+  { value: "Reposição em Aguardo",   label: "Reposição em Aguardo"   },
+];
+
+const SITUACAO_STYLES: Record<string, string> = {
+  "Reposição Solicitada": "bg-orange-50 text-orange-700 border-orange-200",
+  "Reposição a Caminho":  "bg-blue-50   text-blue-700   border-blue-200",
+  "Reposição em Aguardo": "bg-yellow-50 text-yellow-700 border-yellow-200",
+};
+
+function SituacaoSelect({ aspId, value }: { aspId: string; value: string | null }) {
+  const [current, setCurrent]   = useState(value ?? "");
+  const [pending, startTransition] = useTransition();
+
+  function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const nova = e.target.value;
+    setCurrent(nova);
+    const fd = new FormData();
+    fd.append("asp_id",   aspId);
+    fd.append("situacao", nova);
+    startTransition(() => atualizarSituacaoReposicao(fd));
+  }
+
+  const colorCls = current ? (SITUACAO_STYLES[current] ?? "bg-gray-50 text-gray-600 border-gray-200") : "bg-white text-gray-400 border-gray-200";
+
+  return (
+    <select
+      value={current}
+      onChange={handleChange}
+      disabled={pending}
+      className={`text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-300 transition-colors cursor-pointer ${colorCls} ${pending ? "opacity-50" : ""}`}
+    >
+      {SITUACOES.map((s) => (
+        <option key={s.value} value={s.value}>{s.label}</option>
+      ))}
+    </select>
+  );
+}
+
 // ── Badge de resultado ────────────────────────────────────────────────────────
 function ResultadoBadge({ resultado, dataResultado }: { resultado: string; dataResultado: string | null }) {
   if (resultado === "NASCIMENTO")
@@ -147,7 +192,7 @@ function DesfechoForm({ row, onClose }: { row: PrenheZListRow; onClose: () => vo
 
   return (
     <tr className="bg-gray-50/80 border-t border-gray-200">
-      <td colSpan={6} className="px-4 py-4">
+      <td colSpan={8} className="px-4 py-4">
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center gap-2">
@@ -289,7 +334,7 @@ function BotaoExcluirPrenhez({ row }: { row: PrenheZListRow }) {
 export default function PrenhezeTabela({ rows }: { rows: PrenheZListRow[] }) {
   const [desfechoRowId, setDesfechoRowId] = useState<string | null>(null);
 
-  const colunas = ["Doadora", "Touro", "No Brinco", "Prev. Parto", "Vendedor", "Desfecho", ""];
+  const colunas = ["Doadora", "Touro", "No Brinco", "Prev. Parto", "Vendedor", "Situação", "Desfecho", ""];
 
   return (
     <div className="overflow-x-auto">
@@ -336,6 +381,11 @@ export default function PrenhezeTabela({ rows }: { rows: PrenheZListRow[] }) {
 
                 {/* Vendedor */}
                 <td className="py-2.5 px-3 text-gray-600">{r.vendedor ?? "—"}</td>
+
+                {/* Situação de reposição */}
+                <td className="py-2.5 px-3">
+                  <SituacaoSelect aspId={r.aspId} value={r.situacaoReposicao} />
+                </td>
 
                 {/* Desfecho */}
                 <td className="py-2.5 px-3">

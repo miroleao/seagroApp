@@ -149,6 +149,21 @@ export async function toggleAdtTe(formData: FormData) {
   revalidatePath("/reproducao/prenhezes");
 }
 
+// ── Situação de reposição ─────────────────────────────────────────────────────
+
+export async function atualizarSituacaoReposicao(formData: FormData) {
+  const asp_id   = (formData.get("asp_id")   as string)?.trim();
+  const situacao = (formData.get("situacao") as string)?.trim() || null;
+  if (!asp_id) return;
+
+  const supabase = await createClient();
+  const { data: asp } = await supabase.from("aspirations").select("observacoes").eq("id", asp_id).single();
+  const novaObs = buildObs(asp?.observacoes ?? null, { SITUACAO_REPOSICAO: situacao });
+  await supabase.from("aspirations").update({ observacoes: novaObs || null }).eq("id", asp_id);
+
+  revalidatePath("/reproducao/prenhezes");
+}
+
 // ── Data de entrega (nova) ────────────────────────────────────────────────────
 
 export async function atualizarDataEntrega(formData: FormData) {
