@@ -256,6 +256,16 @@ export default async function DoadorasPage({
                       >
                         {d.nome}
                       </Link>
+                      {d.mae_nome && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src="/logo-se.png"
+                          alt="Nascido SE Agro"
+                          title="Nascido na SE Agropecuária"
+                          className="h-5 w-auto opacity-80"
+                          style={{ filter: "brightness(0)" }}
+                        />
+                      )}
                       {d.para_pista && (
                         <span title="Selecionada para Pista">
                           <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
