@@ -30,12 +30,33 @@ export async function criarDoadora(formData: FormData) {
 
   if (!nome) return;
 
+  const supabase = await createClient();
+
+  // ── Checar duplicidade de RGN ─────────────────────────────────────────────
+  if (rgn?.trim()) {
+    const { data: dup } = await supabase
+      .from("animals")
+      .select("id, nome, tipo")
+      .eq("farm_id", FARM_ID)
+      .eq("rgn", rgn.trim())
+      .maybeSingle();
+    if (dup) {
+      const tipoLabel: Record<string, string> = {
+        DOADORA: "Doadora", TOURO: "Touro", RECEPTORA: "Receptora",
+      };
+      redirect(
+        `/doadoras/novo?erro=${encodeURIComponent(
+          `RGN "${rgn}" já cadastrado para: ${tipoLabel[dup.tipo] ?? dup.tipo} ${dup.nome}`
+        )}`
+      );
+    }
+  }
+
   const percentual_proprio = percentual_proprio_raw
     ? parseFloat(percentual_proprio_raw) / 100
     : null;
   const valor_parcela = valor_parcela_raw ? parseFloat(valor_parcela_raw) : null;
 
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("animals")
     .insert({

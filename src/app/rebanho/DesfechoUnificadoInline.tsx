@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { ClipboardList, X } from "lucide-react";
+import { ClipboardList, X, Lock } from "lucide-react";
 import { registrarDesfechoUnificado } from "./actions";
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   isPrenha:           boolean;   // se tem prenhez ativa → mostra opções de parto/aborto
   transferId?:        string | null;
   tipoDesfechoAtual?: string | null;
+  statusRebanho?:     string | null; // usado para detectar PARIDA/FALHADA mesmo sem DG no mapa
   redirectTo?:        string;    // rota de redirect após salvar (default: /rebanho)
 }
 
@@ -29,15 +30,30 @@ const LABEL_MAP: Record<string, string> = {
   OBITO: "Óbito", VENDA: "Vendida",
 };
 
+// Status que indicam desfecho já concluído (mesmo sem tipoDesfechoAtual no mapa)
+const STATUS_FINALIZADO = new Set(["PARIDA", "FALHADA", "MORTA", "VENDIDA"]);
+
 export function DesfechoUnificadoInline({
-  animalId, brinco, isPrenha, transferId, tipoDesfechoAtual, redirectTo = "/rebanho",
+  animalId, brinco, isPrenha, transferId, tipoDesfechoAtual, statusRebanho, redirectTo = "/rebanho",
 }: Props) {
   const [open, setOpen]  = useState(false);
   const [tipo, setTipo]  = useState("");
   const [pos,  setPos]   = useState({ top: 0, right: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
 
-  const jaRegistrado = !!tipoDesfechoAtual && tipoDesfechoAtual !== "POSITIVO";
+  // Desfecho considerado "já feito" se o DG tem tipo_desfecho OU o status indica animal finalizado
+  const jaRegistrado =
+    (!!tipoDesfechoAtual && tipoDesfechoAtual !== "POSITIVO") ||
+    STATUS_FINALIZADO.has(statusRebanho ?? "");
+
+  const labelDesfecho = tipoDesfechoAtual
+    ? (LABEL_MAP[tipoDesfechoAtual] ?? tipoDesfechoAtual)
+    : statusRebanho === "PARIDA"  ? "Nascimento"
+    : statusRebanho === "FALHADA" ? "Aborto / Absorção"
+    : statusRebanho === "MORTA"   ? "Óbito"
+    : statusRebanho === "VENDIDA" ? "Vendida"
+    : null;
+
   const opcoes = isPrenha ? [...OPCOES_PRENHA, ...OPCOES_SEMPRE] : OPCOES_SEMPRE;
 
   function handleOpen() {
@@ -92,120 +108,136 @@ export function DesfechoUnificadoInline({
               </button>
             </div>
 
-            {/* Seleção de tipo */}
-            <div className="grid grid-cols-2 gap-1.5 mb-3">
-              {opcoes.map(op => (
-                <button
-                  key={op.value}
-                  type="button"
-                  onClick={() => setTipo(op.value)}
-                  className={`py-1.5 rounded-lg text-xs font-semibold border-2 transition-all ${
-                    tipo === op.value
-                      ? `${op.cor} text-white border-transparent`
-                      : "border-gray-200 text-gray-500 hover:border-gray-300 bg-white"
-                  }`}
-                >
-                  {op.label}
+            {/* ── Estado: desfecho já registrado ── */}
+            {jaRegistrado ? (
+              <div className="flex flex-col items-center gap-3 py-3 text-center">
+                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Desfecho já registrado</p>
+                  {labelDesfecho && (
+                    <p className="text-xs font-medium text-orange-600 mt-0.5">{labelDesfecho}</p>
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Este animal já teve seu desfecho registrado.<br />
+                  Para corrigir, edite diretamente na ficha do animal.
+                </p>
+                <button type="button" onClick={() => setOpen(false)}
+                  className="text-xs border border-gray-200 rounded-lg px-4 py-1.5 hover:bg-gray-50 text-gray-500 transition-colors">
+                  Fechar
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <>
+                {/* ── Seleção de tipo ── */}
+                <div className="grid grid-cols-2 gap-1.5 mb-3">
+                  {opcoes.map(op => (
+                    <button
+                      key={op.value}
+                      type="button"
+                      onClick={() => setTipo(op.value)}
+                      className={`py-1.5 rounded-lg text-xs font-semibold border-2 transition-all ${
+                        tipo === op.value
+                          ? `${op.cor} text-white border-transparent`
+                          : "border-gray-200 text-gray-500 hover:border-gray-300 bg-white"
+                      }`}
+                    >
+                      {op.label}
+                    </button>
+                  ))}
+                </div>
 
-            {tipo && (
-              <form action={registrarDesfechoUnificado} onSubmit={() => setOpen(false)}>
-                <input type="hidden" name="animal_id"    value={animalId} />
-                <input type="hidden" name="brinco"       value={brinco} />
-                <input type="hidden" name="tipo"         value={tipo} />
-                <input type="hidden" name="redirect_to"  value={redirectTo} />
-                {transferId && <input type="hidden" name="transfer_id" value={transferId} />}
+                {tipo && (
+                  <form action={registrarDesfechoUnificado} onSubmit={() => setOpen(false)}>
+                    <input type="hidden" name="animal_id"    value={animalId} />
+                    <input type="hidden" name="brinco"       value={brinco} />
+                    <input type="hidden" name="tipo"         value={tipo} />
+                    <input type="hidden" name="redirect_to"  value={redirectTo} />
+                    {transferId && <input type="hidden" name="transfer_id" value={transferId} />}
 
-                <div className="space-y-2.5">
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
-                      Data
-                    </label>
-                    <input name="data_evento" type="date" required
-                      className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                  </div>
-
-                  {/* Campos do bezerro — só aparecem no Nascimento */}
-                  {tipo === "PARIDA" && (
-                    <>
+                    <div className="space-y-2.5">
                       <div>
                         <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
-                          Sexo do Bezerro <span className="text-red-400">*</span>
+                          Data
                         </label>
-                        <div className="flex gap-2">
-                          {[{ v: "F", label: "🐮 Fêmea" }, { v: "M", label: "🐂 Macho" }].map(op => (
-                            <label key={op.v} className="flex-1 flex items-center justify-center gap-1.5 cursor-pointer">
-                              <input
-                                type="radio"
-                                name="bezerro_sexo"
-                                value={op.v}
-                                required
-                                className="accent-brand-600"
-                              />
-                              <span className="text-xs font-medium text-gray-700">{op.label}</span>
+                        <input name="data_evento" type="date" required
+                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                      </div>
+
+                      {/* Campos do bezerro — só aparecem no Nascimento */}
+                      {tipo === "PARIDA" && (
+                        <>
+                          <div>
+                            <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                              Sexo do Bezerro <span className="text-red-400">*</span>
                             </label>
-                          ))}
+                            <div className="flex gap-2">
+                              {[{ v: "F", label: "🐮 Fêmea" }, { v: "M", label: "🐂 Macho" }].map(op => (
+                                <label key={op.v} className="flex-1 flex items-center justify-center gap-1.5 cursor-pointer">
+                                  <input type="radio" name="bezerro_sexo" value={op.v} required className="accent-brand-600" />
+                                  <span className="text-xs font-medium text-gray-700">{op.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                              Nome do Bezerro
+                            </label>
+                            <input name="bezerro_nome" type="text" placeholder="Nome do filhote…"
+                              className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                              RGN do Bezerro
+                            </label>
+                            <input name="bezerro_rgn" type="text" placeholder="Registro genealógico…"
+                              className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                          </div>
+                        </>
+                      )}
+
+                      {tipo === "VENDA" && (
+                        <div>
+                          <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                            Valor de Venda (R$)
+                          </label>
+                          <input name="valor" type="number" step="0.01" min="0" placeholder="Ex: 4500.00"
+                            className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-300" />
                         </div>
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
-                          Nome do Bezerro
-                        </label>
-                        <input name="bezerro_nome" type="text"
-                          placeholder="Nome do filhote…"
-                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
-                          RGN do Bezerro
-                        </label>
-                        <input name="bezerro_rgn" type="text"
-                          placeholder="Registro genealógico…"
-                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                      </div>
-                    </>
-                  )}
+                      )}
 
-                  {tipo === "VENDA" && (
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
-                        Valor de Venda (R$)
-                      </label>
-                      <input name="valor" type="number" step="0.01" min="0"
-                        placeholder="Ex: 4500.00"
-                        className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                          {tipo === "VENDA" ? "Comprador / Destino" : "Observações"}
+                        </label>
+                        <input name="observacoes" type="text"
+                          placeholder={tipo === "VENDA" ? "Nome do comprador, leilão…" : "Causa, circunstâncias…"}
+                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                      </div>
                     </div>
-                  )}
 
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
-                      {tipo === "VENDA" ? "Comprador / Destino" : "Observações"}
-                    </label>
-                    <input name="observacoes" type="text"
-                      placeholder={tipo === "VENDA" ? "Nome do comprador, leilão…" : "Causa, circunstâncias…"}
-                      className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                  </div>
-                </div>
+                    <div className="flex gap-2 mt-3">
+                      <button type="button" onClick={() => setOpen(false)}
+                        className="flex-1 text-xs border border-gray-200 rounded-lg py-1.5 hover:bg-gray-50 text-gray-500 transition-colors">
+                        Cancelar
+                      </button>
+                      <button type="submit"
+                        className="flex-1 text-xs text-white rounded-lg py-1.5 font-medium transition-colors bg-brand-600 hover:bg-brand-700">
+                        Registrar
+                      </button>
+                    </div>
+                  </form>
+                )}
 
-                <div className="flex gap-2 mt-3">
-                  <button type="button" onClick={() => setOpen(false)}
-                    className="flex-1 text-xs border border-gray-200 rounded-lg py-1.5 hover:bg-gray-50 text-gray-500 transition-colors">
-                    Cancelar
-                  </button>
-                  <button type="submit"
-                    className="flex-1 text-xs text-white rounded-lg py-1.5 font-medium transition-colors bg-brand-600 hover:bg-brand-700">
-                    Registrar
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {!tipo && (
-              <p className="text-[11px] text-gray-400 text-center py-1">
-                Selecione o tipo de desfecho acima
-              </p>
+                {!tipo && (
+                  <p className="text-[11px] text-gray-400 text-center py-1">
+                    Selecione o tipo de desfecho acima
+                  </p>
+                )}
+              </>
             )}
           </div>
         </>

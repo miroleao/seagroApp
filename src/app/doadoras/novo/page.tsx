@@ -4,7 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { FARM_ID } from "@/lib/utils";
 import { criarDoadora } from "./actions";
 
-export default async function NovaDoadoraPage() {
+export default async function NovaDoadoraPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ erro?: string }>;
+}) {
+  const { erro } = await searchParams;
   const supabase = await createClient();
   const { data: parceiros } = await supabase
     .from("partners")
@@ -26,6 +31,14 @@ export default async function NovaDoadoraPage() {
       </div>
 
       <form action={criarDoadora} className="card p-6 space-y-6">
+
+        {/* ── Erro de duplicidade ── */}
+        {erro && (
+          <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+            <span className="font-semibold shrink-0">⚠ Animal duplicado:</span>
+            <span>{erro}</span>
+          </div>
+        )}
 
         {/* ── Identificação ── */}
         <section className="space-y-4">

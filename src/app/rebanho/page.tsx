@@ -26,6 +26,7 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   IMPLANTADA:     { label: "Implantada c/ Embrião",cls: "bg-amber-100 text-amber-700" },
   PRENHA:         { label: "Prenha",               cls: "bg-green-100 text-green-700" },
   PRENHA_EMBRIAO: { label: "Prenha de Embrião",    cls: "bg-teal-100 text-teal-700"   },
+  PARIDA:         { label: "Parida",               cls: "bg-green-100 text-green-700" },
   VAZIA:          { label: "Vazia",                cls: "bg-gray-100 text-gray-500"   },
   DESCARTE:       { label: "Descarte",             cls: "bg-red-100 text-red-600"     },
   MORTA:          { label: "Óbito",                cls: "bg-gray-800 text-white"      },
@@ -57,9 +58,9 @@ export const revalidate = 0;
 export default async function RebanhoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; cls?: string; st?: string; modal?: string }>;
+  searchParams: Promise<{ q?: string; cls?: string; st?: string; modal?: string; erro?: string }>;
 }) {
-  const { q, cls, st, modal } = await searchParams;
+  const { q, cls, st, modal, erro } = await searchParams;
   const supabase = await createClient();
 
   // Animais do rebanho (RECEPTORA + DESCARTE, inclui RECRIA via classificacao)
@@ -245,6 +246,7 @@ export default async function RebanhoPage({
                         isPrenha={true}
                         transferId={p?.transferId ?? null}
                         tipoDesfechoAtual={p?.tipoDesfecho ?? null}
+                        statusRebanho={a.status_rebanho ?? null}
                       />
                     </td>
                     <td className="px-4 py-2.5">
@@ -403,6 +405,7 @@ export default async function RebanhoPage({
                           }
                           transferId={p?.transferId ?? null}
                           tipoDesfechoAtual={p?.tipoDesfecho ?? null}
+                          statusRebanho={a.status_rebanho ?? null}
                         />
                       )}
                     </td>
@@ -423,6 +426,12 @@ export default async function RebanhoPage({
               <Link href="/rebanho" className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></Link>
             </div>
             <form action={cadastrarAnimal} className="px-6 py-5 space-y-4">
+              {erro && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 text-xs text-red-700">
+                  <span className="font-semibold shrink-0">⚠ Duplicata:</span>
+                  <span>{erro}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">Brinco / Nº *</label>

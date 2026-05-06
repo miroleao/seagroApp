@@ -41,6 +41,47 @@ export async function criarMacho(formData: FormData) {
   const ce = ce_raw ? parseFloat(ce_raw) : null;
 
   const supabase = await createClient();
+
+  // ── Checar duplicidade de RGN ─────────────────────────────────────────────
+  if (rgn?.trim()) {
+    const { data: dup } = await supabase
+      .from("animals")
+      .select("id, nome, tipo")
+      .eq("farm_id", FARM_ID)
+      .eq("rgn", rgn.trim())
+      .maybeSingle();
+    if (dup) {
+      const tipoLabel: Record<string, string> = {
+        DOADORA: "Doadora", TOURO: "Touro", RECEPTORA: "Receptora",
+      };
+      redirect(
+        `/machos/novo?erro=${encodeURIComponent(
+          `RGN "${rgn}" já cadastrado para: ${tipoLabel[dup.tipo] ?? dup.tipo} ${dup.nome}`
+        )}`
+      );
+    }
+  }
+
+  // ── Checar duplicidade de RGD ─────────────────────────────────────────────
+  if (rgd?.trim()) {
+    const { data: dup } = await supabase
+      .from("animals")
+      .select("id, nome, tipo")
+      .eq("farm_id", FARM_ID)
+      .eq("rgd", rgd.trim())
+      .maybeSingle();
+    if (dup) {
+      const tipoLabel: Record<string, string> = {
+        DOADORA: "Doadora", TOURO: "Touro", RECEPTORA: "Receptora",
+      };
+      redirect(
+        `/machos/novo?erro=${encodeURIComponent(
+          `RGD "${rgd}" já cadastrado para: ${tipoLabel[dup.tipo] ?? dup.tipo} ${dup.nome}`
+        )}`
+      );
+    }
+  }
+
   const { data, error } = await supabase
     .from("animals")
     .insert({

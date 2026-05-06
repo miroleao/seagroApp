@@ -20,6 +20,27 @@ export async function cadastrarAnimal(formData: FormData) {
 
   if (!brinco && !nome) return;
 
+  // ── Checar duplicidade de brinco ──────────────────────────────────────────
+  if (brinco) {
+    const { data: dup } = await supabase
+      .from("animals")
+      .select("id, nome, tipo, classificacao")
+      .eq("farm_id", FARM_ID)
+      .eq("brinco", brinco)
+      .maybeSingle();
+    if (dup) {
+      const tipoLabel: Record<string, string> = {
+        DOADORA: "Doadora", TOURO: "Touro", RECEPTORA: "Receptora", DESCARTE: "Descarte",
+      };
+      const label = tipoLabel[dup.tipo] ?? dup.tipo;
+      redirect(
+        `/rebanho?modal=animal&erro=${encodeURIComponent(
+          `Brinco "${brinco}" já cadastrado para: ${label} ${dup.nome}`
+        )}`
+      );
+    }
+  }
+
   const { data: animal, error } = await supabase
     .from("animals")
     .insert({
@@ -333,6 +354,31 @@ export async function registrarDesfechoUnificado(formData: FormData) {
       }
     }
 
+    // Busca genealogia completa da doadora (para preencher avós/bisavós do bezerro)
+    let doadora_genea: Record<string, string | null> | null = null;
+    if (doadora_id_asp) {
+      const { data: doa } = await supabase
+        .from("animals")
+        .select("pai_nome, mae_nome, avo_paterno, avo_paterna, avo_materno, avo_materna, bisavo_pat_pat, bisava_pat_pat, bisavo_pat_mat, bisava_pat_mat, bisavo_materno, bisava_mat_pat, bisavo_materna, bisavo")
+        .eq("id", doadora_id_asp)
+        .maybeSingle();
+      doadora_genea = doa ?? null;
+    }
+
+    // Busca genealogia do touro pelo nome (para preencher avós paternos do bezerro)
+    let touro_genea: Record<string, string | null> | null = null;
+    if (touro_nome) {
+      const { data: touro } = await supabase
+        .from("animals")
+        .select("pai_nome, mae_nome, avo_paterno, avo_paterna, avo_materno, avo_materna")
+        .eq("farm_id", FARM_ID)
+        .eq("tipo", "TOURO")
+        .ilike("nome", touro_nome.trim())
+        .limit(1)
+        .maybeSingle();
+      touro_genea = touro ?? null;
+    }
+
     if (tid) {
       await supabase.from("pregnancy_diagnoses")
         .update({
@@ -354,6 +400,12 @@ export async function registrarDesfechoUnificado(formData: FormData) {
       const peso_nascimento_raw = (formData.get("peso_nascimento") as string)?.trim() || null;
       const peso_nascimento = peso_nascimento_raw ? parseFloat(peso_nascimento_raw) : null;
 
+      // Mapeamento genealógico:
+      // Pais do bezerro: doadora (mãe) + touro (pai)
+      // Avós paternos:   pai do touro (avo_paterno) + mãe do touro (avo_paterna)
+      // Avós maternos:   pai da doadora (avo_materno) + mãe da doadora (avo_materna)
+      // Bisavós paternos:  avós do touro (bisavo_pat_* = avo_* do touro)
+      // Bisavós maternos:  avós da doadora (bisavo_mat_* = avo_* da doadora)
       const { data: novoAnimal } = await supabase.from("animals").insert({
         farm_id:    FARM_ID,
         tipo:       tipoAnimal,
@@ -361,11 +413,34 @@ export async function registrarDesfechoUnificado(formData: FormData) {
         rgn:        bezerro_rgn ?? null,
         nascimento: data_evento ?? null,
         sexo:       bezerro_sexo,
-        mae_nome:   doadora_nome,
-        mae_id:     doadora_id_asp ?? null,  // link para a doadora cadastrada
-        pai_nome:   touro_nome,
+        mae_id:     doadora_id_asp ?? null,
+
+        // ── Geração 1 (pais) ──────────────────────────────────────────────────
+        pai_nome:   touro_nome   ?? null,
+        mae_nome:   doadora_nome ?? null,
+
+        // ── Geração 2 (avós paternos = pais do touro) ────────────────────────
+        avo_paterno: touro_genea?.pai_nome ?? null,
+        avo_paterna: touro_genea?.mae_nome ?? null,
+
+        // ── Geração 2 (avós maternos = pais da doadora) ──────────────────────
+        avo_materno: doadora_genea?.pai_nome ?? null,
+        avo_materna: doadora_genea?.mae_nome ?? null,
+
+        // ── Geração 3 (bisavós paternos = avós do touro) ─────────────────────
+        bisavo_pat_pat: touro_genea?.avo_paterno ?? null,
+        bisava_pat_pat: touro_genea?.avo_paterna ?? null,
+        bisavo_pat_mat: touro_genea?.avo_materno ?? null,
+        bisava_pat_mat: touro_genea?.avo_materna ?? null,
+
+        // ── Geração 3 (bisavós maternos = avós da doadora) ───────────────────
+        bisavo_materno: doadora_genea?.avo_paterno ?? null,
+        bisava_mat_pat: doadora_genea?.avo_paterna ?? null,
+        bisavo_materna: doadora_genea?.avo_materno ?? null,
+        bisavo:         doadora_genea?.avo_materna ?? null,
+
         nascido_se_agro: true,
-        peso_atual:  (!isNaN(peso_nascimento!) && peso_nascimento! > 0) ? peso_nascimento : null,
+        peso_atual: (!isNaN(peso_nascimento!) && peso_nascimento! > 0) ? peso_nascimento : null,
       }).select("id").single();
 
       // Redireciona para a ficha do bezerro recém-criado
