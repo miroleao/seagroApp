@@ -447,7 +447,8 @@ export async function registrarDesfechoUnificado(formData: FormData) {
         bisavo_materna: doadora_genea?.avo_materno ?? null,
         bisavo:         doadora_genea?.avo_materna ?? null,
 
-        nascido_se_agro: true,
+        nascido_se_agro:    true,
+        percentual_proprio: 1.0,   // nascidos na fazenda = 100% próprio por padrão
         peso_atual: (!isNaN(peso_nascimento!) && peso_nascimento! > 0) ? peso_nascimento : null,
       }).select("id").single();
 
