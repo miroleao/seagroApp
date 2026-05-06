@@ -455,11 +455,12 @@ export default async function DoadoraDetalhePage({
     data: string | null;
     touro: string | null;
     total: number;
-    disponiveis: number;
+    disponiveis: number;  // estoque congelado (status DISPONIVEL)
+    implantados: number;  // já transferidos (status IMPLANTADO)
     femeas: number;
     machos: number;
     naoSex: number;
-    comPrenhez: number;
+    comPrenhez: number;   // prenhezes confirmadas (DG POSITIVO)
     embryos: any[];
   };
   const embGrupos: Record<string, GrupoEmb> = {};
@@ -469,10 +470,11 @@ export default async function DoadoraDetalhePage({
     const data   = asp?.session?.data ?? null;
     const touro  = asp?.touro_nome ?? null;
     if (!embGrupos[aspId]) {
-      embGrupos[aspId] = { aspId, data, touro, total: 0, disponiveis: 0, femeas: 0, machos: 0, naoSex: 0, comPrenhez: 0, embryos: [] };
+      embGrupos[aspId] = { aspId, data, touro, total: 0, disponiveis: 0, implantados: 0, femeas: 0, machos: 0, naoSex: 0, comPrenhez: 0, embryos: [] };
     }
     embGrupos[aspId].total++;
     if (e.status === "DISPONIVEL")  embGrupos[aspId].disponiveis++;
+    if (e.status === "IMPLANTADO")  embGrupos[aspId].implantados++;
     if (e.sexagem === "FEMEA")      embGrupos[aspId].femeas++;
     else if (e.sexagem === "MACHO") embGrupos[aspId].machos++;
     else                            embGrupos[aspId].naoSex++;
@@ -1104,13 +1106,21 @@ export default async function DoadoraDetalhePage({
                 <th className="px-4 py-3 font-medium text-gray-600">Tipo</th>
                 <th className="px-4 py-3 font-medium text-gray-600">Responsável</th>
                 <th className="px-4 py-3 font-medium text-gray-600">Oócitos</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Embriões</th>
+                <th className="px-4 py-3 font-medium text-gray-600 text-center">Congelados</th>
+                <th className="px-4 py-3 font-medium text-gray-600 text-center">Implantados</th>
+                <th className="px-4 py-3 font-medium text-gray-600 text-center">Prenhezes</th>
                 <th className="px-4 py-3 font-medium text-gray-600">Custo</th>
                 <th className="px-4 py-3 font-medium text-gray-600">Touro</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {aspiracoes.map((a: any) => (
+              {aspiracoes.map((a: any) => {
+                const g = embGrupos[a.id];
+                // Fallback para o campo bruto da aspiração quando não há embriões registrados
+                const congelados   = g ? g.disponiveis  : (a.embryos_congelados ?? null);
+                const implantados  = g ? g.implantados  : null;
+                const prenhezes    = g ? g.comPrenhez   : null;
+                return (
                 <tr key={a.id} className="table-row-hover">
                   <td className="px-4 py-3 text-gray-900">{formatDate(a.session?.data)}</td>
                   <td className="px-4 py-3">
@@ -1120,13 +1130,28 @@ export default async function DoadoraDetalhePage({
                   </td>
                   <td className="px-4 py-3 text-gray-500">{a.session?.responsavel ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-900 font-medium">{a.oocitos_viaveis ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-900 font-medium">{a.embryos_congelados ?? "—"}</td>
+                  <td className="px-4 py-3 text-center">
+                    {congelados != null
+                      ? <span className="badge bg-indigo-100 text-indigo-700 font-semibold">{congelados}</span>
+                      : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {implantados != null
+                      ? <span className={`badge font-semibold ${implantados > 0 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-400"}`}>{implantados}</span>
+                      : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {prenhezes != null
+                      ? <span className={`badge font-semibold ${prenhezes > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>{prenhezes}</span>
+                      : <span className="text-gray-300">—</span>}
+                  </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">
                     {a.custo_total != null ? formatCurrency(a.custo_total) : "—"}
                   </td>
                   <td className="px-4 py-3 text-gray-500">{a.touro_nome ?? "—"}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
