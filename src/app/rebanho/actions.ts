@@ -332,25 +332,33 @@ export async function registrarDesfechoUnificado(formData: FormData) {
       tid = ts?.[0]?.id ?? null;
     }
 
-    // Busca genealogia: dois selects simples (join aninhado falha silenciosamente)
-    let doadora_nome:  string | null = null;
+    // Busca genealogia: transfers → embryo_id → embryos → aspiration_id → aspirations
+    // (transfers NÃO tem aspiration_id direto — precisa passar por embryos)
+    let doadora_nome:   string | null = null;
     let doadora_id_asp: string | null = null;
-    let touro_nome:    string | null = null;
+    let touro_nome:     string | null = null;
     if (tid) {
       const { data: tr } = await supabase
         .from("transfers")
-        .select("aspiration_id")
+        .select("embryo_id")
         .eq("id", tid)
         .maybeSingle();
-      if (tr?.aspiration_id) {
-        const { data: asp } = await supabase
-          .from("aspirations")
-          .select("doadora_id, doadora_nome, touro_nome")
-          .eq("id", tr.aspiration_id)
+      if (tr?.embryo_id) {
+        const { data: emb } = await supabase
+          .from("embryos")
+          .select("aspiration_id")
+          .eq("id", tr.embryo_id)
           .maybeSingle();
-        doadora_nome   = asp?.doadora_nome ?? null;
-        doadora_id_asp = asp?.doadora_id   ?? null;
-        touro_nome     = asp?.touro_nome   ?? null;
+        if (emb?.aspiration_id) {
+          const { data: asp } = await supabase
+            .from("aspirations")
+            .select("doadora_id, doadora_nome, touro_nome")
+            .eq("id", emb.aspiration_id)
+            .maybeSingle();
+          doadora_nome   = asp?.doadora_nome ?? null;
+          doadora_id_asp = asp?.doadora_id   ?? null;
+          touro_nome     = asp?.touro_nome   ?? null;
+        }
       }
     }
 
