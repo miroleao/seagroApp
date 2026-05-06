@@ -12,6 +12,7 @@ const STATUS_OPCOES = [
   { value: "IMPLANTADA",     label: "Implantada c/ Embrião"},
   { value: "PRENHA",         label: "Prenha"               },
   { value: "PRENHA_EMBRIAO", label: "Prenha de Embrião"    },
+  { value: "PARIDA",         label: "Parida"               },
   { value: "DESCARTE",       label: "Descarte"             },
 ];
 

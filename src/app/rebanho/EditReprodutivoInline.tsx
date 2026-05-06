@@ -11,6 +11,7 @@ const STATUS_OPTIONS = [
   { value: "IMPLANTADA",     label: "Implantada c/ Embrião", cls: "bg-amber-100 text-amber-700" },
   { value: "PRENHA",         label: "Prenha",                cls: "bg-green-100 text-green-700" },
   { value: "PRENHA_EMBRIAO", label: "Prenha de Embrião",     cls: "bg-teal-100 text-teal-700"   },
+  { value: "PARIDA",         label: "Parida",                cls: "bg-green-100 text-green-700" },
   { value: "VAZIA",          label: "Vazia",                 cls: "bg-gray-100 text-gray-500"   },
   { value: "DESCARTE",       label: "Descarte",              cls: "bg-red-100 text-red-600"     },
 ];

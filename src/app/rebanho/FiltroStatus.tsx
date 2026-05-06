@@ -8,6 +8,7 @@ const STATUS_MAP: Record<string, string> = {
   IMPLANTADA:     "Implantada c/ Embrião",
   PRENHA:         "Prenha",
   PRENHA_EMBRIAO: "Prenha de Embrião",
+  PARIDA:         "Parida",
   VAZIA:          "Vazia",
   DESCARTE:       "Descarte",
 };

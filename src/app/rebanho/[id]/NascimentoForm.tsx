@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { Baby, X, Loader2 } from "lucide-react";
-import { registrarNascimento } from "./actions";
+import { registrarDesfechoUnificado } from "@/app/rebanho/actions";
 
 export function NascimentoForm({
   receptoraId,
@@ -28,10 +28,8 @@ export function NascimentoForm({
     const fd = new FormData(formRef.current!);
     start(async () => {
       try {
-        await registrarNascimento(fd);
-        // redirect é feito na action
+        await registrarDesfechoUnificado(fd);
       } catch (err: any) {
-        // next/navigation redirect throws — ignoramos
         if (!String(err).includes("NEXT_REDIRECT")) setErro(String(err));
       }
     });
@@ -52,52 +50,79 @@ export function NascimentoForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-green-50">
           <div className="flex items-center gap-2">
             <Baby className="w-5 h-5 text-green-600" />
             <h3 className="font-bold text-gray-900">Registrar Nascimento</h3>
           </div>
-          <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+          <button type="button" onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Info do embrião */}
         <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs text-gray-500 space-y-0.5">
-          {doadoraNome && <p>🐄 Doadora: <strong>{doadoraNome}</strong></p>}
-          {touroNome   && <p>🐂 Touro: <strong>{touroNome}</strong></p>}
-          {previsaoParto && <p>📅 Previsão: <strong>{previsaoParto}</strong></p>}
+          {doadoraNome && <p>🐄 Doadora: <strong className="text-gray-700">{doadoraNome}</strong></p>}
+          {touroNome   && <p>🐂 Touro: <strong className="text-gray-700">{touroNome}</strong></p>}
+          {previsaoParto && <p>📅 Previsão: <strong className="text-gray-700">{previsaoParto}</strong></p>}
         </div>
 
+        {/* Campos unificados — mesmos do DesfechoUnificadoInline/PARIDA */}
         <form ref={formRef} onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          <input type="hidden" name="receptora_id" value={receptoraId} />
-          <input type="hidden" name="transfer_id"  value={transferId}  />
+          {/* Campos ocultos obrigatórios para registrarDesfechoUnificado */}
+          <input type="hidden" name="animal_id"   value={receptoraId} />
+          <input type="hidden" name="transfer_id" value={transferId} />
+          <input type="hidden" name="tipo"        value="PARIDA" />
+          <input type="hidden" name="brinco"      value="" />
+          {/* redirect_to vazio → action redireciona para a ficha do bezerro */}
+          <input type="hidden" name="redirect_to" value={`/rebanho/${receptoraId}`} />
 
+          {/* Data */}
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Data do Nascimento *</label>
+            <input name="data_evento" type="date" defaultValue={hoje} required
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+          </div>
+
+          {/* Sexo */}
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Sexo do Bezerro *</label>
+            <div className="flex gap-3">
+              {[{ v: "F", label: "🐮 Fêmea" }, { v: "M", label: "🐂 Macho" }].map(op => (
+                <label key={op.v} className="flex-1 flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2 cursor-pointer hover:bg-green-50 hover:border-green-300 transition-colors">
+                  <input type="radio" name="bezerro_sexo" value={op.v} required className="accent-green-600" />
+                  <span className="text-sm font-medium text-gray-700">{op.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Nome e RGN */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Data do Nascimento *</label>
-              <input name="data_nascimento" type="date" defaultValue={hoje} required
+              <label className="text-xs font-medium text-gray-500 block mb-1">Nome do Bezerro</label>
+              <input name="bezerro_nome" type="text" placeholder="Ex: KARINA FIV SE…"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
             </div>
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Sexo do Bezerro *</label>
-              <select name="sexo_nascido" required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-300">
-                <option value="F">Fêmea</option>
-                <option value="M">Macho</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 block mb-1">Peso ao Nascer (kg)</label>
-              <input name="peso_nascimento" type="number" step="0.1" placeholder="Ex: 32"
+              <label className="text-xs font-medium text-gray-500 block mb-1">RGN</label>
+              <input name="bezerro_rgn" type="text" placeholder="Registro genealógico…"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
             </div>
           </div>
 
+          {/* Peso ao nascer (salvo nas observações) */}
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Observações</label>
-            <textarea name="obs_nascimento" rows={2} placeholder="Ex: Parto normal, bezerro vigoroso…"
+            <label className="text-xs font-medium text-gray-500 block mb-1">Peso ao Nascer (kg)</label>
+            <input name="peso_nascimento" type="number" step="0.1" placeholder="Ex: 32"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+          </div>
+
+          {/* Observações */}
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Observações</label>
+            <textarea name="observacoes" rows={2} placeholder="Ex: Parto normal, bezerro vigoroso…"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-300" />
           </div>
 

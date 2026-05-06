@@ -20,6 +20,7 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   IMPLANTADA:     { label: "Implantada c/ Embrião", cls: "bg-amber-100 text-amber-700"   },
   PRENHA:         { label: "Prenha",                cls: "bg-green-100 text-green-700"   },
   PRENHA_EMBRIAO: { label: "Prenha de Embrião",     cls: "bg-teal-100 text-teal-700"     },
+  PARIDA:         { label: "Parida",                cls: "bg-green-100 text-green-700"   },
   VAZIA:          { label: "Vazia",                 cls: "bg-gray-100 text-gray-500"     },
   DESCARTE:       { label: "Descarte",              cls: "bg-red-100 text-red-600"       },
 };

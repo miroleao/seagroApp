@@ -293,7 +293,7 @@ export async function registrarDesfechoUnificado(formData: FormData) {
   if (["PARIDA", "ABORTOU", "REABSORVEU"].includes(tipo)) {
     // ── Desfecho de prenhez ───────────────────────────────────────────────────
     const novoStatus: Record<string, string> = {
-      PARIDA:     "VAZIA",    // parida → libera para novo ciclo
+      PARIDA:     "PARIDA",   // acabou de parir → status PARIDA
       ABORTOU:    "FALHADA",  // aborto → descarte
       REABSORVEU: "FALHADA",  // absorção → descarte
     };
@@ -351,6 +351,9 @@ export async function registrarDesfechoUnificado(formData: FormData) {
     if (tipo === "PARIDA" && bezerro_sexo) {
       const tipoAnimal = bezerro_sexo === "F" ? "DOADORA" : "TOURO";
       const nomeAnimal = bezerro_nome || (bezerro_sexo === "F" ? "Bezerra SE" : "Bezerro SE");
+      const peso_nascimento_raw = (formData.get("peso_nascimento") as string)?.trim() || null;
+      const peso_nascimento = peso_nascimento_raw ? parseFloat(peso_nascimento_raw) : null;
+
       const { data: novoAnimal } = await supabase.from("animals").insert({
         farm_id:    FARM_ID,
         tipo:       tipoAnimal,
@@ -362,6 +365,7 @@ export async function registrarDesfechoUnificado(formData: FormData) {
         mae_id:     doadora_id_asp ?? null,  // link para a doadora cadastrada
         pai_nome:   touro_nome,
         nascido_se_agro: true,
+        peso_atual:  (!isNaN(peso_nascimento!) && peso_nascimento! > 0) ? peso_nascimento : null,
       }).select("id").single();
 
       // Redireciona para a ficha do bezerro recém-criado
