@@ -83,13 +83,46 @@ export default async function FichaRebanhoPage({
     .select(`
       id, data_te, resultado_te, sessao_nome,
       embryo:embryos (
-        aspiration:aspirations ( doadora_nome, touro_nome )
+        id,
+        aspiration:aspirations ( doadora_id, doadora_nome, touro_nome )
       ),
-      diagnoses:pregnancy_diagnoses ( resultado, data_dg, data_previsao_parto )
+      diagnoses:pregnancy_diagnoses ( resultado, data_dg, data_previsao_parto, tipo_desfecho, data_desfecho )
     `)
     .eq("farm_id", FARM_ID)
     .eq("receptora_id", id)
     .order("data_te", { ascending: false });
+
+  // Desfecho mais recente (se existir)
+  const ultimoTransferComDesfecho = (historico ?? []).find(
+    (t: any) => (t.diagnoses?.[0] as any)?.tipo_desfecho
+  ) ?? null;
+  const ultimoDg = ultimoTransferComDesfecho ? (ultimoTransferComDesfecho as any).diagnoses?.[0] : null;
+  const ultimoAsp = ultimoTransferComDesfecho
+    ? (ultimoTransferComDesfecho as any).embryo?.aspiration
+    : null;
+
+  // Bezerro nascido: animal com mae_id = doadora_id da aspiração + nascimento = data_desfecho
+  let bezzerraNascida: { id: string; nome: string; tipo: string } | null = null;
+  if (ultimoDg?.tipo_desfecho === "PARIDA" && ultimoDg?.data_desfecho) {
+    const doadora_id_asp = ultimoAsp?.doadora_id ?? null;
+    const { data: filhotes } = await supabase
+      .from("animals")
+      .select("id, nome, tipo")
+      .eq("farm_id", FARM_ID)
+      .eq("nascimento", ultimoDg.data_desfecho)
+      .eq("nascido_se_agro", true)
+      .limit(5);
+
+    // Prefere o que tem mae_id apontando para a doadora
+    if (filhotes?.length) {
+      if (doadora_id_asp) {
+        const comMae = filhotes.find((f: any) => (f as any).mae_id === doadora_id_asp);
+        bezzerraNascida = (comMae ?? filhotes[0]) as any;
+      } else {
+        bezzerraNascida = filhotes[0] as any;
+      }
+    }
+  }
 
   const isPrenha = animal.status_rebanho === "PRENHA" || animal.status_rebanho === "PRENHA_EMBRIAO";
 
@@ -163,6 +196,50 @@ export default async function FichaRebanhoPage({
             </div>
           )}
         </div>
+
+        {/* ── Desfecho do último embrião (se não for mais prenha) ─────────── */}
+        {!isPrenha && ultimoDg?.tipo_desfecho && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            {ultimoDg.tipo_desfecho === "PARIDA" ? (
+              <div className="flex flex-wrap items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <span className="text-green-700 font-semibold text-sm">🐄 Pariu em {formatDate(ultimoDg.data_desfecho)}</span>
+                <span className="text-green-600 text-sm">
+                  {bezzerraNascida ? (
+                    <>
+                      <span className="text-gray-400 mx-1">—</span>
+                      <Link
+                        href={bezzerraNascida.tipo === "DOADORA" ? `/doadoras/${bezzerraNascida.id}` : `/machos/${bezzerraNascida.id}`}
+                        className="font-semibold text-brand-600 hover:underline"
+                      >
+                        {bezzerraNascida.nome}
+                      </Link>
+                    </>
+                  ) : ultimoAsp?.doadora_nome || ultimoAsp?.touro_nome ? (
+                    <span className="text-gray-500">
+                      <span className="text-gray-400 mx-1">—</span>
+                      {[ultimoAsp.doadora_nome, ultimoAsp.touro_nome].filter(Boolean).join(" × ")}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+            ) : ultimoDg.tipo_desfecho === "ABORTOU" ? (
+              <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <span className="text-orange-700 font-semibold text-sm">⚠️ Abortou em {formatDate(ultimoDg.data_desfecho)}</span>
+                {ultimoAsp?.doadora_nome && (
+                  <span className="text-gray-400 text-xs">{ultimoAsp.doadora_nome} × {ultimoAsp.touro_nome ?? "—"}</span>
+                )}
+              </div>
+            ) : ultimoDg.tipo_desfecho === "REABSORVEU" ? (
+              <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <span className="text-yellow-700 font-semibold text-sm">🔄 Absorção em {formatDate(ultimoDg.data_desfecho)}</span>
+              </div>
+            ) : ultimoDg.tipo_desfecho === "OBITO" ? (
+              <div className="flex items-center gap-2 p-3 bg-gray-100 border border-gray-300 rounded-lg">
+                <span className="text-gray-700 font-semibold text-sm">💀 Óbito em {formatDate(ultimoDg.data_desfecho)}</span>
+              </div>
+            ) : null}
+          </div>
+        )}
 
         {/* Info prenhez (se prenha) */}
         {isPrenha && prenhez && (
@@ -270,7 +347,7 @@ export default async function FichaRebanhoPage({
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Data TE</th>
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Doadora</th>
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Touro</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Resultado DG</th>
+                <th className="px-4 py-2 text-xs font-medium text-gray-500">Desfecho</th>
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Prev. Parto</th>
               </tr>
             </thead>
@@ -278,21 +355,35 @@ export default async function FichaRebanhoPage({
               {historico.map((t: any) => {
                 const asp = t.embryo?.aspiration;
                 const dg  = (t.diagnoses ?? [])[0];
-                const DG_CLS: Record<string, string> = {
-                  POSITIVO: "bg-green-100 text-green-700",
-                  NEGATIVO: "bg-red-100 text-red-600",
-                  PARIDA:   "bg-purple-100 text-purple-700",
+
+                const DESFECHO_LABEL: Record<string, { label: string; cls: string }> = {
+                  PARIDA:     { label: "Parto",    cls: "bg-green-100  text-green-700"  },
+                  ABORTOU:    { label: "Aborto",   cls: "bg-orange-100 text-orange-700" },
+                  REABSORVEU: { label: "Absorção", cls: "bg-yellow-100 text-yellow-700" },
+                  OBITO:      { label: "Óbito",    cls: "bg-gray-200   text-gray-700"   },
+                  VENDA:      { label: "Venda",    cls: "bg-blue-100   text-blue-700"   },
                 };
+                const desfechoInfo = dg?.tipo_desfecho
+                  ? DESFECHO_LABEL[dg.tipo_desfecho]
+                  : dg?.resultado === "POSITIVO"
+                  ? { label: "P+ Prenha", cls: "bg-teal-100 text-teal-700" }
+                  : dg?.resultado === "NEGATIVO"
+                  ? { label: "Negativo",  cls: "bg-red-100 text-red-600"   }
+                  : null;
+
                 return (
                   <tr key={t.id} className="table-row-hover">
                     <td className="px-4 py-2.5 text-xs text-gray-600">{formatDate(t.data_te)}</td>
                     <td className="px-4 py-2.5 text-xs font-medium text-gray-800">{asp?.doadora_nome ?? "—"}</td>
                     <td className="px-4 py-2.5 text-xs text-gray-600">{asp?.touro_nome ?? "—"}</td>
                     <td className="px-4 py-2.5">
-                      {dg ? (
-                        <span className={`badge text-[10px] ${DG_CLS[dg.resultado] ?? "bg-gray-100 text-gray-500"}`}>
-                          {dg.resultado}
-                        </span>
+                      {desfechoInfo ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`badge text-[10px] w-fit ${desfechoInfo.cls}`}>{desfechoInfo.label}</span>
+                          {dg?.data_desfecho && (
+                            <span className="text-[10px] text-gray-400">{formatDate(dg.data_desfecho)}</span>
+                          )}
+                        </div>
                       ) : <span className="text-gray-300 text-xs">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-xs text-gray-600">{formatDate(dg?.data_previsao_parto ?? null)}</td>
