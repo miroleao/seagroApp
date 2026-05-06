@@ -8,9 +8,11 @@ import { DesfechoUnificadoInline } from "@/app/rebanho/DesfechoUnificadoInline";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 interface DG {
-  resultado: string;
+  resultado:           string;
   data_previsao_parto: string | null;
-  data_dg: string | null;
+  data_dg:             string | null;
+  data_desfecho:       string | null;
+  tipo_desfecho:       string | null;
 }
 interface Receptora {
   id: string;
@@ -570,16 +572,31 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
                           Editar
                         </button>
                         {/* Desfecho — só para embriões implantados com receptora vinculada */}
-                        {emb.status === "IMPLANTADO" && receptora?.id && (
-                          <DesfechoUnificadoInline
-                            animalId={receptora.id}
-                            brinco={brinco ?? receptora.id}
-                            isPrenha={true}
-                            transferId={transfer?.id ?? null}
-                            tipoDesfechoAtual={dg?.resultado ?? null}
-                            redirectTo="/reproducao"
-                          />
-                        )}
+                        {emb.status === "IMPLANTADO" && receptora?.id && (() => {
+                          const desfechoFeito = !!(dg?.data_desfecho || dg?.tipo_desfecho);
+                          const LABEL: Record<string, string> = {
+                            PARIDA: "Parto", ABORTOU: "Aborto",
+                            REABSORVEU: "Absorção", OBITO: "Óbito", VENDA: "Venda",
+                          };
+                          if (desfechoFeito) {
+                            return (
+                              <span title={`Desfecho: ${LABEL[dg?.tipo_desfecho ?? ""] ?? dg?.tipo_desfecho ?? "—"} em ${dg?.data_desfecho ?? "?"}`}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-orange-100 text-orange-600 cursor-default">
+                                ✓ {LABEL[dg?.tipo_desfecho ?? ""] ?? "Desfecho"}
+                              </span>
+                            );
+                          }
+                          return (
+                            <DesfechoUnificadoInline
+                              animalId={receptora.id}
+                              brinco={brinco ?? receptora.id}
+                              isPrenha={true}
+                              transferId={transfer?.id ?? null}
+                              tipoDesfechoAtual={null}
+                              redirectTo="/reproducao"
+                            />
+                          );
+                        })()}
                         <button
                           onClick={() => setConfirmDel(prev => ({ ...prev, [emb.id]: true }))}
                           title="Excluir embrião"

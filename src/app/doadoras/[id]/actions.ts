@@ -461,6 +461,17 @@ export async function atualizarGenealogia(formData: FormData) {
   redirect(`/doadoras/${id}`);
 }
 
+export async function excluirDoadora(formData: FormData) {
+  const id = formData.get("id") as string;
+  if (!id) return;
+
+  const supabase = await createClient();
+  await supabase.from("animals").delete().eq("id", id).eq("farm_id", FARM_ID);
+
+  revalidatePath("/doadoras");
+  redirect("/doadoras");
+}
+
 export async function atualizarPercentualProprio(formData: FormData) {
   const id  = formData.get("id") as string;
   const pct = parseFloat(formData.get("percentual_proprio") as string);

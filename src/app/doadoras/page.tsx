@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { Star, Plus, Trophy } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
+import { ExcluirDoadoraBtn } from "./ExcluirDoadoraBtn";
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   COLETANDO:  { label: "Coletando",  cls: "bg-purple-100 text-purple-700" },
@@ -219,6 +220,7 @@ export default async function DoadorasPage({
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Pai da Prenhez</th>
 
               {/* Localização */}
+
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">
                 <div className="flex flex-col gap-1">
                   <span>Localização</span>
@@ -336,6 +338,9 @@ export default async function DoadorasPage({
                   </td>
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                     {d.localizacao ?? "—"}
+                  </td>
+                  <td className="px-2 py-3">
+                    <ExcluirDoadoraBtn id={d.id} nome={d.nome} />
                   </td>
                 </tr>
               );

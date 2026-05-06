@@ -50,7 +50,7 @@ export default async function ReproducaoPage() {
           transfers:transfers!transfers_embryo_id_fkey (
             id, receptora_brinco, data_te,
             receptora:animals!transfers_receptora_id_fkey ( id, nome, brinco, rgn ),
-            pregnancy_diagnoses ( resultado, data_previsao_parto, data_dg )
+            pregnancy_diagnoses ( resultado, data_previsao_parto, data_dg, data_desfecho, tipo_desfecho )
           )
         )
       )
