@@ -94,7 +94,7 @@ const TIPO_COLOR: Record<string, string> = {
 // ─── input genérico com autocomplete ─────────────────────────────────────────
 // onAnimalSelect: chamado APENAS quando o usuário clica em um animal com registro completo
 function AncestralInput({
-  name, label, value, placeholder, onChange, onAnimalSelect,
+  name, label, value, placeholder, onChange, onAnimalSelect, linhagem,
 }: {
   name: string;
   label: string;
@@ -102,6 +102,7 @@ function AncestralInput({
   placeholder: string;
   onChange: (v: string) => void;
   onAnimalSelect?: (a: AnimalDB) => void;
+  linhagem?: "pai" | "mae";
 }) {
   const [aberto, setAberto] = useState(false);
   const [inputQ, setInputQ] = useState(value);
@@ -124,34 +125,65 @@ function AncestralInput({
     setAberto(v.length >= 2);
   };
 
-  const selectAnimal = (a: AnimalDB) => {
+  const selectAnimal = async (a: AnimalDB) => {
     setInputQ(a.nome);
     onChange(a.nome);
-    onAnimalSelect?.(a);
     setAberto(false);
+
+    if (!onAnimalSelect) return;
+
+    // Se o animal já tem genealogia, usa direto
+    if (a.pai_nome || a.mae_nome || a.avo_paterno) {
+      onAnimalSelect(a);
+      return;
+    }
+
+    // Senão, tenta inferir pelos filhos
+    if (linhagem) {
+      try {
+        const res = await fetch(
+          `/api/genealogia/inferir?nome=${encodeURIComponent(a.nome)}&linhagem=${linhagem}`
+        );
+        const data = await res.json();
+        if (data && (data.pai_nome || data.mae_nome)) {
+          onAnimalSelect({ ...a, ...data });
+          return;
+        }
+      } catch { /* sem dados extras */ }
+    }
+
+    onAnimalSelect(a);
   };
 
-  // Ao clicar em nome de genealogia, tenta buscar o animal completo pelo nome exato
-  // para acionar cascata caso exista cadastro com genealogia preenchida
+  // Ao clicar em nome de genealogia, infere a genealogia do ancestral
+  // usando o endpoint /api/genealogia/inferir (busca por cadastro próprio
+  // ou por filhos que já têm ele como pai/mãe)
   const selectNome = async (nome: string) => {
     setInputQ(nome);
     onChange(nome);
     setAberto(false);
 
-    if (!onAnimalSelect) return;
+    if (!onAnimalSelect || !linhagem) return;
 
     try {
-      const res = await fetch(`/api/animais/buscar?q=${encodeURIComponent(nome)}`);
-      const data: AnimalDB[] = await res.json();
-      // Busca correspondência exata (case-insensitive)
-      const match = data.find(
-        (a) => a.nome.trim().toLowerCase() === nome.trim().toLowerCase()
+      const res = await fetch(
+        `/api/genealogia/inferir?nome=${encodeURIComponent(nome)}&linhagem=${linhagem}`
       );
-      if (match && (match.pai_nome || match.mae_nome || match.avo_paterno)) {
-        onAnimalSelect(match);
+      const data = await res.json();
+      if (data && (data.pai_nome || data.mae_nome || data.avo_paterno)) {
+        // Monta um objeto AnimalDB fake com os dados inferidos
+        onAnimalSelect({
+          id: "", nome, tipo: "",
+          pai_nome:    data.pai_nome    ?? undefined,
+          mae_nome:    data.mae_nome    ?? undefined,
+          avo_paterno: data.avo_paterno ?? undefined,
+          avo_paterna: data.avo_paterna ?? undefined,
+          avo_materno: data.avo_materno ?? undefined,
+          avo_materna: data.avo_materna ?? undefined,
+        });
       }
     } catch {
-      // sem cadastro completo — apenas o nome foi preenchido, tudo certo
+      // sem dados — apenas o nome foi preenchido
     }
   };
 
@@ -402,12 +434,14 @@ export default function GenealogyForm({
             value={vals.pai_nome} placeholder="Buscar pai…"
             onChange={(v) => set({ pai_nome: v })}
             onAnimalSelect={handlePaiSelect}
+            linhagem="pai"
           />
           <AncestralInput
             name="mae_nome" label="Mãe"
             value={vals.mae_nome} placeholder="Buscar mãe…"
             onChange={(v) => set({ mae_nome: v })}
             onAnimalSelect={handleMaeSelect}
+            linhagem="mae"
           />
         </div>
       </div>
