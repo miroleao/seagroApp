@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { FARM_ID } from "@/lib/utils";
 import { criarDoadora } from "./actions";
+import GenealogyForm from "@/components/GenealogyForm";
 
 export default async function NovaDoadoraPage({
   searchParams,
@@ -83,114 +84,7 @@ export default async function NovaDoadoraPage({
         </section>
 
         {/* ── Genealogia ── */}
-        <section className="space-y-5">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b border-gray-100 pb-2">Genealogia</h2>
-
-          {/* Pais */}
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-2">Pais</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Pai</label>
-                <input name="pai_nome" type="text" placeholder="Nome do pai"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Mãe</label>
-                <input name="mae_nome" type="text" placeholder="Nome da mãe"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-            </div>
-          </div>
-
-          {/* Avós Paternos */}
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-2">Avós Paternos <span className="text-gray-300 font-normal">(pais do Pai)</span></p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Avô Paterno</label>
-                <input name="avo_paterno" type="text" placeholder="Pai do pai"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Avó Paterna</label>
-                <input name="avo_paterna" type="text" placeholder="Mãe do pai"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-            </div>
-          </div>
-
-          {/* Avós Maternos */}
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-2">Avós Maternos <span className="text-gray-300 font-normal">(pais da Mãe)</span></p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Avô Materno</label>
-                <input name="avo_materno" type="text" placeholder="Pai da mãe"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Avó Materna</label>
-                <input name="avo_materna" type="text" placeholder="Mãe da mãe"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-            </div>
-          </div>
-
-          {/* Bisavós Paternos */}
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-2">Bisavós Paternos <span className="text-gray-300 font-normal">(avós do Pai)</span></p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Pai do Avô Paterno</label>
-                <input name="bisavo_pat_pat" type="text" placeholder="Bisavô — pai do avô paterno"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Mãe do Avô Paterno</label>
-                <input name="bisava_pat_pat" type="text" placeholder="Bisavó — mãe do avô paterno"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Pai da Avó Paterna</label>
-                <input name="bisavo_pat_mat" type="text" placeholder="Bisavô — pai da avó paterna"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Mãe da Avó Paterna</label>
-                <input name="bisava_pat_mat" type="text" placeholder="Bisavó — mãe da avó paterna"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-            </div>
-          </div>
-
-          {/* Bisavós Maternos */}
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-2">Bisavós Maternos <span className="text-gray-300 font-normal">(avós da Mãe)</span></p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Pai do Avô Materno</label>
-                <input name="bisavo_materno" type="text" placeholder="Bisavô — pai do avô materno"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Mãe do Avô Materno</label>
-                <input name="bisava_mat_pat" type="text" placeholder="Bisavó — mãe do avô materno"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Pai da Avó Materna</label>
-                <input name="bisavo_materna" type="text" placeholder="Bisavô — pai da avó materna"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Mãe da Avó Materna</label>
-                <input name="bisavo" type="text" placeholder="Bisavó — mãe da avó materna"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-            </div>
-          </div>
-        </section>
+        <GenealogyForm />
 
         {/* ── Financeiro ── */}
         <section className="space-y-4">
