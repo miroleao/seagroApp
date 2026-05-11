@@ -131,10 +131,28 @@ function AncestralInput({
     setAberto(false);
   };
 
-  const selectNome = (nome: string) => {
+  // Ao clicar em nome de genealogia, tenta buscar o animal completo pelo nome exato
+  // para acionar cascata caso exista cadastro com genealogia preenchida
+  const selectNome = async (nome: string) => {
     setInputQ(nome);
     onChange(nome);
     setAberto(false);
+
+    if (!onAnimalSelect) return;
+
+    try {
+      const res = await fetch(`/api/animais/buscar?q=${encodeURIComponent(nome)}`);
+      const data: AnimalDB[] = await res.json();
+      // Busca correspondência exata (case-insensitive)
+      const match = data.find(
+        (a) => a.nome.trim().toLowerCase() === nome.trim().toLowerCase()
+      );
+      if (match && (match.pai_nome || match.mae_nome || match.avo_paterno)) {
+        onAnimalSelect(match);
+      }
+    } catch {
+      // sem cadastro completo — apenas o nome foi preenchido, tudo certo
+    }
   };
 
   const temResultados = animais.length > 0 || nomesGenealogia.length > 0;
@@ -310,34 +328,31 @@ export default function GenealogyForm({
     setVals((v) => ({ ...v, ...patch }));
   }, []);
 
+  // Só inclui o campo na cascata se tiver valor (evita sobrescrever com vazio)
+  const nonEmpty = (v: string | undefined) => v && v.trim() ? v : undefined;
+
   // ── Seleção do PAI: cascateia apenas o lado paterno ──────────────────────
   const handlePaiSelect = useCallback((a: AnimalDB) => {
-    set({
-      pai_nome:       a.nome,
-      // avós paternos (pais do pai)
-      avo_paterno:    a.pai_nome    ?? "",
-      avo_paterna:    a.mae_nome    ?? "",
-      // bisavós paternos (avós do pai)
-      bisavo_pat_pat: a.avo_paterno ?? "",
-      bisava_pat_pat: a.avo_paterna ?? "",
-      bisavo_pat_mat: a.avo_materno ?? "",
-      bisava_pat_mat: a.avo_materna ?? "",
-    });
+    const patch: Partial<GenealogyValues> = { pai_nome: a.nome };
+    if (nonEmpty(a.pai_nome))    patch.avo_paterno    = a.pai_nome!;
+    if (nonEmpty(a.mae_nome))    patch.avo_paterna    = a.mae_nome!;
+    if (nonEmpty(a.avo_paterno)) patch.bisavo_pat_pat = a.avo_paterno!;
+    if (nonEmpty(a.avo_paterna)) patch.bisava_pat_pat = a.avo_paterna!;
+    if (nonEmpty(a.avo_materno)) patch.bisavo_pat_mat = a.avo_materno!;
+    if (nonEmpty(a.avo_materna)) patch.bisava_pat_mat = a.avo_materna!;
+    set(patch);
   }, [set]);
 
   // ── Seleção da MÃE: cascateia apenas o lado materno ─────────────────────
   const handleMaeSelect = useCallback((a: AnimalDB) => {
-    set({
-      mae_nome:       a.nome,
-      // avós maternos (pais da mãe)
-      avo_materno:    a.pai_nome    ?? "",
-      avo_materna:    a.mae_nome    ?? "",
-      // bisavós maternos (avós da mãe)
-      bisavo_materno: a.avo_paterno ?? "",
-      bisava_mat_pat: a.avo_paterna ?? "",
-      bisavo_materna: a.avo_materno ?? "",
-      bisavo:         a.avo_materna ?? "",
-    });
+    const patch: Partial<GenealogyValues> = { mae_nome: a.nome };
+    if (nonEmpty(a.pai_nome))    patch.avo_materno    = a.pai_nome!;
+    if (nonEmpty(a.mae_nome))    patch.avo_materna    = a.mae_nome!;
+    if (nonEmpty(a.avo_paterno)) patch.bisavo_materno = a.avo_paterno!;
+    if (nonEmpty(a.avo_paterna)) patch.bisava_mat_pat = a.avo_paterna!;
+    if (nonEmpty(a.avo_materno)) patch.bisavo_materna = a.avo_materno!;
+    if (nonEmpty(a.avo_materna)) patch.bisavo         = a.avo_materna!;
+    set(patch);
   }, [set]);
 
   // ── Copiar genealogia de irmão ───────────────────────────────────────────
