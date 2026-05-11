@@ -79,7 +79,8 @@ function useBusca(q: string) {
 }
 
 // ─── busca animais completos (para importação) ────────────────────────────────
-function useBuscaCompleta(q: string) {
+// modo: "nome" | "pai" | "mae" — passa para a API para buscar também por pai_nome / mae_nome
+function useBuscaCompleta(q: string, modo: ModoImport) {
   const [animais, setAnimais] = useState<AnimalDB[]>([]);
   const [carregando, setCarregando] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,17 +88,18 @@ function useBuscaCompleta(q: string) {
   useEffect(() => {
     if (q.length < 2) { setAnimais([]); return; }
     if (timer.current) clearTimeout(timer.current);
+    const apiModo = modo === "tudo" ? "nome" : modo; // "pai" | "mae" | "nome"
     timer.current = setTimeout(async () => {
       setCarregando(true);
       try {
-        const res = await fetch(`/api/animais/buscar?q=${encodeURIComponent(q)}`);
+        const res = await fetch(`/api/animais/buscar?q=${encodeURIComponent(q)}&modo=${apiModo}`);
         const data = await res.json();
         setAnimais(Array.isArray(data) ? data : []);
       } catch { setAnimais([]); }
       finally { setCarregando(false); }
     }, 280);
     return () => { if (timer.current) clearTimeout(timer.current); };
-  }, [q]);
+  }, [q, modo]);
 
   return { animais, carregando };
 }
@@ -195,32 +197,45 @@ function AncestralInput({ name, label, value, placeholder, onChange }: {
 }
 
 // ─── preview da genealogia de um animal ───────────────────────────────────────
+// Mostra exatamente o que será copiado para o novo animal conforme o modo.
+// Modo "pai": copia o lado paterno do animal selecionado (ele é um irmão).
+// Modo "mae": copia o lado materno do animal selecionado (ele é um irmão).
+// Modo "tudo": copia todos os 14 campos (irmão completo).
 function GenealogyPreview({ animal, modo }: { animal: AnimalDB; modo: "pai" | "mae" | "tudo" }) {
   const linhas: { label: string; valor: string | undefined }[] = [];
 
-  if (modo === "pai" || modo === "tudo") {
-    if (animal.pai_nome)    linhas.push({ label: "Avô Paterno",    valor: animal.pai_nome });
-    if (animal.mae_nome)    linhas.push({ label: "Avó Paterna",    valor: animal.mae_nome });
-    if (animal.avo_paterno) linhas.push({ label: "Bisavô Pat-Pat", valor: animal.avo_paterno });
-    if (animal.avo_paterna) linhas.push({ label: "Bisavó Pat-Pat", valor: animal.avo_paterna });
-    if (animal.avo_materno) linhas.push({ label: "Bisavô Pat-Mat", valor: animal.avo_materno });
-    if (animal.avo_materna) linhas.push({ label: "Bisavó Pat-Mat", valor: animal.avo_materna });
-  }
-  if (modo === "mae" || modo === "tudo") {
-    if (animal.pai_nome && modo === "mae")    linhas.push({ label: "Avô Materno",    valor: animal.pai_nome });
-    if (animal.mae_nome && modo === "mae")    linhas.push({ label: "Avó Materna",    valor: animal.mae_nome });
-    if (animal.avo_paterno && modo === "mae") linhas.push({ label: "Bisavô Mat-Pat", valor: animal.avo_paterno });
-    if (animal.avo_paterna && modo === "mae") linhas.push({ label: "Bisavó Mat-Pat", valor: animal.avo_paterna });
-    if (animal.avo_materno && modo === "mae") linhas.push({ label: "Bisavô Mat-Mat", valor: animal.avo_materno });
-    if (animal.avo_materna && modo === "mae") linhas.push({ label: "Bisavó Mat-Mat", valor: animal.avo_materna });
-  }
-  if (modo === "tudo") {
-    if (animal.pai_nome)       linhas.push({ label: "Pai",           valor: animal.pai_nome });
-    if (animal.mae_nome)       linhas.push({ label: "Mãe",           valor: animal.mae_nome });
-    if (animal.avo_paterno)    linhas.push({ label: "Avô Paterno",   valor: animal.avo_paterno });
-    if (animal.avo_paterna)    linhas.push({ label: "Avó Paterna",   valor: animal.avo_paterna });
-    if (animal.avo_materno)    linhas.push({ label: "Avô Materno",   valor: animal.avo_materno });
-    if (animal.avo_materna)    linhas.push({ label: "Avó Materna",   valor: animal.avo_materna });
+  if (modo === "pai") {
+    if (animal.pai_nome)       linhas.push({ label: "Pai",            valor: animal.pai_nome });
+    if (animal.avo_paterno)    linhas.push({ label: "Avô Paterno",    valor: animal.avo_paterno });
+    if (animal.avo_paterna)    linhas.push({ label: "Avó Paterna",    valor: animal.avo_paterna });
+    if (animal.bisavo_pat_pat) linhas.push({ label: "Bisavô Pat-Pat", valor: animal.bisavo_pat_pat });
+    if (animal.bisava_pat_pat) linhas.push({ label: "Bisavó Pat-Pat", valor: animal.bisava_pat_pat });
+    if (animal.bisavo_pat_mat) linhas.push({ label: "Bisavô Pat-Mat", valor: animal.bisavo_pat_mat });
+    if (animal.bisava_pat_mat) linhas.push({ label: "Bisavó Pat-Mat", valor: animal.bisava_pat_mat });
+  } else if (modo === "mae") {
+    if (animal.mae_nome)       linhas.push({ label: "Mãe",            valor: animal.mae_nome });
+    if (animal.avo_materno)    linhas.push({ label: "Avô Materno",    valor: animal.avo_materno });
+    if (animal.avo_materna)    linhas.push({ label: "Avó Materna",    valor: animal.avo_materna });
+    if (animal.bisavo_materno) linhas.push({ label: "Bisavô Mat-Pat", valor: animal.bisavo_materno });
+    if (animal.bisava_mat_pat) linhas.push({ label: "Bisavó Mat-Pat", valor: animal.bisava_mat_pat });
+    if (animal.bisavo_materna) linhas.push({ label: "Bisavô Mat-Mat", valor: animal.bisavo_materna });
+    if (animal.bisavo)         linhas.push({ label: "Bisavó Mat-Mat", valor: animal.bisavo });
+  } else {
+    // tudo
+    if (animal.pai_nome)       linhas.push({ label: "Pai",            valor: animal.pai_nome });
+    if (animal.mae_nome)       linhas.push({ label: "Mãe",            valor: animal.mae_nome });
+    if (animal.avo_paterno)    linhas.push({ label: "Avô Paterno",    valor: animal.avo_paterno });
+    if (animal.avo_paterna)    linhas.push({ label: "Avó Paterna",    valor: animal.avo_paterna });
+    if (animal.avo_materno)    linhas.push({ label: "Avô Materno",    valor: animal.avo_materno });
+    if (animal.avo_materna)    linhas.push({ label: "Avó Materna",    valor: animal.avo_materna });
+    if (animal.bisavo_pat_pat) linhas.push({ label: "Bisavô Pat-Pat", valor: animal.bisavo_pat_pat });
+    if (animal.bisava_pat_pat) linhas.push({ label: "Bisavó Pat-Pat", valor: animal.bisava_pat_pat });
+    if (animal.bisavo_pat_mat) linhas.push({ label: "Bisavô Pat-Mat", valor: animal.bisavo_pat_mat });
+    if (animal.bisava_pat_mat) linhas.push({ label: "Bisavó Pat-Mat", valor: animal.bisava_pat_mat });
+    if (animal.bisavo_materno) linhas.push({ label: "Bisavô Mat-Pat", valor: animal.bisavo_materno });
+    if (animal.bisava_mat_pat) linhas.push({ label: "Bisavó Mat-Pat", valor: animal.bisava_mat_pat });
+    if (animal.bisavo_materna) linhas.push({ label: "Bisavô Mat-Mat", valor: animal.bisavo_materna });
+    if (animal.bisavo)         linhas.push({ label: "Bisavó Mat-Mat", valor: animal.bisavo });
   }
 
   if (linhas.length === 0) return <p className="text-xs text-gray-400 italic">Genealogia não preenchida neste cadastro.</p>;
@@ -252,12 +267,12 @@ function ModalImportar({
   const [busca, setBusca] = useState("");
   const [modo, setModo] = useState<ModoImport>(modoInicial);
   const [selecionado, setSelecionado] = useState<AnimalDB | null>(null);
-  const { animais, carregando } = useBuscaCompleta(busca);
+  const { animais, carregando } = useBuscaCompleta(busca, modo);
 
   const modos: { key: ModoImport; label: string; desc: string; cor: string }[] = [
-    { key: "pai",  label: "Lado Paterno",  desc: "Preenche pai + avós paternos + bisavós paternos", cor: "border-blue-300 bg-blue-50 text-blue-700" },
-    { key: "mae",  label: "Lado Materno",  desc: "Preenche mãe + avós maternos + bisavós maternos", cor: "border-pink-300 bg-pink-50 text-pink-700" },
-    { key: "tudo", label: "Genealogia Completa", desc: "Copia tudo (ideal para irmãos)",            cor: "border-brand-300 bg-brand-50 text-brand-700" },
+    { key: "pai",  label: "Lado Paterno",  desc: "Copia pai + avós paternos de um irmão", cor: "border-blue-300 bg-blue-50 text-blue-700" },
+    { key: "mae",  label: "Lado Materno",  desc: "Copia mãe + avós maternos de um irmão", cor: "border-pink-300 bg-pink-50 text-pink-700" },
+    { key: "tudo", label: "Genealogia Completa", desc: "Copia tudo (irmão completo)",     cor: "border-brand-300 bg-brand-50 text-brand-700" },
   ];
 
   return (
@@ -294,12 +309,23 @@ function ModalImportar({
           {/* Busca */}
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              {modo === "pai" ? "Buscar o animal pai" : modo === "mae" ? "Buscar o animal mãe" : "Buscar animal irmão"}
+              Buscar animal de referência
+            </p>
+            <p className="text-[11px] text-gray-400 mb-2">
+              {modo === "pai"
+                ? "Digite o nome de um irmão ou o nome do pai comum — os dados paternos serão copiados."
+                : modo === "mae"
+                ? "Digite o nome de um irmão ou o nome da mãe comum — os dados maternos serão copiados."
+                : "Digite o nome do irmão completo — toda a genealogia será copiada."}
             </p>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input type="text" value={busca} onChange={(e) => { setBusca(e.target.value); setSelecionado(null); }}
-                placeholder={modo === "tudo" ? "Nome do irmão…" : modo === "pai" ? "Nome do pai…" : "Nome da mãe…"}
+                placeholder={
+                  modo === "pai"  ? "Nome do irmão ou do pai (ex: LANDAU)…" :
+                  modo === "mae"  ? "Nome do irmão ou da mãe (ex: PARLA)…" :
+                                    "Nome do irmão…"
+                }
                 autoFocus
                 className="w-full border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
             </div>
@@ -310,8 +336,16 @@ function ModalImportar({
             <div className="space-y-1 max-h-48 overflow-auto">
               {carregando && <p className="text-xs text-gray-400">Buscando…</p>}
               {animais.map((a) => {
-                const temGen = !!(a.pai_nome || a.mae_nome);
+                const temGenPat = !!(a.pai_nome || a.avo_paterno);
+                const temGenMat = !!(a.mae_nome || a.avo_materno);
+                const temGen = modo === "mae" ? temGenMat : temGenPat;
                 const isSel = selecionado?.id === a.id;
+                // dica rápida: qual valor vai para o campo principal
+                const dica = modo === "pai" && a.pai_nome
+                  ? `Pai → ${a.pai_nome}`
+                  : modo === "mae" && a.mae_nome
+                  ? `Mãe → ${a.mae_nome}`
+                  : null;
                 return (
                   <button key={a.id} type="button"
                     onClick={() => setSelecionado(isSel ? null : a)}
@@ -322,9 +356,12 @@ function ModalImportar({
                       <p className="text-[11px] text-gray-400 mt-0.5">
                         {TIPO_LABEL[a.tipo] ?? a.tipo}
                         {a.rgn && ` · ${a.rgn}`}
-                        <span className={`ml-1 ${temGen ? "text-green-500" : "text-orange-400"}`}>
-                          · {temGen ? "tem genealogia" : "sem genealogia"}
-                        </span>
+                        {dica
+                          ? <span className="ml-1 text-blue-500"> · {dica}</span>
+                          : <span className={`ml-1 ${temGen ? "text-green-500" : "text-orange-400"}`}>
+                              · {temGen ? "tem genealogia" : "sem genealogia"}
+                            </span>
+                        }
                       </p>
                     </div>
                     <ChevronRight className={`w-4 h-4 shrink-0 ${isSel ? "text-brand-500" : "text-gray-300"}`} />
@@ -378,29 +415,30 @@ export default function GenealogyForm({
 
   const handleImportar = useCallback((a: AnimalDB, modo: ModoImport) => {
     if (modo === "pai") {
-      // A genealogia do animal selecionado = genealogia do PAI do novo animal
-      // pai_nome do selecionado → avô paterno do novo animal
+      // Copia o lado paterno do irmão selecionado (mesmo pai)
+      // Os campos paternos do irmão vão direto para os campos paternos do novo animal
       set({
-        pai_nome:       a.nome,
-        ...(a.pai_nome    && { avo_paterno:    a.pai_nome }),
-        ...(a.mae_nome    && { avo_paterna:    a.mae_nome }),
-        ...(a.avo_paterno && { bisavo_pat_pat: a.avo_paterno }),
-        ...(a.avo_paterna && { bisava_pat_pat: a.avo_paterna }),
-        ...(a.avo_materno && { bisavo_pat_mat: a.avo_materno }),
-        ...(a.avo_materna && { bisava_pat_mat: a.avo_materna }),
+        ...(a.pai_nome       && { pai_nome:       a.pai_nome }),
+        ...(a.avo_paterno    && { avo_paterno:    a.avo_paterno }),
+        ...(a.avo_paterna    && { avo_paterna:    a.avo_paterna }),
+        ...(a.bisavo_pat_pat && { bisavo_pat_pat: a.bisavo_pat_pat }),
+        ...(a.bisava_pat_pat && { bisava_pat_pat: a.bisava_pat_pat }),
+        ...(a.bisavo_pat_mat && { bisavo_pat_mat: a.bisavo_pat_mat }),
+        ...(a.bisava_pat_mat && { bisava_pat_mat: a.bisava_pat_mat }),
       });
     } else if (modo === "mae") {
+      // Copia o lado materno do irmão selecionado (mesma mãe)
       set({
-        mae_nome:       a.nome,
-        ...(a.pai_nome    && { avo_materno:    a.pai_nome }),
-        ...(a.mae_nome    && { avo_materna:    a.mae_nome }),
-        ...(a.avo_paterno && { bisavo_materno: a.avo_paterno }),
-        ...(a.avo_paterna && { bisava_mat_pat: a.avo_paterna }),
-        ...(a.avo_materno && { bisavo_materna: a.avo_materno }),
-        ...(a.avo_materna && { bisavo:         a.avo_materna }),
+        ...(a.mae_nome       && { mae_nome:       a.mae_nome }),
+        ...(a.avo_materno    && { avo_materno:    a.avo_materno }),
+        ...(a.avo_materna    && { avo_materna:    a.avo_materna }),
+        ...(a.bisavo_materno && { bisavo_materno: a.bisavo_materno }),
+        ...(a.bisava_mat_pat && { bisava_mat_pat: a.bisava_mat_pat }),
+        ...(a.bisavo_materna && { bisavo_materna: a.bisavo_materna }),
+        ...(a.bisavo         && { bisavo:         a.bisavo }),
       });
     } else {
-      // tudo: copia genealogia completa (irmão)
+      // tudo: copia genealogia completa (irmão completo — mesmo pai e mesma mãe)
       setVals({
         pai_nome:       a.pai_nome       ?? "",
         mae_nome:       a.mae_nome       ?? "",
