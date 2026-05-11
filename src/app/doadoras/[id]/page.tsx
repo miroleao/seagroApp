@@ -3,6 +3,7 @@ import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2 } from "lucide-react";
 import { toggleParaPista, toggleNascidoSeAgro, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio } from "./actions";
+import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
 import { EditReprodutivoInline } from "@/app/rebanho/EditReprodutivoInline";
@@ -944,130 +945,25 @@ export default async function DoadoraDetalhePage({
           <Genealogia animal={doadora} />
         </div>
 
-        {/* Barra de edição expansível com lápis */}
-        <details className="group">
-          <summary className="list-none flex items-center gap-2 px-5 py-3 border-t border-gray-100 cursor-pointer bg-gray-50 hover:bg-brand-50 transition-colors select-none">
-            <div className="p-1 rounded-md bg-brand-100 text-brand-600 group-open:bg-brand-600 group-open:text-white transition-colors">
-              <Edit2 className="w-3.5 h-3.5" />
-            </div>
-            <span className="text-xs font-semibold text-brand-700 group-open:text-brand-800">Editar Genealogia</span>
-            <span className="ml-auto text-xs text-gray-400 group-open:hidden">▸</span>
-            <span className="ml-auto text-xs text-gray-400 hidden group-open:inline">▾ Fechar</span>
-          </summary>
-
-          <div className="px-5 pt-4 pb-5 bg-gray-50/50 border-t border-brand-100">
-          <form action={atualizarGenealogia} className="space-y-4">
-            <input type="hidden" name="id" value={doadora.id} />
-
-            {/* Pai e Mãe */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] uppercase tracking-wide text-gray-400 block mb-1">Pai</label>
-                <input name="pai_nome" defaultValue={(doadora as any).pai_nome ?? ""}
-                  placeholder="Nome do pai"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-wide text-gray-400 block mb-1">Mãe</label>
-                <input name="mae_nome" defaultValue={(doadora as any).mae_nome ?? ""}
-                  placeholder="Nome da mãe"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-            </div>
-
-            {/* Avós */}
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-2 font-medium">Avós</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Avô Paterno (pai do pai)</label>
-                  <input name="avo_paterno" defaultValue={(doadora as any).avo_paterno ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Avó Paterna (mãe do pai)</label>
-                  <input name="avo_paterna" defaultValue={(doadora as any).avo_paterna ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Avô Materno (pai da mãe)</label>
-                  <input name="avo_materno" defaultValue={(doadora as any).avo_materno ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Avó Materna (mãe da mãe)</label>
-                  <input name="avo_materna" defaultValue={(doadora as any).avo_materna ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-              </div>
-            </div>
-
-            {/* Bisavós */}
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-2 font-medium">Bisavós</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Pai do Avô Paterno</label>
-                  <input name="bisavo_pat_pat" defaultValue={(doadora as any).bisavo_pat_pat ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Mãe do Avô Paterno</label>
-                  <input name="bisava_pat_pat" defaultValue={(doadora as any).bisava_pat_pat ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Pai da Avó Paterna</label>
-                  <input name="bisavo_pat_mat" defaultValue={(doadora as any).bisavo_pat_mat ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Mãe da Avó Paterna</label>
-                  <input name="bisava_pat_mat" defaultValue={(doadora as any).bisava_pat_mat ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Pai do Avô Materno</label>
-                  <input name="bisavo_materno" defaultValue={(doadora as any).bisavo_materno ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Mãe do Avô Materno</label>
-                  <input name="bisava_mat_pat" defaultValue={(doadora as any).bisava_mat_pat ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Pai da Avó Materna</label>
-                  <input name="bisavo_materna" defaultValue={(doadora as any).bisavo_materna ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Mãe da Avó Materna</label>
-                  <input name="bisavo" defaultValue={(doadora as any).bisavo ?? ""}
-                    placeholder="Nome"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                </div>
-              </div>
-            </div>
-
-            <button type="submit"
-              className="inline-flex items-center gap-1.5 bg-brand-600 text-white text-sm px-5 py-2 rounded-lg hover:bg-brand-700 transition-colors font-medium">
-              Salvar Genealogia
-            </button>
-          </form>
-          </div>
-        </details>
+        {/* Barra de edição expansível com autocomplete e importação */}
+        <EditarGenealogyForm
+          animalId={doadora.id}
+          action={atualizarGenealogia}
+          pai_nome={(doadora as any).pai_nome}
+          mae_nome={(doadora as any).mae_nome}
+          avo_paterno={(doadora as any).avo_paterno}
+          avo_paterna={(doadora as any).avo_paterna}
+          avo_materno={(doadora as any).avo_materno}
+          avo_materna={(doadora as any).avo_materna}
+          bisavo_pat_pat={(doadora as any).bisavo_pat_pat}
+          bisava_pat_pat={(doadora as any).bisava_pat_pat}
+          bisavo_pat_mat={(doadora as any).bisavo_pat_mat}
+          bisava_pat_mat={(doadora as any).bisava_pat_mat}
+          bisavo_materno={(doadora as any).bisavo_materno}
+          bisava_mat_pat={(doadora as any).bisava_mat_pat}
+          bisavo_materna={(doadora as any).bisavo_materna}
+          bisavo={(doadora as any).bisavo}
+        />
       </div>
 
       {/* ── ROI ─────────────────────────────────────────────── */}

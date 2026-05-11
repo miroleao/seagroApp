@@ -285,8 +285,12 @@ function ModalImportar({
 }
 
 // ─── componente principal ─────────────────────────────────────────────────────
-export default function GenealogyForm() {
-  const [vals, setVals] = useState<GenealogyValues>({ ...EMPTY });
+export default function GenealogyForm({
+  initialValues,
+}: {
+  initialValues?: Partial<GenealogyValues>;
+}) {
+  const [vals, setVals] = useState<GenealogyValues>({ ...EMPTY, ...initialValues });
   const [modalAberto, setModalAberto] = useState(false);
   const [paiAutoFilled, setPaiAutoFilled] = useState(false);
   const [maeAutoFilled, setMaeAutoFilled] = useState(false);
