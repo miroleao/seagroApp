@@ -75,7 +75,7 @@ function EventBadge({ event }: { event: string }) {
 
 // ── Seção de mês (accordion controlado via state) ──────────────────────────────
 function MonthSection({ mg, receptoras }: { mg: MonthGroup; receptoras: ReceptoraBasica[] }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const taxa = mg.totalOocitos > 0
     ? Math.round((mg.totalEmbrioes / mg.totalOocitos) * 100)
@@ -163,7 +163,7 @@ function MonthSection({ mg, receptoras }: { mg: MonthGroup; receptoras: Receptor
 
 // ── Card por aspiração/doadora (accordion controlado via state) ────────────────
 function AspCard({ asp, session, receptoras }: { asp: any; session: any; receptoras: ReceptoraBasica[] }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const doadoraAnimal = asp.doadora as any;
   const nome    = doadoraAnimal?.nome ?? asp.doadora_nome ?? "—";
