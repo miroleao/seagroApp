@@ -72,23 +72,32 @@ export default async function RebanhoPage({
     .order("brinco", { ascending: true });
 
   // Prenhezes ativas para exibir previsão de parto + doadora/touro/embrião
-  const { data: prenhezes } = await supabase
-    .from("pregnancy_diagnoses")
-    .select(`
-      id, data_previsao_parto, tipo_desfecho,
-      transfer:transfers (
-        id, receptora_id, data_te,
-        embryo:embryos (
-          id, aspiration_id, numero_cdc_fiv, numero_adt_te, sexagem,
-          aspiration:aspirations ( doadora_id, doadora_nome, touro_nome,
-            doadora:animals!aspirations_doadora_id_fkey ( id, nome )
-          )
+  const selectPrenhez = `
+    id, data_previsao_parto, tipo_desfecho, data_desfecho,
+    transfer:transfers (
+      id, receptora_id, data_te,
+      embryo:embryos (
+        id, aspiration_id, numero_cdc_fiv, numero_adt_te, sexagem,
+        aspiration:aspirations ( doadora_id, doadora_nome, touro_nome,
+          doadora:animals!aspirations_doadora_id_fkey ( id, nome )
         )
       )
-    `)
+    )
+  `;
+
+  const { data: prenhezes } = await supabase
+    .from("pregnancy_diagnoses")
+    .select(selectPrenhez)
     .eq("farm_id", FARM_ID)
     .in("resultado", ["POSITIVO", "AGUARDANDO"])
     .is("tipo_desfecho", null);
+
+  // Histórico de parições (status PARIDA) — para mostrar doadora/touro na tabela principal
+  const { data: paridas } = await supabase
+    .from("pregnancy_diagnoses")
+    .select(selectPrenhez)
+    .eq("farm_id", FARM_ID)
+    .eq("tipo_desfecho", "PARIDA");
 
   // Mapa receptora_id → prenhez info
   const prenhezesMapa = new Map<string, {
@@ -124,6 +133,31 @@ export default async function RebanhoPage({
       aspId:         emb?.aspiration_id ?? null,
       sexagem:       emb?.sexagem ?? null,
       tipoDesfecho:  (p as any).tipo_desfecho ?? null,
+    });
+  }
+
+  // Mapa de parições (receptora_id → dados do embrião/doadora/touro para animais PARIDA)
+  const paridasMapa = new Map<string, {
+    doadoraNome:  string | null;
+    doadoraId:    string | null;
+    touroNome:    string | null;
+    sexagem:      string | null;
+    dataTe:       string | null;
+    dataDesfecho: string | null;
+  }>();
+  for (const p of paridas ?? []) {
+    const t = (p as any).transfer;
+    if (!t?.receptora_id) continue;
+    if (paridasMapa.has(t.receptora_id)) continue;
+    const emb = t?.embryo;
+    const asp = emb?.aspiration;
+    paridasMapa.set(t.receptora_id, {
+      doadoraNome:  asp?.doadora?.nome ?? asp?.doadora_nome ?? null,
+      doadoraId:    asp?.doadora?.id   ?? asp?.doadora_id   ?? null,
+      touroNome:    asp?.touro_nome ?? null,
+      sexagem:      emb?.sexagem ?? null,
+      dataTe:       t.data_te ?? null,
+      dataDesfecho: (p as any).data_desfecho ?? null,
     });
   }
 
@@ -338,6 +372,16 @@ export default async function RebanhoPage({
                 </tr>
               ) : filtered.map((a: any) => {
                 const p = prenhezesMapa.get(a.id);
+                // Para animais PARIDA: busca dados históricos do embrião/doadora
+                const h = a.status_rebanho === "PARIDA" ? paridasMapa.get(a.id) : null;
+                // Fonte de exibição: prenhez ativa ou histórico de parição
+                const embriao = p ?? null;
+                const doadoraNomeExib = embriao?.doadoraNome ?? h?.doadoraNome ?? null;
+                const doadoraIdExib   = embriao?.doadoraId   ?? h?.doadoraId   ?? null;
+                const touroNomeExib   = embriao?.touroNome   ?? h?.touroNome   ?? null;
+                const sexagemExib     = embriao?.sexagem     ?? h?.sexagem     ?? null;
+                const dataTEExib      = embriao?.dataTe      ?? h?.dataTe      ?? null;
+
                 return (
                   <tr key={a.id} className="table-row-hover">
                     <td className="px-3 py-3">
@@ -353,33 +397,43 @@ export default async function RebanhoPage({
                     <td className="px-3 py-3">
                       <EditPesoInline animalId={a.id} pesoAtual={a.peso_atual} />
                     </td>
-                    {/* Embrião — doadora + touro, vinculado à ficha da doadora */}
+                    {/* Embrião — doadora + touro (ativa ou histórico de parição) */}
                     <td className="px-4 py-3 text-xs">
-                      {p?.doadoraId ? (
+                      {doadoraIdExib ? (
                         <div>
-                          <Link href={`/doadoras/${p.doadoraId}`}
+                          <Link href={`/doadoras/${doadoraIdExib}`}
                             className="text-brand-600 hover:underline font-semibold leading-tight">
-                            {p.doadoraNome}
+                            {doadoraNomeExib}
                           </Link>
-                          {p.touroNome && (
+                          {touroNomeExib && (
                             <span className="block text-gray-400 text-[11px] leading-tight">
-                              ♂ {p.touroNome}
+                              ♂ {touroNomeExib}
+                            </span>
+                          )}
+                          {h && (
+                            <span className="block text-[10px] text-green-600 font-medium mt-0.5">
+                              Pariu {h.dataDesfecho ? formatDate(h.dataDesfecho) : ""}
                             </span>
                           )}
                         </div>
-                      ) : p?.doadoraNome ? (
+                      ) : doadoraNomeExib ? (
                         <div>
-                          <span className="text-gray-700 font-medium">{p.doadoraNome}</span>
-                          {p.touroNome && (
-                            <span className="block text-gray-400 text-[11px]">♂ {p.touroNome}</span>
+                          <span className="text-gray-700 font-medium">{doadoraNomeExib}</span>
+                          {touroNomeExib && (
+                            <span className="block text-gray-400 text-[11px]">♂ {touroNomeExib}</span>
+                          )}
+                          {h && (
+                            <span className="block text-[10px] text-green-600 font-medium mt-0.5">
+                              Pariu {h.dataDesfecho ? formatDate(h.dataDesfecho) : ""}
+                            </span>
                           )}
                         </div>
                       ) : (
                         <span className="text-gray-300">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-3"><SexagemBadge sexagem={p?.sexagem ?? null} /></td>
-                    <td className="px-3 py-3 text-xs text-gray-500">{formatDate(p?.dataTe ?? null)}</td>
+                    <td className="px-3 py-3"><SexagemBadge sexagem={sexagemExib} /></td>
+                    <td className="px-3 py-3 text-xs text-gray-500">{formatDate(dataTEExib)}</td>
                     <td className="px-3 py-3 text-xs text-green-700 font-medium">
                       <div className="flex items-center gap-1.5">
                         <span>{formatDate(p?.previsao ?? null)}</span>

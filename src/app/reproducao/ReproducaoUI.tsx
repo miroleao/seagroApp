@@ -81,6 +81,17 @@ function MonthSection({ mg, receptoras }: { mg: MonthGroup; receptoras: Receptor
     ? Math.round((mg.totalEmbrioes / mg.totalOocitos) * 100)
     : null;
 
+  // Nomes únicos de doadoras do mês
+  const doadorasDoMes = Array.from(new Set(
+    mg.days.flatMap(d =>
+      d.sessions.flatMap((s: any) =>
+        (s.aspirations ?? []).map((a: any) =>
+          (a.doadora as any)?.nome ?? a.doadora_nome ?? null
+        )
+      )
+    ).filter(Boolean)
+  )) as string[];
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Header clicável */}
@@ -89,12 +100,19 @@ function MonthSection({ mg, receptoras }: { mg: MonthGroup; receptoras: Receptor
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors text-left"
       >
-        <div className="flex items-center gap-3">
-          <Calendar className="w-4 h-4 text-violet-500 shrink-0" />
-          <span className="font-bold text-gray-900 capitalize">{mg.monthLabel}</span>
-          <span className="text-xs bg-violet-100 text-violet-700 font-medium px-2 py-0.5 rounded-full">
-            {mg.totalSessoes} {mg.totalSessoes === 1 ? "sessão" : "sessões"}
-          </span>
+        <div className="flex flex-col gap-1 min-w-0">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-4 h-4 text-violet-500 shrink-0" />
+            <span className="font-bold text-gray-900 capitalize">{mg.monthLabel}</span>
+            <span className="text-xs bg-violet-100 text-violet-700 font-medium px-2 py-0.5 rounded-full">
+              {mg.totalSessoes} {mg.totalSessoes === 1 ? "sessão" : "sessões"}
+            </span>
+          </div>
+          {doadorasDoMes.length > 0 && (
+            <p className="text-[11px] text-gray-400 pl-7 leading-tight truncate max-w-lg">
+              {doadorasDoMes.join(" · ")}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-4 text-right">
           <div className="hidden sm:block text-center">
