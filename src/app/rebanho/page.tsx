@@ -87,7 +87,8 @@ export default async function RebanhoPage({
       )
     `)
     .eq("farm_id", FARM_ID)
-    .in("resultado", ["POSITIVO", "AGUARDANDO"]);
+    .in("resultado", ["POSITIVO", "AGUARDANDO"])
+    .is("tipo_desfecho", null);
 
   // Mapa receptora_id → prenhez info
   const prenhezesMapa = new Map<string, {
@@ -226,7 +227,11 @@ export default async function RebanhoPage({
                 const p = prenhezesMapa.get(a.id);
                 return (
                   <tr key={a.id} className="table-row-hover">
-                    <td className="px-4 py-2.5 font-mono font-semibold text-gray-900">{a.brinco ?? a.nome}</td>
+                    <td className="px-4 py-2.5 font-mono font-semibold">
+                      <Link href={`/rebanho/${a.id}`} className="text-brand-700 hover:text-brand-900 hover:underline">
+                        {a.brinco ?? a.nome}
+                      </Link>
+                    </td>
                     <td className="px-4 py-2.5"><StatusBadge st={a.status_rebanho} /></td>
                     <td className="px-4 py-2.5 text-xs">
                       {p?.doadoraId ? (

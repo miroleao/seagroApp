@@ -16,7 +16,9 @@ import {
   atualizarPesoMacho,
   registrarPesagemMacho,
   adicionarPremiacaoMacho,
+  atualizarGenealogiaTouro,
 } from "./actions";
+import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 
 // ── Tabela ABCZ de circunferência escrotal mínima por idade ──────────────────
 const CE_TABLE = [
@@ -701,9 +703,29 @@ export default async function MachoDetalhePage({
       </div>
 
       {/* ── Genealogia ────────────────────────────────────── */}
-      <div className="card p-5">
-        <h2 className="font-semibold text-gray-900 mb-4 text-sm">Genealogia</h2>
-        <Genealogia animal={macho} />
+      <div className="card overflow-hidden">
+        <div className="p-5">
+          <h2 className="font-semibold text-gray-900 mb-4 text-sm">Genealogia</h2>
+          <Genealogia animal={macho} />
+        </div>
+        <EditarGenealogyForm
+          animalId={macho.id}
+          action={atualizarGenealogiaTouro}
+          pai_nome={macho.pai_nome}
+          mae_nome={macho.mae_nome}
+          avo_paterno={macho.avo_paterno}
+          avo_paterna={macho.avo_paterna}
+          avo_materno={macho.avo_materno}
+          avo_materna={macho.avo_materna}
+          bisavo_pat_pat={macho.bisavo_pat_pat}
+          bisava_pat_pat={macho.bisava_pat_pat}
+          bisavo_pat_mat={macho.bisavo_pat_mat}
+          bisava_pat_mat={macho.bisava_pat_mat}
+          bisavo_materno={macho.bisavo_materno}
+          bisava_mat_pat={macho.bisava_mat_pat}
+          bisavo_materna={macho.bisavo_materna}
+          bisavo={macho.bisavo}
+        />
       </div>
 
       {/* ── Histórico de Pesagens com Ponderal ──────────────── */}

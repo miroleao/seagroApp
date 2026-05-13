@@ -181,3 +181,56 @@ export async function adicionarPremiacaoMacho(formData: FormData) {
   revalidatePath(`/machos/${animal_id}`);
   redirect(`/machos/${animal_id}`);
 }
+
+// ─── Atualizar genealogia do touro ───────────────────────────────────────────
+export async function atualizarGenealogiaTouro(formData: FormData) {
+  const id = formData.get("id") as string;
+  if (!id) return;
+
+  const get = (nome: string) =>
+    (formData.get(nome) as string | null)?.trim() || null;
+
+  const supabase = await createClient();
+
+  // Campos base (pai, mãe, avós maternos, bisavó)
+  await supabase.from("animals").update({
+    pai_nome:    get("pai_nome"),
+    mae_nome:    get("mae_nome"),
+    avo_materno: get("avo_materno"),
+    avo_materna: get("avo_materna"),
+    bisavo:      get("bisavo"),
+  }).eq("id", id).eq("farm_id", FARM_ID);
+
+  // Campos estendidos (avós paternos + bisavós completos)
+  const camposExtras: Record<string, string | null> = {
+    avo_paterno:    get("avo_paterno"),
+    avo_paterna:    get("avo_paterna"),
+    bisavo_pat_pat: get("bisavo_pat_pat"),
+    bisava_pat_pat: get("bisava_pat_pat"),
+    bisavo_pat_mat: get("bisavo_pat_mat"),
+    bisava_pat_mat: get("bisava_pat_mat"),
+    bisavo_materno: get("bisavo_materno"),
+    bisava_mat_pat: get("bisava_mat_pat"),
+    bisavo_materna: get("bisavo_materna"),
+  };
+
+  const { error: extErr } = await supabase
+    .from("animals")
+    .update(camposExtras)
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+
+  // Fallback: atualiza campo por campo se der erro (coluna ausente na migração)
+  if (extErr) {
+    for (const [campo, valor] of Object.entries(camposExtras)) {
+      await supabase.from("animals")
+        .update({ [campo]: valor })
+        .eq("id", id)
+        .eq("farm_id", FARM_ID);
+    }
+  }
+
+  revalidatePath(`/machos/${id}`);
+  revalidatePath("/machos");
+  redirect(`/machos/${id}`);
+}

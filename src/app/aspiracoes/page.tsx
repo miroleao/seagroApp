@@ -3,6 +3,7 @@ import { formatDate, FARM_ID } from "@/lib/utils";
 import { FlaskConical, Baby, Plus, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { registrarOPU, alternarTipoSessao } from "./actions";
+import { DoadoraCardWrapper } from "./DoadoraCardWrapper";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 type AspItem = {
@@ -250,47 +251,41 @@ export default async function AspiracoesPage() {
             ? ((card.totalEmbrioes / card.totalOocitos) * 100).toFixed(0) + "%"
             : "—";
 
+          const summaryContent = (
+            <div className="flex flex-wrap items-center gap-3 w-full">
+              {/* Nome da doadora */}
+              <div className="flex items-center gap-2">
+                <FlaskConical className="w-4 h-4 text-brand-400 shrink-0" />
+                <span className="font-semibold text-gray-900">{card.doadoraNome}</span>
+              </div>
+              {/* Mini stats */}
+              <div className="flex items-center gap-3 ml-2 flex-wrap">
+                {card.opuItems.length > 0 && (
+                  <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-100">
+                    {card.opuItems.length} OPU
+                  </span>
+                )}
+                {card.totalOocitos > 0 && (
+                  <span className="text-xs text-blue-600">
+                    <strong>{card.totalOocitos}</strong> oóc.
+                  </span>
+                )}
+                {card.totalEmbrioes > 0 && (
+                  <span className="text-xs text-green-600">
+                    <strong>{card.totalEmbrioes}</strong> emb.
+                  </span>
+                )}
+                {card.totalOocitos > 0 && (
+                  <span className="text-xs text-gray-400">({taxaAprov} aprov.)</span>
+                )}
+              </div>
+            </div>
+          );
+
           return (
-            <details key={card.doadoraId} className="card overflow-hidden group">
-              {/* ── Header do card ─────────────────────────────── */}
-              <summary className="px-5 py-4 cursor-pointer select-none list-none hover:bg-gray-50 transition-colors">
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Nome da doadora */}
-                  <div className="flex items-center gap-2">
-                    <FlaskConical className="w-4 h-4 text-brand-400 shrink-0" />
-                    <span className="font-semibold text-gray-900">{card.doadoraNome}</span>
-                  </div>
-
-                  {/* Mini stats */}
-                  <div className="flex items-center gap-3 ml-2 flex-wrap">
-                    {card.opuItems.length > 0 && (
-                      <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-100">
-                        {card.opuItems.length} OPU
-                      </span>
-                    )}
-                    {card.totalOocitos > 0 && (
-                      <span className="text-xs text-blue-600">
-                        <strong>{card.totalOocitos}</strong> oóc.
-                      </span>
-                    )}
-                    {card.totalEmbrioes > 0 && (
-                      <span className="text-xs text-green-600">
-                        <strong>{card.totalEmbrioes}</strong> emb.
-                      </span>
-                    )}
-                    {card.totalOocitos > 0 && (
-                      <span className="text-xs text-gray-400">({taxaAprov} aprov.)</span>
-                    )}
-                  </div>
-
-                  <div className="ml-auto flex items-center gap-2 shrink-0">
-                    <span className="text-gray-400 text-xs">▼</span>
-                  </div>
-                </div>
-              </summary>
-
+            <DoadoraCardWrapper key={card.doadoraId} doadoraNome={card.doadoraNome} summaryContent={summaryContent}>
               {/* ── Corpo expandido ─────────────────────────────── */}
-              <div className="border-t border-gray-100 divide-y divide-gray-50">
+              <div>
                 {/* Link para ficha da doadora — fora do summary para funcionar */}
                 {card.doadoraDbId && (
                   <div className="px-5 py-2 bg-gray-50 flex items-center">
@@ -442,7 +437,7 @@ export default async function AspiracoesPage() {
                 )}
 
               </div>
-            </details>
+            </DoadoraCardWrapper>
           );
         })}
       </section>
