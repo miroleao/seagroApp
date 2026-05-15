@@ -98,7 +98,7 @@ export default async function FichaRebanhoPage({
   // ── Histórico reprodutivo ────────────────────────────────────────────────────
   // Duas queries separadas para cobrir receptora_id (UUID) e receptora_brinco (texto)
   const selectTransf = `
-    id, data_te, resultado_te, sessao_nome, receptora_id, receptora_brinco,
+    id, data_te, sessao_nome, receptora_id, receptora_brinco,
     embryo:embryos (
       id,
       aspiration:aspirations ( doadora_id, doadora_nome, touro_nome,
