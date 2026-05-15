@@ -99,6 +99,12 @@ export default async function RebanhoPage({
     .eq("farm_id", FARM_ID)
     .eq("tipo_desfecho", "PARIDA");
 
+  // Índice brinco → animal.id para resolver transfers sem receptora_id (prenhezes de terceiros)
+  const brincoToId = new Map<string, string>();
+  for (const a of animaisRaw ?? []) {
+    if (a.brinco) brincoToId.set(a.brinco, a.id);
+  }
+
   // Mapa receptora_id → prenhez info
   const prenhezesMapa = new Map<string, {
     transferId:    string;
@@ -167,12 +173,6 @@ export default async function RebanhoPage({
   }
 
   const animais = animaisRaw ?? [];
-
-  // Índice brinco → animal.id para resolver transfers sem receptora_id
-  const brincoToId = new Map<string, string>();
-  for (const a of animais) {
-    if (a.brinco) brincoToId.set(a.brinco, a.id);
-  }
 
   // Contagens por classificação
   const counts = animais.reduce((acc, a) => {
