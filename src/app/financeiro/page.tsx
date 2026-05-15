@@ -177,27 +177,27 @@ export default async function FinanceiroPage({
       )}
 
       {/* ── Cards resumo ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="card p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingDown className="w-4 h-4 text-red-400" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-1.5">
+            <TrendingDown className="w-4 h-4 text-red-400 shrink-0" />
             <p className="text-xs text-gray-500 uppercase tracking-wide">Total Investido</p>
           </div>
-          <p className="text-3xl font-bold text-red-600">{formatCurrency(totalCompras)}</p>
+          <p className="text-2xl font-bold text-red-600 truncate">{formatCurrency(totalCompras)}</p>
           <p className="text-xs text-gray-400 mt-1">{txs.filter(t => t.tipo === "COMPRA").length} compras</p>
         </div>
-        <div className="card p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4 text-green-500" />
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-1.5">
+            <TrendingUp className="w-4 h-4 text-green-500 shrink-0" />
             <p className="text-xs text-gray-500 uppercase tracking-wide">Total Recebido</p>
           </div>
-          <p className="text-3xl font-bold text-green-600">{formatCurrency(totalVendas)}</p>
+          <p className="text-2xl font-bold text-green-600 truncate">{formatCurrency(totalVendas)}</p>
           <p className="text-xs text-gray-400 mt-1">{txs.filter(t => t.tipo === "VENDA").length} vendas</p>
         </div>
-        <div className="card p-5">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Saldo</p>
-          <p className={`text-3xl font-bold ${saldo >= 0 ? "text-green-600" : "text-red-600"}`}>
-            {formatCurrency(saldo)}
+        <div className="card p-4">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Saldo</p>
+          <p className={`text-2xl font-bold truncate ${saldo >= 0 ? "text-green-600" : "text-red-600"}`}>
+            {saldo >= 0 ? "+" : ""}{formatCurrency(saldo)}
           </p>
           <p className="text-xs text-gray-400 mt-1">recebido − investido</p>
         </div>
@@ -295,9 +295,55 @@ export default async function FinanceiroPage({
                       </div>
                     </summary>
 
-                    {/* Tabela de transações */}
+                    {/* Transações — mobile: cards / desktop: tabela */}
                     <div className="bg-white">
-                      <table className="w-full text-xs">
+
+                      {/* ── Cards mobile ── */}
+                      <div className="md:hidden divide-y divide-gray-100">
+                        {allTxs.map((t: any) => {
+                          const parcelas: any[] = t.installments ?? [];
+                          const nParcelas = t.n_parcelas ?? parcelas.length ?? 30;
+                          const valorParcela = parcelas[0]?.valor
+                            ?? (t.valor_total != null ? t.valor_total / nParcelas : null);
+                          const isCompra = (t._tipo ?? t.tipo) === "COMPRA";
+                          const catBadge = categoriaBadge(t.categoria);
+                          const totalTx = valorParcela != null
+                            ? valorParcela * nParcelas
+                            : (t.valor_total ?? null);
+
+                          return (
+                            <div key={t.id} className="px-4 py-3">
+                              <div className="flex items-start justify-between gap-2 mb-1.5">
+                                <div className="min-w-0">
+                                  <span className="font-medium text-gray-900 text-sm truncate block">{nomeLimpo(t.animal_nome)}</span>
+                                  {catBadge.label && (
+                                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${catBadge.cls}`}>{catBadge.label}</span>
+                                  )}
+                                </div>
+                                <span className={`shrink-0 badge text-xs font-semibold ${isCompra ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"}`}>
+                                  {isCompra ? "Compra" : "Venda"}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-500">
+                                  {t.contraparte ?? "—"}
+                                </span>
+                                <div className="text-right">
+                                  {valorParcela != null && (
+                                    <span className="text-xs text-gray-400">{formatCurrency(valorParcela)} × {nParcelas} = </span>
+                                  )}
+                                  <span className={`text-sm font-bold ${isCompra ? "text-red-600" : "text-green-700"}`}>
+                                    {totalTx != null ? formatCurrency(totalTx) : "—"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* ── Tabela desktop ── */}
+                      <table className="w-full text-xs hidden md:table">
                         <thead>
                           <tr className="bg-gray-50 border-y border-gray-100 text-left">
                             <th className="px-4 py-2 font-medium text-gray-500">Animal</th>
@@ -404,6 +450,7 @@ export default async function FinanceiroPage({
                           })}
                         </tbody>
                       </table>
+
                     </div>
                   </details>
                 );

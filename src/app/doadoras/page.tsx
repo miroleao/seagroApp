@@ -187,6 +187,11 @@ export default async function DoadorasPage({
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-semibold text-brand-700 text-sm leading-tight">{d.nome}</span>
+                    {(d as any).nascido_se_agro && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/logo-se.png" alt="SE Agro" title="Nascida na SE Agropecuária"
+                        className="h-4 w-auto shrink-0" style={{ filter: "brightness(0)" }} />
+                    )}
                     {d.para_pista && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400 shrink-0" />}
                     {animaisComPremio.has(d.id) && <Trophy className="w-3 h-3 text-yellow-500 shrink-0" />}
                   </div>

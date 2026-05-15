@@ -20,20 +20,20 @@ const bottomItems = [
   {
     href: "/doadoras",
     label: "Animais",
+    icon: Heart,
+    match: (p: string) => p.startsWith("/doadoras") || p.startsWith("/machos"),
+  },
+  {
+    href: "/rebanho",
+    label: "Rebanho",
     icon: Beef,
-    match: (p: string) => p.startsWith("/doadoras") || p.startsWith("/machos") || p.startsWith("/rebanho"),
+    match: (p: string) => p.startsWith("/rebanho"),
   },
   {
     href: "/reproducao",
     label: "Reprod.",
     icon: FlaskConical,
     match: (p: string) => p.startsWith("/reproducao"),
-  },
-  {
-    href: "/pista",
-    label: "Pista",
-    icon: Trophy,
-    match: (p: string) => p.startsWith("/pista"),
   },
   {
     href: "/financeiro",

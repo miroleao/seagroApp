@@ -304,7 +304,7 @@ function ROISection({
           : <TrendingDown className="w-4 h-4 text-red-500" />}
         Desempenho Financeiro (ROI)
       </h2>
-      <div className="grid grid-cols-3 gap-4 text-center">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
 
         {/* Parcela de vendas */}
         <div>
@@ -760,18 +760,18 @@ export default async function DoadoraDetalhePage({
           {/* Localização — texto editável inline */}
           <div className="md:col-span-2">
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Localização</p>
-            <form action={atualizarLocalizacao} className="flex items-center gap-2">
+            <form action={atualizarLocalizacao} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="id" value={doadora.id} />
               <input
                 name="localizacao"
                 type="text"
                 defaultValue={doadora.localizacao ?? ""}
                 placeholder="Ex: Pasto 3, Curral A…"
-                className="w-48 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-300"
+                className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-300"
               />
               <button type="submit"
-                className="text-xs text-brand-600 hover:text-brand-800 font-medium px-2 py-1.5 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors">
-                <Scale className="w-3.5 h-3.5 inline mr-1" />Salvar
+                className="shrink-0 text-xs text-brand-600 hover:text-brand-800 font-medium px-2 py-1.5 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors">
+                Salvar
               </button>
             </form>
           </div>
@@ -995,61 +995,102 @@ export default async function DoadoraDetalhePage({
         {!aspiracoes?.length ? (
           <div className="px-5 py-8 text-center text-gray-400 text-sm">Nenhuma aspiração registrada</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-left">
-                <th className="px-4 py-3 font-medium text-gray-600">Data</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Tipo</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Responsável</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Oócitos</th>
-                <th className="px-4 py-3 font-medium text-gray-600 text-center">Congelados</th>
-                <th className="px-4 py-3 font-medium text-gray-600 text-center">Implantados</th>
-                <th className="px-4 py-3 font-medium text-gray-600 text-center">Prenhezes</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Custo</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Touro</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
+          <>
+            {/* ── View mobile: cards ── */}
+            <div className="md:hidden divide-y divide-gray-100">
               {aspiracoes.map((a: any) => {
                 const g = embGrupos[a.id];
-                // Fallback para o campo bruto da aspiração quando não há embriões registrados
-                const congelados   = g ? g.disponiveis  : (a.embryos_congelados ?? null);
-                const implantados  = g ? g.implantados  : null;
-                const prenhezes    = g ? g.comPrenhez   : null;
+                const congelados  = g ? g.disponiveis : (a.embryos_congelados ?? null);
+                const implantados = g ? g.implantados : null;
+                const prenhezes   = g ? g.comPrenhez  : null;
                 return (
-                <tr key={a.id} className="table-row-hover">
-                  <td className="px-4 py-3 text-gray-900">{formatDate(a.session?.data)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`badge ${a.session?.tipo === "COMPRADA" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                      {a.session?.tipo ?? "—"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{a.session?.responsavel ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-900 font-medium">{a.oocitos_viaveis ?? "—"}</td>
-                  <td className="px-4 py-3 text-center">
-                    {congelados != null
-                      ? <span className="badge bg-indigo-100 text-indigo-700 font-semibold">{congelados}</span>
-                      : <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {implantados != null
-                      ? <span className={`badge font-semibold ${implantados > 0 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-400"}`}>{implantados}</span>
-                      : <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {prenhezes != null
-                      ? <span className={`badge font-semibold ${prenhezes > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>{prenhezes}</span>
-                      : <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
-                    {a.custo_total != null ? formatCurrency(a.custo_total) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{a.touro_nome ?? "—"}</td>
-                </tr>
+                  <div key={a.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-gray-900 text-sm">{formatDate(a.session?.data)}</span>
+                      <span className={`badge text-xs ${a.session?.tipo === "COMPRADA" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                        {a.session?.tipo ?? "—"}
+                      </span>
+                    </div>
+                    {a.touro_nome && <p className="text-xs text-gray-500 mb-2">× {a.touro_nome}</p>}
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      <div className="bg-gray-50 rounded-lg py-2 px-1">
+                        <p className="text-sm font-semibold text-gray-900">{a.oocitos_viaveis ?? "—"}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Oócitos</p>
+                      </div>
+                      <div className="bg-indigo-50 rounded-lg py-2 px-1">
+                        <p className="text-sm font-semibold text-indigo-700">{congelados ?? "—"}</p>
+                        <p className="text-[10px] text-indigo-400 mt-0.5">Disponíveis</p>
+                      </div>
+                      <div className="bg-amber-50 rounded-lg py-2 px-1">
+                        <p className="text-sm font-semibold text-amber-700">{implantados ?? "—"}</p>
+                        <p className="text-[10px] text-amber-400 mt-0.5">Implantados</p>
+                      </div>
+                      <div className="bg-green-50 rounded-lg py-2 px-1">
+                        <p className="text-sm font-semibold text-green-700">{prenhezes ?? "—"}</p>
+                        <p className="text-[10px] text-green-400 mt-0.5">Prenhezes</p>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+
+            {/* ── View desktop: tabela ── */}
+            <table className="w-full text-sm hidden md:table">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100 text-left">
+                  <th className="px-4 py-3 font-medium text-gray-600">Data</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">Tipo</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">Responsável</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">Oócitos</th>
+                  <th className="px-4 py-3 font-medium text-gray-600 text-center">Congelados</th>
+                  <th className="px-4 py-3 font-medium text-gray-600 text-center">Implantados</th>
+                  <th className="px-4 py-3 font-medium text-gray-600 text-center">Prenhezes</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">Custo</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">Touro</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {aspiracoes.map((a: any) => {
+                  const g = embGrupos[a.id];
+                  const congelados   = g ? g.disponiveis  : (a.embryos_congelados ?? null);
+                  const implantados  = g ? g.implantados  : null;
+                  const prenhezes    = g ? g.comPrenhez   : null;
+                  return (
+                  <tr key={a.id} className="table-row-hover">
+                    <td className="px-4 py-3 text-gray-900">{formatDate(a.session?.data)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`badge ${a.session?.tipo === "COMPRADA" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                        {a.session?.tipo ?? "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{a.session?.responsavel ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">{a.oocitos_viaveis ?? "—"}</td>
+                    <td className="px-4 py-3 text-center">
+                      {congelados != null
+                        ? <span className="badge bg-indigo-100 text-indigo-700 font-semibold">{congelados}</span>
+                        : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {implantados != null
+                        ? <span className={`badge font-semibold ${implantados > 0 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-400"}`}>{implantados}</span>
+                        : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {prenhezes != null
+                        ? <span className={`badge font-semibold ${prenhezes > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>{prenhezes}</span>
+                        : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {a.custo_total != null ? formatCurrency(a.custo_total) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{a.touro_nome ?? "—"}</td>
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
 
