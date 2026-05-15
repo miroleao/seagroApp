@@ -334,7 +334,7 @@ function BotaoExcluirPrenhez({ row }: { row: PrenheZListRow }) {
 export default function PrenhezeTabela({ rows }: { rows: PrenheZListRow[] }) {
   const [desfechoRowId, setDesfechoRowId] = useState<string | null>(null);
 
-  const colunas = ["Doadora", "Touro", "No Brinco", "Prev. Parto", "Vendedor", "Situação", "Desfecho", ""];
+  const colunas = ["Doadora", "Touro", "Brinco Receptora", "Prev. Parto", "Vendedor", "Situação", "Desfecho", ""];
 
   return (
     <div className="overflow-x-auto">

@@ -75,7 +75,7 @@ export default async function RebanhoPage({
   const selectPrenhez = `
     id, data_previsao_parto, tipo_desfecho, data_desfecho,
     transfer:transfers (
-      id, receptora_id, data_te,
+      id, receptora_id, receptora_brinco, data_te,
       embryo:embryos (
         id, aspiration_id, numero_cdc_fiv, numero_adt_te, sexagem,
         aspiration:aspirations ( doadora_id, doadora_nome, touro_nome,
@@ -116,11 +116,14 @@ export default async function RebanhoPage({
   }>();
   for (const p of prenhezes ?? []) {
     const t = p.transfer as any;
-    if (!t?.receptora_id) continue;
-    if (prenhezesMapa.has(t.receptora_id)) continue;
+    // Resolve receptora_id diretamente ou via brinco (prenhezes de terceiros)
+    const receptoraId: string | undefined =
+      t?.receptora_id ?? (t?.receptora_brinco ? brincoToId.get(t.receptora_brinco) : undefined);
+    if (!receptoraId) continue;
+    if (prenhezesMapa.has(receptoraId)) continue;
     const emb = t?.embryo;
     const asp = emb?.aspiration;
-    prenhezesMapa.set(t.receptora_id, {
+    prenhezesMapa.set(receptoraId, {
       transferId:    t.id,
       previsao:      p.data_previsao_parto,
       dataTe:        t.data_te ?? null,
@@ -147,11 +150,13 @@ export default async function RebanhoPage({
   }>();
   for (const p of paridas ?? []) {
     const t = (p as any).transfer;
-    if (!t?.receptora_id) continue;
-    if (paridasMapa.has(t.receptora_id)) continue;
+    const receptoraId: string | undefined =
+      t?.receptora_id ?? (t?.receptora_brinco ? brincoToId.get(t.receptora_brinco) : undefined);
+    if (!receptoraId) continue;
+    if (paridasMapa.has(receptoraId)) continue;
     const emb = t?.embryo;
     const asp = emb?.aspiration;
-    paridasMapa.set(t.receptora_id, {
+    paridasMapa.set(receptoraId, {
       doadoraNome:  asp?.doadora?.nome ?? asp?.doadora_nome ?? null,
       doadoraId:    asp?.doadora?.id   ?? asp?.doadora_id   ?? null,
       touroNome:    asp?.touro_nome ?? null,
@@ -162,6 +167,12 @@ export default async function RebanhoPage({
   }
 
   const animais = animaisRaw ?? [];
+
+  // Índice brinco → animal.id para resolver transfers sem receptora_id
+  const brincoToId = new Map<string, string>();
+  for (const a of animais) {
+    if (a.brinco) brincoToId.set(a.brinco, a.id);
+  }
 
   // Contagens por classificação
   const counts = animais.reduce((acc, a) => {
