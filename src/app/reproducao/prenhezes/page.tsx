@@ -57,7 +57,7 @@ export default async function PrenhezesList({
             id,
             receptora_brinco,
             receptora:animals!transfers_receptora_id_fkey ( id, brinco, rgn ),
-            pregnancy_diagnoses ( data_previsao_parto )
+            pregnancy_diagnoses ( data_previsao_parto, resultado, tipo_desfecho, data_desfecho )
           )
         )
       )
@@ -78,6 +78,17 @@ export default async function PrenhezesList({
       const transfer  = emb?.transfers?.[0] ?? null;
       const receptora = transfer?.receptora ?? null;
       const obs       = a.observacoes as string | null;
+      const dg        = (transfer?.pregnancy_diagnoses ?? [])[0] ?? null;
+
+      // Desfecho vem das observações (via actions da aba prenhezes)
+      // OU do pregnancy_diagnoses (registrado via ficha da receptora)
+      const resultadoObs = parseKey(obs, "RESULTADO");
+      const resultadoDg  = dg?.tipo_desfecho === "PARIDA"  ? "NASCIMENTO"
+                         : dg?.tipo_desfecho === "ABORTOU" ? "ABORTO"
+                         : (dg?.tipo_desfecho === "OBITO" || dg?.tipo_desfecho === "OBITO_RECEPTORA") ? "OBITO_RECEPTORA"
+                         : null;
+      const resultado      = resultadoObs ?? resultadoDg ?? null;
+      const dataResultado  = parseKey(obs, "DATA_RESULTADO") ?? dg?.data_desfecho ?? null;
 
       rows.push({
         aspId:           a.id,
@@ -88,7 +99,7 @@ export default async function PrenhezesList({
         doadoraNome:     doadoraNome || null,
         touroNome:       a.touro_nome ?? null,
         dataParto:
-          transfer?.pregnancy_diagnoses?.[0]?.data_previsao_parto ??
+          dg?.data_previsao_parto ??
           parseKey(obs, "PARTO"),
         vendedor: (() => {
           const multi = parseKey(obs, "VENDEDORES");
@@ -97,8 +108,8 @@ export default async function PrenhezesList({
         })(),
         dataCompra:    parseKey(obs, "DATA_COMPRA") ?? s.data ?? null,
         dataEntrega:   parseKey(obs, "DATA_ENTREGA"),
-        resultado:          parseKey(obs, "RESULTADO"),
-        dataResultado:      parseKey(obs, "DATA_RESULTADO"),
+        resultado,
+        dataResultado,
         situacaoReposicao:  parseKey(obs, "SITUACAO_REPOSICAO"),
       });
     }

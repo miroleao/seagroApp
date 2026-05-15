@@ -115,12 +115,16 @@ function LockCell({
 // ── Dropdown de situação de reposição ────────────────────────────────────────
 const SITUACOES = [
   { value: "",                       label: "—"                      },
+  { value: "Aguardando Entrega",     label: "Aguardando Entrega"     },
+  { value: "Entregue",               label: "Entregue"               },
   { value: "Reposição Solicitada",   label: "Reposição Solicitada"   },
   { value: "Reposição a Caminho",    label: "Reposição a Caminho"    },
   { value: "Reposição em Aguardo",   label: "Reposição em Aguardo"   },
 ];
 
 const SITUACAO_STYLES: Record<string, string> = {
+  "Aguardando Entrega":   "bg-purple-50 text-purple-700 border-purple-200",
+  "Entregue":             "bg-green-50  text-green-700  border-green-200",
   "Reposição Solicitada": "bg-orange-50 text-orange-700 border-orange-200",
   "Reposição a Caminho":  "bg-blue-50   text-blue-700   border-blue-200",
   "Reposição em Aguardo": "bg-yellow-50 text-yellow-700 border-yellow-200",
