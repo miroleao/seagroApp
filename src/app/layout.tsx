@@ -21,7 +21,7 @@ export default function RootLayout({
             pt-14 = espaço para a barra fixa no mobile (h-14)
             md:pt-0 = no desktop, sem padding (sidebar fica à esquerda)
           */}
-          <main className="flex-1 overflow-auto pt-14 md:pt-0 min-w-0">
+          <main className="flex-1 overflow-auto pt-12 pb-16 md:pt-0 md:pb-0 min-w-0">
             {children}
           </main>
         </div>

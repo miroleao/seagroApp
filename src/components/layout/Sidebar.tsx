@@ -9,6 +9,40 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// ── Bottom nav (mobile) ───────────────────────────────────────────────────────
+const bottomItems = [
+  {
+    href: "/dashboard",
+    label: "Início",
+    icon: LayoutDashboard,
+    match: (p: string) => p === "/dashboard" || p === "/",
+  },
+  {
+    href: "/doadoras",
+    label: "Animais",
+    icon: Beef,
+    match: (p: string) => p.startsWith("/doadoras") || p.startsWith("/machos") || p.startsWith("/rebanho"),
+  },
+  {
+    href: "/reproducao",
+    label: "Reprod.",
+    icon: FlaskConical,
+    match: (p: string) => p.startsWith("/reproducao"),
+  },
+  {
+    href: "/pista",
+    label: "Pista",
+    icon: Trophy,
+    match: (p: string) => p.startsWith("/pista"),
+  },
+  {
+    href: "/financeiro",
+    label: "Financeiro",
+    icon: DollarSign,
+    match: (p: string) => p.startsWith("/financeiro"),
+  },
+];
+
 type SubItem = { href: string; label: string; icon?: React.ElementType };
 type NavItem = {
   href?: string;
@@ -145,7 +179,7 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Desktop sidebar — oculto abaixo de 768px via globals.css */}
+      {/* ── Desktop sidebar — hidden below md ── */}
       <aside className="sidebar-desktop flex w-60 min-h-screen bg-white border-r border-gray-200 flex-col shrink-0">
         <div className="px-5 py-6 border-b border-gray-100">
           <Logo />
@@ -156,16 +190,43 @@ export function Sidebar() {
         </div>
       </aside>
 
-      {/* Mobile top bar — oculta acima de 768px via globals.css */}
-      <header className="sidebar-mobile-bar fixed top-0 left-0 right-0 z-40 h-14 bg-white border-b border-gray-200 text-gray-800 flex items-center px-4 gap-3 shadow-sm">
-        <button onClick={() => setOpen(true)} aria-label="Abrir menu"
-          className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors text-gray-500">
+      {/* ── Mobile top bar — slim, hidden above md ── */}
+      <header className="sidebar-mobile-bar fixed top-0 left-0 right-0 z-40 h-12 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm">
+        <Logo />
+        {/* "Mais" button → opens full nav drawer for less-common routes (ElitIA, etc.) */}
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="Mais opções"
+          className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors text-gray-400"
+        >
           <Menu className="w-5 h-5" />
         </button>
-        <Logo />
       </header>
 
-      {/* Overlay + gaveta mobile — ocultos acima de 768px via globals.css */}
+      {/* ── Mobile bottom navigation — hidden above md ── */}
+      <nav className="sidebar-mobile-bar fixed bottom-0 left-0 right-0 z-40 h-16 bg-white border-t border-gray-200 flex items-stretch">
+        {bottomItems.map((item) => {
+          const active = item.match(pathname);
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors border-t-2",
+                active
+                  ? "text-brand-600 border-brand-600"
+                  : "text-gray-400 border-transparent hover:text-brand-500"
+              )}
+            >
+              <Icon className="w-5 h-5" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* ── Overlay + gaveta mobile (itens extras) — hidden above md ── */}
       {open && (
         <div className="sidebar-mobile-overlay fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />

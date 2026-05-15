@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Star, Plus, Trophy } from "lucide-react";
+import { Star, Plus, Trophy, ChevronRight } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { ExcluirDoadoraBtn } from "./ExcluirDoadoraBtn";
@@ -52,6 +52,48 @@ export default async function DoadorasPage({
     .select("animal_id")
     .eq("farm_id", FARM_ID);
   const animaisComPremio = new Set((awardsData ?? []).map((a: any) => a.animal_id));
+
+  // ── Contadores para os cards mobile ──────────────────────────────────────────
+  // Embriões por doadora (soma de embryos_congelados nas aspirações)
+  const { data: aspTotais } = await supabase
+    .from("aspirations")
+    .select("doadora_id, embryos_congelados")
+    .eq("farm_id", FARM_ID)
+    .not("doadora_id", "is", null);
+
+  const embryosPorDoadora: Record<string, number> = {};
+  for (const asp of (aspTotais ?? [])) {
+    if (!asp.doadora_id) continue;
+    embryosPorDoadora[asp.doadora_id] = (embryosPorDoadora[asp.doadora_id] ?? 0) + (asp.embryos_congelados ?? 0);
+  }
+
+  // Prenhezes positivas por doadora (via aspirations → embryos → transfers → pregnancy_diagnoses)
+  const { data: prenhezesDados } = await supabase
+    .from("aspirations")
+    .select(`
+      doadora_id,
+      embryos:embryos!embryos_aspiration_id_fkey (
+        transfers:transfers!transfers_embryo_id_fkey (
+          pregnancy_diagnoses ( resultado )
+        )
+      )
+    `)
+    .eq("farm_id", FARM_ID)
+    .not("doadora_id", "is", null);
+
+  const prenhezesPorDoadora: Record<string, number> = {};
+  for (const asp of (prenhezesDados ?? [])) {
+    if (!asp.doadora_id) continue;
+    for (const emb of (asp.embryos as any[] ?? [])) {
+      for (const tr of (emb.transfers as any[] ?? [])) {
+        for (const dg of (tr.pregnancy_diagnoses as any[] ?? [])) {
+          if (dg.resultado === "POSITIVO") {
+            prenhezesPorDoadora[asp.doadora_id] = (prenhezesPorDoadora[asp.doadora_id] ?? 0) + 1;
+          }
+        }
+      }
+    }
+  }
 
   // Filtro por busca geral (nome, pai, mãe, RGN)
   let filtrado = q
@@ -120,7 +162,79 @@ export default async function DoadorasPage({
         </div>
       </div>
 
-      <div className="card overflow-x-auto">
+      {/* ── VIEW MOBILE — cards (visível apenas abaixo de md) ─────────────────── */}
+      <div className="md:hidden space-y-3">
+        {filtrado.length === 0 ? (
+          <p className="text-center text-sm text-gray-400 py-10">
+            Nenhuma doadora encontrada{q ? ` para "${q}"` : ""}.
+          </p>
+        ) : filtrado.map((d: any) => {
+          const meses = idadeEmMeses(d.nascimento);
+          const statusInfo = d.status_reprodutivo && STATUS_MAP[d.status_reprodutivo]
+            ? STATUS_MAP[d.status_reprodutivo]
+            : null;
+          const embrioes = embryosPorDoadora[d.id] ?? 0;
+          const prenhezes = prenhezesPorDoadora[d.id] ?? 0;
+
+          return (
+            <Link
+              key={d.id}
+              href={`/doadoras/${d.id}`}
+              className="block bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 active:bg-gray-50 transition-colors"
+            >
+              {/* Linha superior: nome + status */}
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-semibold text-brand-700 text-sm leading-tight">{d.nome}</span>
+                    {d.para_pista && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400 shrink-0" />}
+                    {animaisComPremio.has(d.id) && <Trophy className="w-3 h-3 text-yellow-500 shrink-0" />}
+                  </div>
+                  <span className="text-[11px] text-gray-400 font-mono">{d.rgn ?? "—"}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {meses != null && (
+                    <span className="text-[11px] bg-gray-100 text-gray-500 rounded-full px-2 py-0.5 font-medium">
+                      {meses}m
+                    </span>
+                  )}
+                  {statusInfo && (
+                    <span className={`badge text-[11px] font-semibold ${statusInfo.cls}`}>
+                      {statusInfo.label}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Genealogia: Pai × Mãe */}
+              <p className="text-xs text-gray-500 mb-3 truncate">
+                <span className="font-medium text-gray-700">{d.pai_nome ?? "—"}</span>
+                <span className="mx-1.5 text-gray-300">×</span>
+                <span className="font-medium text-gray-700">{d.mae_nome ?? "—"}</span>
+              </p>
+
+              {/* Linha inferior: embriões + prenhezes + seta */}
+              <div className="flex items-center justify-between border-t border-gray-100 pt-2.5">
+                <div className="flex gap-4">
+                  <div className="text-center">
+                    <p className="text-base font-semibold text-gray-900 leading-none">{embrioes}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Embriões</p>
+                  </div>
+                  <div className="w-px bg-gray-100" />
+                  <div className="text-center">
+                    <p className="text-base font-semibold text-gray-900 leading-none">{prenhezes}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Prenhezes</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* ── VIEW DESKTOP — tabela (visível apenas acima de md) ───────────────── */}
+      <div className="card overflow-x-auto hidden md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100 text-left align-top">
