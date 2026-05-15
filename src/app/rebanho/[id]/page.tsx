@@ -96,18 +96,25 @@ export default async function FichaRebanhoPage({
   const dataTe   = transfer?.data_te ?? null;
 
   // ── Histórico reprodutivo (todos os transfers desta receptora) ──────────────
+  // Usa OR para cobrir tanto receptora_id (UUID) quanto receptora_brinco (texto)
+  const historicoFilter = animal.brinco
+    ? `receptora_id.eq.${id},receptora_brinco.eq.${animal.brinco}`
+    : `receptora_id.eq.${id}`;
+
   const { data: historico } = await supabase
     .from("transfers")
     .select(`
-      id, data_te, resultado_te, sessao_nome,
+      id, data_te, resultado_te, sessao_nome, receptora_id, receptora_brinco,
       embryo:embryos (
         id,
-        aspiration:aspirations ( doadora_id, doadora_nome, touro_nome )
+        aspiration:aspirations ( doadora_id, doadora_nome, touro_nome,
+          doadora:animals!aspirations_doadora_id_fkey ( id, nome )
+        )
       ),
       diagnoses:pregnancy_diagnoses ( resultado, data_dg, data_previsao_parto, tipo_desfecho, data_desfecho )
     `)
     .eq("farm_id", FARM_ID)
-    .eq("receptora_id", id)
+    .or(historicoFilter)
     .order("data_te", { ascending: false });
 
   // Desfecho mais recente (para o card de cabeçalho)
@@ -366,22 +373,30 @@ export default async function FichaRebanhoPage({
         </section>
       </div>
 
-      {/* ── Histórico Reprodutivo (timeline) ───────────────────────────────── */}
-      {historico && historico.length > 0 && (
-        <section className="card overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-            <Baby className="w-4 h-4 text-brand-600" />
-            <h2 className="font-semibold text-gray-900">Histórico Reprodutivo</h2>
-            <span className="badge bg-brand-100 text-brand-700 ml-auto">{historico.length} implantações</span>
-          </div>
+      {/* ── Histórico Reprodutivo (timeline) — sempre visível ─────────────── */}
+      <section className="card overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+          <Baby className="w-4 h-4 text-brand-600" />
+          <h2 className="font-semibold text-gray-900">Histórico Reprodutivo</h2>
+          <span className="badge bg-brand-100 text-brand-700 ml-auto">
+            {(historico ?? []).length} implantaç{(historico ?? []).length === 1 ? "ão" : "ões"}
+          </span>
+        </div>
 
+        {(!historico || historico.length === 0) ? (
+          <div className="px-5 py-8 text-center text-gray-400 text-sm">
+            Nenhuma implantação registrada para esta receptora.
+          </div>
+        ) : (
           <div className="px-5 py-5 space-y-0">
             {historico.map((t: any, idx: number) => {
               const asp      = t.embryo?.aspiration;
               const dg       = (t.diagnoses ?? [])[0];
               const isLast   = idx === historico.length - 1;
+              const doadoraId = asp?.doadora?.id ?? asp?.doadora_id ?? null;
+              const doadoraNome = asp?.doadora?.nome ?? asp?.doadora_nome ?? null;
               const filhote  = dg?.tipo_desfecho === "PARIDA" && dg?.data_desfecho
-                ? filhoteDaParicao(dg.data_desfecho, asp?.doadora_id ?? null)
+                ? filhoteDaParicao(dg.data_desfecho, doadoraId ?? null)
                 : null;
 
               // ── Configuração visual por tipo de desfecho ──────────────────
@@ -462,15 +477,15 @@ export default async function FichaRebanhoPage({
                     </p>
 
                     {/* Doadora × Touro */}
-                    {(asp?.doadora_nome || asp?.touro_nome) && (
+                    {(doadoraNome || asp?.touro_nome) && (
                       <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                        {asp?.doadora_id ? (
-                          <Link href={`/doadoras/${asp.doadora_id}`}
+                        {doadoraId ? (
+                          <Link href={`/doadoras/${doadoraId}`}
                             className="text-xs text-brand-600 font-semibold hover:underline">
-                            {asp.doadora_nome}
+                            {doadoraNome}
                           </Link>
-                        ) : asp?.doadora_nome ? (
-                          <span className="text-xs font-semibold text-gray-700">{asp.doadora_nome}</span>
+                        ) : doadoraNome ? (
+                          <span className="text-xs font-semibold text-gray-700">{doadoraNome}</span>
                         ) : null}
                         {asp?.touro_nome && (
                           <>
@@ -501,8 +516,8 @@ export default async function FichaRebanhoPage({
               );
             })}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* ── Transações / Venda ──────────────────────────────────────────────── */}
       {transacoes && transacoes.length > 0 && (
