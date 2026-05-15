@@ -172,6 +172,52 @@ export default async function RebanhoPage({
     });
   }
 
+  // ── Fallback: PRENHA_EMBRIAO/PRENHA sem DG — busca direto em transfers ────────
+  // Acontece quando a prenhez foi registrada sem data de parto (sem pregnancy_diagnoses)
+  const idsSemdg = (animaisRaw ?? [])
+    .filter(a =>
+      (a.status_rebanho === "PRENHA_EMBRIAO" || a.status_rebanho === "PRENHA") &&
+      !prenhezesMapa.has(a.id)
+    )
+    .map(a => a.id);
+
+  if (idsSemdg.length > 0) {
+    const { data: tfSemDg } = await supabase
+      .from("transfers")
+      .select(`
+        id, receptora_id, data_te,
+        embryo:embryos (
+          id, aspiration_id, numero_cdc_fiv, numero_adt_te, sexagem,
+          aspiration:aspirations ( doadora_id, doadora_nome, touro_nome,
+            doadora:animals!aspirations_doadora_id_fkey ( id, nome )
+          )
+        )
+      `)
+      .eq("farm_id", FARM_ID)
+      .in("receptora_id", idsSemdg)
+      .order("data_te", { ascending: false });
+
+    for (const t of tfSemDg ?? []) {
+      if (!(t as any).receptora_id || prenhezesMapa.has((t as any).receptora_id)) continue;
+      const emb = (t as any).embryo;
+      const asp = emb?.aspiration;
+      prenhezesMapa.set((t as any).receptora_id, {
+        transferId:   t.id,
+        previsao:     null,
+        dataTe:       t.data_te ?? null,
+        doadoraNome:  asp?.doadora?.nome ?? asp?.doadora_nome ?? null,
+        doadoraId:    asp?.doadora?.id   ?? asp?.doadora_id   ?? null,
+        touroNome:    asp?.touro_nome ?? null,
+        embryoId:     emb?.id ?? null,
+        embryoCdc:    emb?.numero_cdc_fiv ?? null,
+        embryoAdt:    emb?.numero_adt_te ?? null,
+        aspId:        emb?.aspiration_id ?? null,
+        sexagem:      emb?.sexagem ?? null,
+        tipoDesfecho: null,
+      });
+    }
+  }
+
   const animais = animaisRaw ?? [];
 
   // Contagens por classificação

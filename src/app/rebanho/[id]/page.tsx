@@ -52,27 +52,44 @@ export default async function FichaRebanhoPage({
     .order("data", { ascending: false });
 
   // ── Prenhez ativa (para exibir info + botão de nascimento) ──────────────────
+  const selectTransferEmbriao = `
+    id, receptora_id, data_te,
+    embryo:embryos (
+      id, numero_cdc_fiv, numero_adt_te,
+      aspiration:aspirations (
+        doadora_id, doadora_nome, touro_nome,
+        doadora:animals!aspirations_doadora_id_fkey ( id, nome )
+      )
+    )
+  `;
+
   const { data: prenhezes } = await supabase
     .from("pregnancy_diagnoses")
     .select(`
       id, data_previsao_parto, data_dg,
-      transfer:transfers (
-        id, receptora_id, data_te,
-        embryo:embryos (
-          id, numero_cdc_fiv, numero_adt_te,
-          aspiration:aspirations (
-            doadora_id, doadora_nome, touro_nome,
-            doadora:animals!aspirations_doadora_id_fkey ( id, nome )
-          )
-        )
-      )
+      transfer:transfers ( ${selectTransferEmbriao} )
     `)
     .eq("farm_id", FARM_ID)
-    .eq("resultado", "POSITIVO");
+    .in("resultado", ["POSITIVO", "AGUARDANDO"])
+    .is("tipo_desfecho", null);
 
   // Filtra pelo animal atual
-  const prenhez  = (prenhezes ?? []).find(p => (p.transfer as any)?.receptora_id === id) ?? null;
-  const transfer = prenhez ? (prenhez.transfer as any) : null;
+  let prenhez  = (prenhezes ?? []).find(p => (p.transfer as any)?.receptora_id === id) ?? null;
+  let transfer = prenhez ? (prenhez.transfer as any) : null;
+
+  // Fallback: prenha sem DG (ex: prenhez de terceiros sem data de parto registrada)
+  if (!transfer && (animal.status_rebanho === "PRENHA_EMBRIAO" || animal.status_rebanho === "PRENHA")) {
+    const { data: latestTf } = await supabase
+      .from("transfers")
+      .select(selectTransferEmbriao)
+      .eq("farm_id", FARM_ID)
+      .eq("receptora_id", id)
+      .order("data_te", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestTf) transfer = latestTf;
+  }
+
   const embriao  = transfer?.embryo ?? null;
   const asp      = embriao?.aspiration ?? null;
   const doadora  = asp?.doadora ?? null;
@@ -111,11 +128,19 @@ export default async function FichaRebanhoPage({
   const { data: todosFilhotes } = datasParicao.length > 0
     ? await supabase
         .from("animals")
-        .select("id, nome, tipo, nascimento, mae_id")
+        .select("id, nome, tipo, nascimento, mae_id, rgn")
         .eq("farm_id", FARM_ID)
         .eq("nascido_se_agro", true)
         .in("nascimento", datasParicao)
     : { data: [] };
+
+  // ── Transações da receptora (vendas) ─────────────────────────────────────────
+  const { data: transacoes } = await supabase
+    .from("transactions")
+    .select("id, tipo, contraparte, valor_total, data, observacoes")
+    .eq("farm_id", FARM_ID)
+    .eq("animal_id", id)
+    .order("data", { ascending: false });
 
   // Helper: acha o bezerro de uma data de parição
   function filhoteDaParicao(dataDesfecho: string, doadoraId: string | null) {
@@ -192,12 +217,12 @@ export default async function FichaRebanhoPage({
           </div>
 
           {/* Botão nascimento (destaque) */}
-          {isPrenha && prenhez && transfer && (
+          {isPrenha && transfer && (
             <div className="shrink-0">
               <NascimentoForm
                 receptoraId={id}
                 transferId={transfer.id}
-                previsaoParto={prenhez.data_previsao_parto}
+                previsaoParto={prenhez?.data_previsao_parto ?? null}
                 doadoraNome={asp?.doadora?.nome ?? asp?.doadora_nome ?? null}
                 touroNome={asp?.touro_nome ?? null}
               />
@@ -249,8 +274,8 @@ export default async function FichaRebanhoPage({
           </div>
         )}
 
-        {/* Info prenhez (se prenha) */}
-        {isPrenha && prenhez && (
+        {/* Info prenhez (se prenha — funciona com ou sem DG registrado) */}
+        {isPrenha && transfer && (
           <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Doadora</p>
@@ -284,11 +309,11 @@ export default async function FichaRebanhoPage({
             </div>
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">DG Positivo</p>
-              <p className="text-sm font-semibold text-gray-700">{formatDate(prenhez.data_dg)}</p>
+              <p className="text-sm font-semibold text-gray-700">{formatDate(prenhez?.data_dg ?? null)}</p>
             </div>
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Previsão de Parto</p>
-              <p className="text-sm font-bold text-green-700">{formatDate(prenhez.data_previsao_parto)}</p>
+              <p className="text-sm font-bold text-green-700">{formatDate(prenhez?.data_previsao_parto ?? null)}</p>
             </div>
           </div>
         )}
@@ -458,7 +483,7 @@ export default async function FichaRebanhoPage({
 
                     {/* Bezerro nascido */}
                     {filhote && (
-                      <div className="mt-1.5 flex items-center gap-1.5">
+                      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                         <span className="text-[11px] text-gray-400">Bezerro:</span>
                         <Link
                           href={filhote.tipo === "DOADORA" ? `/doadoras/${filhote.id}` : `/machos/${filhote.id}`}
@@ -466,12 +491,55 @@ export default async function FichaRebanhoPage({
                         >
                           {filhote.nome}
                         </Link>
+                        {filhote.rgn && (
+                          <span className="text-[11px] text-gray-400 font-mono">RGN: {filhote.rgn}</span>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
               );
             })}
+          </div>
+        </section>
+      )}
+
+      {/* ── Transações / Venda ──────────────────────────────────────────────── */}
+      {transacoes && transacoes.length > 0 && (
+        <section className="card overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+            <span className="text-lg">💰</span>
+            <h2 className="font-semibold text-gray-900">Transações</h2>
+            <span className="badge bg-gray-100 text-gray-500 ml-auto">{transacoes.length}</span>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {transacoes.map((tx: any) => (
+              <div key={tx.id} className="px-5 py-3 flex items-start gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      tx.tipo === "VENDA" ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"
+                    }`}>
+                      {tx.tipo === "VENDA" ? "Venda" : "Compra"}
+                    </span>
+                    {tx.contraparte && (
+                      <span className="text-sm text-gray-700 font-medium">{tx.contraparte}</span>
+                    )}
+                  </div>
+                  {tx.observacoes && (
+                    <p className="text-xs text-gray-400 mt-0.5 italic">{tx.observacoes}</p>
+                  )}
+                </div>
+                <div className="text-right shrink-0">
+                  {tx.valor_total && (
+                    <p className="text-sm font-bold text-gray-900">
+                      {Number(tx.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400">{formatDate(tx.data)}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}
