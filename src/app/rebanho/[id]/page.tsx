@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, FARM_ID } from "@/lib/utils";
-import { ArrowLeft, Weight, Baby, Heart, Edit2, CalendarDays, Beef, ChevronRight } from "lucide-react";
+import { ArrowLeft, Weight, Baby, Heart, CalendarDays, Beef, ChevronRight, CheckCircle, XCircle, AlertTriangle, RefreshCw, Syringe, FlaskConical } from "lucide-react";
 import { FichaStatusForm }  from "./FichaStatusForm";
 import { FichaPesagemForm } from "./FichaPesagemForm";
 import { NascimentoForm }   from "./NascimentoForm";
@@ -93,37 +93,44 @@ export default async function FichaRebanhoPage({
     .eq("receptora_id", id)
     .order("data_te", { ascending: false });
 
-  // Desfecho mais recente (se existir)
+  // Desfecho mais recente (para o card de cabeçalho)
   const ultimoTransferComDesfecho = (historico ?? []).find(
     (t: any) => (t.diagnoses?.[0] as any)?.tipo_desfecho
   ) ?? null;
-  const ultimoDg = ultimoTransferComDesfecho ? (ultimoTransferComDesfecho as any).diagnoses?.[0] : null;
+  const ultimoDg  = ultimoTransferComDesfecho ? (ultimoTransferComDesfecho as any).diagnoses?.[0] : null;
   const ultimoAsp = ultimoTransferComDesfecho
     ? (ultimoTransferComDesfecho as any).embryo?.aspiration
     : null;
 
-  // Bezerro nascido: animal com mae_id = doadora_id da aspiração + nascimento = data_desfecho
-  let bezzerraNascida: { id: string; nome: string; tipo: string } | null = null;
-  if (ultimoDg?.tipo_desfecho === "PARIDA" && ultimoDg?.data_desfecho) {
-    const doadora_id_asp = ultimoAsp?.doadora_id ?? null;
-    const { data: filhotes } = await supabase
-      .from("animals")
-      .select("id, nome, tipo")
-      .eq("farm_id", FARM_ID)
-      .eq("nascimento", ultimoDg.data_desfecho)
-      .eq("nascido_se_agro", true)
-      .limit(5);
+  // Busca TODOS os filhotes nascidos nas datas de parição desta receptora (1 query só)
+  const datasParicao = (historico ?? [])
+    .flatMap((t: any) => t.diagnoses ?? [])
+    .filter((d: any) => d.tipo_desfecho === "PARIDA" && d.data_desfecho)
+    .map((d: any) => d.data_desfecho as string);
 
-    // Prefere o que tem mae_id apontando para a doadora
-    if (filhotes?.length) {
-      if (doadora_id_asp) {
-        const comMae = filhotes.find((f: any) => (f as any).mae_id === doadora_id_asp);
-        bezzerraNascida = (comMae ?? filhotes[0]) as any;
-      } else {
-        bezzerraNascida = filhotes[0] as any;
-      }
+  const { data: todosFilhotes } = datasParicao.length > 0
+    ? await supabase
+        .from("animals")
+        .select("id, nome, tipo, nascimento, mae_id")
+        .eq("farm_id", FARM_ID)
+        .eq("nascido_se_agro", true)
+        .in("nascimento", datasParicao)
+    : { data: [] };
+
+  // Helper: acha o bezerro de uma data de parição
+  function filhoteDaParicao(dataDesfecho: string, doadoraId: string | null) {
+    const candidatos = (todosFilhotes ?? []).filter((f: any) => f.nascimento === dataDesfecho);
+    if (!candidatos.length) return null;
+    if (doadoraId) {
+      return (candidatos.find((f: any) => f.mae_id === doadoraId) ?? candidatos[0]) as any;
     }
+    return candidatos[0] as any;
   }
+
+  // Bezerro da parição mais recente (para o card de cabeçalho)
+  const bezzerraNascida = ultimoDg?.tipo_desfecho === "PARIDA" && ultimoDg?.data_desfecho
+    ? filhoteDaParicao(ultimoDg.data_desfecho, ultimoAsp?.doadora_id ?? null)
+    : null;
 
   const isPrenha = animal.status_rebanho === "PRENHA" || animal.status_rebanho === "PRENHA_EMBRIAO";
 
@@ -334,7 +341,7 @@ export default async function FichaRebanhoPage({
         </section>
       </div>
 
-      {/* ── Histórico Reprodutivo ───────────────────────────────────────────── */}
+      {/* ── Histórico Reprodutivo (timeline) ───────────────────────────────── */}
       {historico && historico.length > 0 && (
         <section className="card overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
@@ -342,57 +349,130 @@ export default async function FichaRebanhoPage({
             <h2 className="font-semibold text-gray-900">Histórico Reprodutivo</h2>
             <span className="badge bg-brand-100 text-brand-700 ml-auto">{historico.length} implantações</span>
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Data TE</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Doadora</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Touro</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Desfecho</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Prev. Parto</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {historico.map((t: any) => {
-                const asp = t.embryo?.aspiration;
-                const dg  = (t.diagnoses ?? [])[0];
 
-                const DESFECHO_LABEL: Record<string, { label: string; cls: string }> = {
-                  PARIDA:     { label: "Parto",    cls: "bg-green-100  text-green-700"  },
-                  ABORTOU:    { label: "Aborto",   cls: "bg-orange-100 text-orange-700" },
-                  REABSORVEU: { label: "Absorção", cls: "bg-yellow-100 text-yellow-700" },
-                  OBITO:      { label: "Óbito",    cls: "bg-gray-200   text-gray-700"   },
-                  VENDA:      { label: "Venda",    cls: "bg-blue-100   text-blue-700"   },
+          <div className="px-5 py-5 space-y-0">
+            {historico.map((t: any, idx: number) => {
+              const asp      = t.embryo?.aspiration;
+              const dg       = (t.diagnoses ?? [])[0];
+              const isLast   = idx === historico.length - 1;
+              const filhote  = dg?.tipo_desfecho === "PARIDA" && dg?.data_desfecho
+                ? filhoteDaParicao(dg.data_desfecho, asp?.doadora_id ?? null)
+                : null;
+
+              // ── Configuração visual por tipo de desfecho ──────────────────
+              type EventConfig = { icon: React.ReactNode; dotCls: string; titulo: string; tituloCls: string };
+              let cfg: EventConfig;
+
+              if (dg?.tipo_desfecho === "PARIDA") {
+                cfg = {
+                  icon: <Baby className="w-3.5 h-3.5" />,
+                  dotCls: "bg-green-500 ring-green-200",
+                  titulo: `Parto em ${formatDate(dg.data_desfecho)}`,
+                  tituloCls: "text-green-700",
                 };
-                const desfechoInfo = dg?.tipo_desfecho
-                  ? DESFECHO_LABEL[dg.tipo_desfecho]
-                  : dg?.resultado === "POSITIVO"
-                  ? { label: "P+ Prenha", cls: "bg-teal-100 text-teal-700" }
-                  : dg?.resultado === "NEGATIVO"
-                  ? { label: "Negativo",  cls: "bg-red-100 text-red-600"   }
-                  : null;
+              } else if (dg?.tipo_desfecho === "ABORTOU") {
+                cfg = {
+                  icon: <AlertTriangle className="w-3.5 h-3.5" />,
+                  dotCls: "bg-orange-400 ring-orange-200",
+                  titulo: `Aborto em ${formatDate(dg.data_desfecho)}`,
+                  tituloCls: "text-orange-700",
+                };
+              } else if (dg?.tipo_desfecho === "REABSORVEU") {
+                cfg = {
+                  icon: <RefreshCw className="w-3.5 h-3.5" />,
+                  dotCls: "bg-yellow-400 ring-yellow-200",
+                  titulo: `Reabsorção em ${formatDate(dg.data_desfecho)}`,
+                  tituloCls: "text-yellow-700",
+                };
+              } else if (dg?.tipo_desfecho === "OBITO") {
+                cfg = {
+                  icon: <XCircle className="w-3.5 h-3.5" />,
+                  dotCls: "bg-gray-500 ring-gray-200",
+                  titulo: `Óbito em ${formatDate(dg.data_desfecho)}`,
+                  tituloCls: "text-gray-700",
+                };
+              } else if (dg?.resultado === "POSITIVO") {
+                cfg = {
+                  icon: <CheckCircle className="w-3.5 h-3.5" />,
+                  dotCls: "bg-teal-500 ring-teal-200",
+                  titulo: `DG Positivo — Prenha`,
+                  tituloCls: "text-teal-700",
+                };
+              } else if (dg?.resultado === "NEGATIVO") {
+                cfg = {
+                  icon: <XCircle className="w-3.5 h-3.5" />,
+                  dotCls: "bg-red-400 ring-red-200",
+                  titulo: `DG Negativo`,
+                  tituloCls: "text-red-600",
+                };
+              } else {
+                cfg = {
+                  icon: <FlaskConical className="w-3.5 h-3.5" />,
+                  dotCls: "bg-brand-400 ring-brand-200",
+                  titulo: `Implantação T.E.`,
+                  tituloCls: "text-brand-700",
+                };
+              }
 
-                return (
-                  <tr key={t.id} className="table-row-hover">
-                    <td className="px-4 py-2.5 text-xs text-gray-600">{formatDate(t.data_te)}</td>
-                    <td className="px-4 py-2.5 text-xs font-medium text-gray-800">{asp?.doadora_nome ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600">{asp?.touro_nome ?? "—"}</td>
-                    <td className="px-4 py-2.5">
-                      {desfechoInfo ? (
-                        <div className="flex flex-col gap-0.5">
-                          <span className={`badge text-[10px] w-fit ${desfechoInfo.cls}`}>{desfechoInfo.label}</span>
-                          {dg?.data_desfecho && (
-                            <span className="text-[10px] text-gray-400">{formatDate(dg.data_desfecho)}</span>
-                          )}
-                        </div>
-                      ) : <span className="text-gray-300 text-xs">—</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600">{formatDate(dg?.data_previsao_parto ?? null)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+              return (
+                <div key={t.id} className="flex gap-4">
+                  {/* Coluna da linha + ponto */}
+                  <div className="flex flex-col items-center">
+                    <div className={`w-7 h-7 rounded-full ring-4 flex items-center justify-center text-white shrink-0 ${cfg.dotCls}`}>
+                      {cfg.icon}
+                    </div>
+                    {!isLast && <div className="w-px flex-1 bg-gray-200 my-1" />}
+                  </div>
+
+                  {/* Conteúdo */}
+                  <div className={`pb-6 flex-1 ${isLast ? "" : ""}`}>
+                    <p className={`font-semibold text-sm ${cfg.tituloCls}`}>{cfg.titulo}</p>
+
+                    {/* Data T.E. */}
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      T.E.: {formatDate(t.data_te)}
+                      {dg?.data_previsao_parto && (
+                        <span className="ml-2 text-gray-400">· Prev. parto: {formatDate(dg.data_previsao_parto)}</span>
+                      )}
+                    </p>
+
+                    {/* Doadora × Touro */}
+                    {(asp?.doadora_nome || asp?.touro_nome) && (
+                      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        {asp?.doadora_id ? (
+                          <Link href={`/doadoras/${asp.doadora_id}`}
+                            className="text-xs text-brand-600 font-semibold hover:underline">
+                            {asp.doadora_nome}
+                          </Link>
+                        ) : asp?.doadora_nome ? (
+                          <span className="text-xs font-semibold text-gray-700">{asp.doadora_nome}</span>
+                        ) : null}
+                        {asp?.touro_nome && (
+                          <>
+                            <span className="text-gray-300 text-xs">×</span>
+                            <span className="text-xs text-gray-600">{asp.touro_nome}</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Bezerro nascido */}
+                    {filhote && (
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <span className="text-[11px] text-gray-400">Bezerro:</span>
+                        <Link
+                          href={filhote.tipo === "DOADORA" ? `/doadoras/${filhote.id}` : `/machos/${filhote.id}`}
+                          className="text-xs font-semibold text-brand-600 hover:underline"
+                        >
+                          {filhote.nome}
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
       )}
     </div>
