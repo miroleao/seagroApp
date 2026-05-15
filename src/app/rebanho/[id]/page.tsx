@@ -95,27 +95,45 @@ export default async function FichaRebanhoPage({
   const doadora  = asp?.doadora ?? null;
   const dataTe   = transfer?.data_te ?? null;
 
-  // ── Histórico reprodutivo (todos os transfers desta receptora) ──────────────
-  // Usa OR para cobrir tanto receptora_id (UUID) quanto receptora_brinco (texto)
-  const historicoFilter = animal.brinco
-    ? `receptora_id.eq.${id},receptora_brinco.eq.${animal.brinco}`
-    : `receptora_id.eq.${id}`;
+  // ── Histórico reprodutivo ────────────────────────────────────────────────────
+  // Duas queries separadas para cobrir receptora_id (UUID) e receptora_brinco (texto)
+  const selectTransf = `
+    id, data_te, resultado_te, sessao_nome, receptora_id, receptora_brinco,
+    embryo:embryos (
+      id,
+      aspiration:aspirations ( doadora_id, doadora_nome, touro_nome,
+        doadora:animals!aspirations_doadora_id_fkey ( id, nome )
+      )
+    ),
+    diagnoses:pregnancy_diagnoses ( resultado, data_dg, data_previsao_parto, tipo_desfecho, data_desfecho )
+  `;
 
-  const { data: historico } = await supabase
+  const { data: hPorId } = await supabase
     .from("transfers")
-    .select(`
-      id, data_te, resultado_te, sessao_nome, receptora_id, receptora_brinco,
-      embryo:embryos (
-        id,
-        aspiration:aspirations ( doadora_id, doadora_nome, touro_nome,
-          doadora:animals!aspirations_doadora_id_fkey ( id, nome )
-        )
-      ),
-      diagnoses:pregnancy_diagnoses ( resultado, data_dg, data_previsao_parto, tipo_desfecho, data_desfecho )
-    `)
+    .select(selectTransf)
     .eq("farm_id", FARM_ID)
-    .or(historicoFilter)
+    .eq("receptora_id", id)
     .order("data_te", { ascending: false });
+
+  let hPorBrinco: any[] = [];
+  if (animal.brinco) {
+    const { data } = await supabase
+      .from("transfers")
+      .select(selectTransf)
+      .eq("farm_id", FARM_ID)
+      .eq("receptora_brinco", animal.brinco)
+      .is("receptora_id", null)
+      .order("data_te", { ascending: false });
+    hPorBrinco = data ?? [];
+  }
+
+  // Merge sem duplicatas, ordenado por data_te desc
+  const idsSeen = new Set<string>();
+  const historico: any[] = [];
+  for (const t of [...(hPorId ?? []), ...hPorBrinco]) {
+    if (!idsSeen.has(t.id)) { idsSeen.add(t.id); historico.push(t); }
+  }
+  historico.sort((a, b) => (b.data_te ?? "").localeCompare(a.data_te ?? ""));
 
   // Desfecho mais recente (para o card de cabeçalho)
   const ultimoTransferComDesfecho = (historico ?? []).find(
@@ -384,8 +402,21 @@ export default async function FichaRebanhoPage({
         </div>
 
         {(!historico || historico.length === 0) ? (
-          <div className="px-5 py-8 text-center text-gray-400 text-sm">
-            Nenhuma implantação registrada para esta receptora.
+          <div className="px-5 py-6 space-y-3">
+            {/* Fallback: dados manuais nas observações do animal */}
+            {animal.observacoes ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+                <p className="font-semibold text-amber-900 mb-1 text-xs uppercase tracking-wide">Dados registrados manualmente</p>
+                <p className="text-sm">{animal.observacoes}</p>
+                {animal.situacao && (
+                  <p className="text-xs text-amber-600 mt-1">Situação: {animal.situacao}</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-center text-gray-400 text-sm py-4">
+                Nenhuma implantação registrada para esta receptora.
+              </p>
+            )}
           </div>
         ) : (
           <div className="px-5 py-5 space-y-0">
