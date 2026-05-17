@@ -5,6 +5,17 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { FARM_ID } from "@/lib/utils";
 
+export async function excluirMacho(formData: FormData) {
+  const id = formData.get("id") as string;
+  if (!id) return;
+
+  const supabase = await createClient();
+  await supabase.from("animals").delete().eq("id", id).eq("farm_id", FARM_ID);
+
+  revalidatePath("/machos");
+  redirect("/machos");
+}
+
 export async function toggleParaPistaMacho(formData: FormData) {
   const id    = formData.get("id") as string;
   const valor = formData.get("para_pista") === "true";

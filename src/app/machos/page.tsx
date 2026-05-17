@@ -6,6 +6,7 @@ import { Plus, CheckCircle, XCircle, Clock, Star, Trophy } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
+import { ExcluirMachoBtn } from "./ExcluirMachoBtn";
 
 /** Calcula meses inteiros entre uma data ISO e hoje */
 function idadeEmMeses(nascimento: string | null): number | null {
@@ -242,12 +243,13 @@ export default async function MachosPage({
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Valorização</th>
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">% Próprio</th>
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Localização</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {filtrado.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-4 py-10 text-center text-gray-400 text-sm">
+                <td colSpan={12} className="px-4 py-10 text-center text-gray-400 text-sm">
                   Nenhum macho encontrado{q ? ` para "${q}"` : ""}.
                 </td>
               </tr>
@@ -375,6 +377,9 @@ export default async function MachosPage({
                     </td>
 
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{m.localizacao ?? "—"}</td>
+                    <td className="px-2 py-3">
+                      <ExcluirMachoBtn id={m.id} nome={m.nome} />
+                    </td>
                   </tr>
                 );
               })

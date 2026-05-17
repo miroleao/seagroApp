@@ -141,13 +141,33 @@ export default function DesfechoFichaForm({ aspId, transferId, receptoraId, doad
               </div>
             </div>
 
-            {/* RGN opcional */}
-            <div className="max-w-xs">
-              <label className="text-xs text-gray-500 mb-1 block">
-                RGN <span className="text-gray-400 font-normal">(opcional — pode preencher depois)</span>
-              </label>
-              <input name="rgn" type="text" placeholder="Ex: 3224"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white" />
+            {/* RGN + % próprio */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">
+                  RGN <span className="text-gray-400 font-normal">(opcional)</span>
+                </label>
+                <input name="rgn" type="text" placeholder="Ex: 3224"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">
+                  % Próprio <span className="text-gray-400 font-normal">(padrão 100%)</span>
+                </label>
+                <div className="flex items-center gap-1">
+                  <input name="percentual_proprio" type="number" min="1" max="100" step="1"
+                    defaultValue={100} placeholder="100"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white" />
+                  <span className="text-sm text-gray-400 shrink-0">%</span>
+                </div>
+              </div>
+              <div className="flex items-end pb-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input name="nascido_se_agro" type="checkbox" defaultChecked
+                    className="w-4 h-4 accent-brand-600 rounded" />
+                  <span className="text-sm text-gray-700">Nascido na SE Agro</span>
+                </label>
+              </div>
             </div>
 
             <button type="submit"

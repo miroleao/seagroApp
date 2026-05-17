@@ -220,15 +220,18 @@ export async function registrarDesfecho(formData: FormData) {
 // ── Nascimento ────────────────────────────────────────────────────────────────
 
 export async function registrarNascimento(formData: FormData) {
-  const nome         = (formData.get("nome")         as string)?.trim();
-  const nascimento   = (formData.get("nascimento")   as string);
-  const sexo         = (formData.get("sexo")         as string);
-  const rgn          = (formData.get("rgn")          as string)?.trim() || null;
-  const asp_id       = (formData.get("asp_id")       as string)?.trim() || null;
-  const transfer_id  = (formData.get("transfer_id")  as string)?.trim() || null;
-  const receptora_id = (formData.get("receptora_id") as string)?.trim() || null;
-  const doadora_nome = (formData.get("doadora_nome") as string)?.trim() || null;
-  const touro_nome   = (formData.get("touro_nome")   as string)?.trim() || null;
+  const nome               = (formData.get("nome")               as string)?.trim();
+  const nascimento         = (formData.get("nascimento")         as string);
+  const sexo               = (formData.get("sexo")               as string);
+  const rgn                = (formData.get("rgn")                as string)?.trim() || null;
+  const asp_id             = (formData.get("asp_id")             as string)?.trim() || null;
+  const transfer_id        = (formData.get("transfer_id")        as string)?.trim() || null;
+  const receptora_id       = (formData.get("receptora_id")       as string)?.trim() || null;
+  const doadora_nome       = (formData.get("doadora_nome")       as string)?.trim() || null;
+  const touro_nome         = (formData.get("touro_nome")         as string)?.trim() || null;
+  const percentual_raw     = (formData.get("percentual_proprio") as string)?.trim();
+  const percentual_proprio = percentual_raw ? parseFloat(percentual_raw) / 100 : 1.0;
+  const nascido_se_agro    = formData.get("nascido_se_agro") === "on";
 
   if (!nome || !nascimento || !sexo) return;
 
@@ -237,7 +240,19 @@ export async function registrarNascimento(formData: FormData) {
 
   const { data: animal, error } = await supabase
     .from("animals")
-    .insert({ farm_id: FARM_ID, tipo, nome, nascimento, sexo, rgn, mae_nome: doadora_nome, pai_nome: touro_nome, situacao: "ATIVA" })
+    .insert({
+      farm_id: FARM_ID,
+      tipo,
+      nome,
+      nascimento,
+      sexo,
+      rgn,
+      mae_nome: doadora_nome,
+      pai_nome: touro_nome,
+      situacao: "ATIVA",
+      percentual_proprio: isNaN(percentual_proprio) ? 1.0 : percentual_proprio,
+      nascido_se_agro,
+    })
     .select("id")
     .single();
 
@@ -255,10 +270,32 @@ export async function registrarNascimento(formData: FormData) {
   }
 
   // Libera a receptora após parto
-  if (receptora_id) {
+  // Se receptora_id vier direto, usa; senão resolve via transfer_id
+  let idReceptora = receptora_id;
+  if (!idReceptora && transfer_id) {
+    const { data: tr } = await supabase
+      .from("transfers")
+      .select("receptora_id, receptora_brinco")
+      .eq("id", transfer_id)
+      .single();
+    idReceptora = tr?.receptora_id ?? null;
+
+    // Se ainda não tem id mas tem brinco, tenta resolver pelo brinco
+    if (!idReceptora && tr?.receptora_brinco) {
+      const { data: animalPorBrinco } = await supabase
+        .from("animals")
+        .select("id")
+        .eq("farm_id", FARM_ID)
+        .eq("brinco", tr.receptora_brinco)
+        .maybeSingle();
+      idReceptora = animalPorBrinco?.id ?? null;
+    }
+  }
+
+  if (idReceptora) {
     await supabase.from("animals")
-      .update({ status_rebanho: "VAZIA" })
-      .eq("id", receptora_id)
+      .update({ status_rebanho: "PARIDA" })
+      .eq("id", idReceptora)
       .eq("farm_id", FARM_ID);
   }
 
