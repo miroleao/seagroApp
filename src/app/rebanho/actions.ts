@@ -5,6 +5,21 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { FARM_ID } from "@/lib/utils";
 
+// ─── Helper: atualiza campo(s) em aspirations.observacoes sem apagar os outros ─
+function buildObs(base: string | null, updates: Record<string, string | null>): string {
+  const map: Record<string, string> = {};
+  if (base) {
+    for (const part of base.split("|")) {
+      const [k, ...rest] = part.trim().split(":");
+      if (k && rest.length) map[k.trim()] = rest.join(":").trim();
+    }
+  }
+  for (const [k, v] of Object.entries(updates)) {
+    if (v) map[k] = v; else delete map[k];
+  }
+  return Object.entries(map).map(([k, v]) => `${k}:${v}`).join(" | ");
+}
+
 // ─── Cadastrar animal individual ─────────────────────────────────────────────
 export async function cadastrarAnimal(formData: FormData) {
   const supabase = await createClient();
@@ -337,6 +352,7 @@ export async function registrarDesfechoUnificado(formData: FormData) {
     let doadora_nome:   string | null = null;
     let doadora_id_asp: string | null = null;
     let touro_nome:     string | null = null;
+    let aspiration_id:  string | null = null;
     if (tid) {
       const { data: tr } = await supabase
         .from("transfers")
@@ -350,14 +366,30 @@ export async function registrarDesfechoUnificado(formData: FormData) {
           .eq("id", tr.embryo_id)
           .maybeSingle();
         if (emb?.aspiration_id) {
+          aspiration_id = emb.aspiration_id;
           const { data: asp } = await supabase
             .from("aspirations")
-            .select("doadora_id, doadora_nome, touro_nome")
+            .select("doadora_id, doadora_nome, touro_nome, observacoes")
             .eq("id", emb.aspiration_id)
             .maybeSingle();
           doadora_nome   = asp?.doadora_nome ?? null;
           doadora_id_asp = asp?.doadora_id   ?? null;
           touro_nome     = asp?.touro_nome   ?? null;
+
+          // ── Sincroniza resultado na aspiração (lido pela aba Prenhezes) ──────
+          const resultado_asp = tipo === "PARIDA" ? "NASCIMENTO"
+                               : tipo === "ABORTOU" ? "ABORTO"
+                               : tipo === "REABSORVEU" ? "ABORTO"
+                               : null;
+          if (resultado_asp) {
+            const novaObs = buildObs(asp?.observacoes ?? null, {
+              RESULTADO:      resultado_asp,
+              DATA_RESULTADO: data_evento ?? new Date().toISOString().split("T")[0],
+            });
+            await supabase.from("aspirations")
+              .update({ observacoes: novaObs || null })
+              .eq("id", emb.aspiration_id);
+          }
         }
       }
     }
@@ -456,6 +488,8 @@ export async function registrarDesfechoUnificado(formData: FormData) {
       if (novoAnimal?.id) {
         revalidatePath("/rebanho");
         revalidatePath("/reproducao");
+        revalidatePath("/reproducao/prenhezes");
+        if (aspiration_id) revalidatePath(`/reproducao/prenhezes/${aspiration_id}`);
         revalidatePath("/doadoras");
         revalidatePath("/machos");
         revalidatePath("/dashboard");
