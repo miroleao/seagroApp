@@ -6,6 +6,7 @@ import { Star, Plus, Trophy, ChevronRight } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { ExcluirDoadoraBtn } from "./ExcluirDoadoraBtn";
+import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   COLETANDO:  { label: "Coletando",  cls: "bg-purple-100 text-purple-700" },
@@ -149,10 +150,46 @@ export default async function DoadorasPage({
             {filtrado.length} de {all.length} doadoras
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Suspense>
             <SearchInput placeholder="Buscar por nome, pai, mãe ou RGN…" />
           </Suspense>
+          <ExportarPDF
+            titulo="Doadoras"
+            subtitulo={`${filtrado.length} doadoras · SE Agropecuária Nelore de Elite`}
+            orientacao="landscape"
+            nomeArquivo="SE_Doadoras.pdf"
+            colunas={[
+              { key: "nome",               label: "Nome",             padrao: true,  largura: 2.2 },
+              { key: "rgn",                label: "RGN",              padrao: true,  largura: 1.4 },
+              { key: "nascimento",         label: "Nascimento",       padrao: true,  largura: 1.2 },
+              { key: "idade_meses",        label: "Idade (m)",        padrao: true,  largura: 0.8 },
+              { key: "pai_nome",           label: "Pai",              padrao: true,  largura: 2.0 },
+              { key: "mae_nome",           label: "Mãe",              padrao: true,  largura: 2.0 },
+              { key: "status_reprodutivo", label: "Status Reprodutivo", padrao: false, largura: 1.3 },
+              { key: "touro_prenhez",      label: "Touro da Prenhez", padrao: false, largura: 1.8 },
+              { key: "percentual_proprio", label: "% Próprio",        padrao: false, largura: 0.8 },
+              { key: "valor_parcela",      label: "Vl. Parcela",      padrao: false, largura: 1.0 },
+              { key: "localizacao",        label: "Localização",      padrao: false, largura: 1.0 },
+              { key: "para_pista",         label: "Para Pista",       padrao: false, largura: 0.8 },
+              { key: "nascido_se_agro",    label: "Nascida SE Agro",  padrao: false, largura: 0.9 },
+            ] satisfies ColunaPDF[]}
+            dados={filtrado.map((d: any) => ({
+              nome:               d.nome ?? "—",
+              rgn:                d.rgn ?? "—",
+              nascimento:         d.nascimento ? formatDate(d.nascimento) : "—",
+              idade_meses:        (() => { const m = idadeEmMeses(d.nascimento); return m != null ? `${m}m` : "—"; })(),
+              pai_nome:           d.pai_nome ?? "—",
+              mae_nome:           d.mae_nome ?? "—",
+              status_reprodutivo: d.status_reprodutivo ?? "—",
+              touro_prenhez:      d.touro_prenhez ?? d.touro_ultimo_parto ?? "—",
+              percentual_proprio: d.percentual_proprio != null ? `${(d.percentual_proprio * 100).toFixed(0)}%` : "—",
+              valor_parcela:      d.valor_parcela != null ? formatCurrency(d.valor_parcela) : "—",
+              localizacao:        d.localizacao ?? "—",
+              para_pista:         d.para_pista ? "Sim" : "Não",
+              nascido_se_agro:    d.nascido_se_agro ? "Sim" : "Não",
+            }))}
+          />
           <Link
             href="/doadoras/novo"
             className="inline-flex items-center gap-1.5 bg-brand-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shrink-0"

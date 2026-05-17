@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { toggleCdcFiv, toggleAdtTe, toggleDna } from "./actions";
+import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 
 function temDna(obs: string | null | undefined): boolean {
   return !!(obs && obs.includes("DNA:1"));
@@ -131,9 +132,48 @@ export default async function EmbrioesPag({
             {filtrado.length} total · {disponiveis.length} disponíveis
           </p>
         </div>
-        <Suspense>
-          <SearchInput placeholder="Buscar por doadora…" />
-        </Suspense>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Suspense>
+            <SearchInput placeholder="Buscar por doadora…" />
+          </Suspense>
+          <ExportarPDF
+            titulo="Estoque de Embriões"
+            subtitulo={`${filtrado.length} embriões · ${disponiveis.length} disponíveis`}
+            orientacao="landscape"
+            nomeArquivo="SE_Embrioes.pdf"
+            colunas={[
+              { key: "doadora_nome",   label: "Doadora",     padrao: true,  largura: 2.0 },
+              { key: "touro_nome",     label: "Touro",       padrao: true,  largura: 2.0 },
+              { key: "numero_cdc_fiv", label: "CDC-FIV",     padrao: true,  largura: 1.1 },
+              { key: "numero_adt_te",  label: "ADT-TE",      padrao: true,  largura: 1.1 },
+              { key: "sexagem",        label: "Sexagem",     padrao: true,  largura: 0.9 },
+              { key: "status",         label: "Status",      padrao: true,  largura: 1.0 },
+              { key: "data_fiv",       label: "Data FIV",    padrao: false, largura: 1.1 },
+              { key: "local_lab",      label: "Lab / Local", padrao: false, largura: 1.2 },
+              { key: "observacoes",    label: "Obs.",        padrao: false, largura: 1.5 },
+            ] satisfies ColunaPDF[]}
+            dados={filtrado.map((e: any) => {
+              const asp = e.aspiration as any;
+              const SEX_LABELS: Record<string, string> = {
+                NAO_SEXADO: "Não Sexado", MACHO: "Macho", FEMEA: "Fêmea",
+              };
+              const ST_LABELS: Record<string, string> = {
+                DISPONIVEL: "Disponível", IMPLANTADO: "Implantado", DESCARTADO: "Descartado",
+              };
+              return {
+                doadora_nome:   asp?.doadora?.nome ?? asp?.doadora_nome ?? "—",
+                touro_nome:     asp?.touro_nome ?? "—",
+                numero_cdc_fiv: e.numero_cdc_fiv ? "✓" : "—",
+                numero_adt_te:  e.numero_adt_te  ? "✓" : "—",
+                sexagem:        SEX_LABELS[e.sexagem ?? ""] ?? (e.sexagem ?? "—"),
+                status:         ST_LABELS[e.status ?? ""] ?? (e.status ?? "—"),
+                data_fiv:       asp?.session?.data ? formatDate(asp.session.data) : "—",
+                local_lab:      asp?.session?.local ?? "—",
+                observacoes:    obsBase(e.observacoes),
+              };
+            })}
+          />
+        </div>
       </div>
 
       {error && (

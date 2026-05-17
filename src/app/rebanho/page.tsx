@@ -11,6 +11,7 @@ import { EditPesoInline } from "./EditPesoInline";
 import { EditPrenheInline } from "./EditPrenheInline";
 import { DesfechoUnificadoInline } from "./DesfechoUnificadoInline";
 import { EditLocalizacaoRebanho } from "./EditLocalizacaoRebanho";
+import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
 const CLASS_MAP: Record<string, { label: string; cls: string }> = {
@@ -261,7 +262,52 @@ export default async function RebanhoPage({
             {animais.length} animais · {prenhas.length} prenhes
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ExportarPDF
+            titulo="Rebanho de Receptoras"
+            subtitulo={`${animais.length} animais · ${prenhas.length} prenhes ativas`}
+            orientacao="landscape"
+            nomeArquivo="SE_Rebanho.pdf"
+            colunas={[
+              { key: "brinco",         label: "Brinco",         padrao: true,  largura: 1.0 },
+              { key: "classificacao",  label: "Classificação",  padrao: false, largura: 1.1 },
+              { key: "status_rebanho", label: "Situação",       padrao: true,  largura: 1.5 },
+              { key: "doadora_nome",   label: "Doadora",        padrao: true,  largura: 2.0 },
+              { key: "touro_nome",     label: "Touro",          padrao: true,  largura: 2.0 },
+              { key: "sexagem",        label: "Sexagem",        padrao: false, largura: 0.8 },
+              { key: "data_te",        label: "Data T.E.",      padrao: true,  largura: 1.1 },
+              { key: "previsao_parto", label: "Prev. Parto",    padrao: true,  largura: 1.1 },
+              { key: "peso_atual",     label: "Peso (kg)",      padrao: false, largura: 0.9 },
+              { key: "localizacao",    label: "Localização",    padrao: false, largura: 1.0 },
+            ] satisfies ColunaPDF[]}
+            dados={animais.map((a: any) => {
+              const p = prenhezesMapa.get(a.id);
+              const STATUS_LABELS_LOCAL: Record<string, string> = {
+                PROTOCOLADA: "Protocolada", INSEMINADA: "Inseminada",
+                IMPLANTADA: "Implantada c/ Embrião", PRENHA: "Prenha",
+                PRENHA_EMBRIAO: "Prenha de Embrião", PARIDA: "Parida",
+                VAZIA: "Vazia", DESCARTE: "Descarte", MORTA: "Óbito", VENDIDA: "Vendida",
+              };
+              const CLASS_LABELS_LOCAL: Record<string, string> = {
+                RECEPTORA: "Receptora", RECRIA: "Recria", DESCARTE: "Descarte", OUTRO: "Outro",
+              };
+              const SEX_LABELS: Record<string, string> = {
+                NAO_SEXADO: "—", MACHO: "Macho", FEMEA: "Fêmea",
+              };
+              return {
+                brinco:         a.brinco ?? a.nome ?? "—",
+                classificacao:  CLASS_LABELS_LOCAL[a.classificacao ?? ""] ?? (a.classificacao ?? "—"),
+                status_rebanho: STATUS_LABELS_LOCAL[a.status_rebanho ?? ""] ?? (a.status_rebanho ?? "—"),
+                doadora_nome:   p?.doadoraNome ?? "—",
+                touro_nome:     p?.touroNome ?? "—",
+                sexagem:        SEX_LABELS[p?.sexagem ?? ""] ?? (p?.sexagem ?? "—"),
+                data_te:        p?.dataTe ? formatDate(p.dataTe) : "—",
+                previsao_parto: p?.previsao ? formatDate(p.previsao) : "—",
+                peso_atual:     a.peso_atual != null ? `${a.peso_atual} kg` : "—",
+                localizacao:    a.localizacao ?? "—",
+              };
+            })}
+          />
           <Link href="?modal=lote"
             className="inline-flex items-center gap-1.5 text-xs border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-600">
             <Plus className="w-3.5 h-3.5" /> Lote

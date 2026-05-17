@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { Plus, CheckCircle, XCircle, Clock, Star, Trophy } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
+import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 
 /** Calcula meses inteiros entre uma data ISO e hoje */
 function idadeEmMeses(nascimento: string | null): number | null {
@@ -113,10 +114,52 @@ export default async function MachosPage({
             {filtrado.length} de {all.length} reprodutores
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Suspense>
             <SearchInput placeholder="Buscar por nome, RGN, RGD ou pai…" />
           </Suspense>
+          <ExportarPDF
+            titulo="Machos Reprodutores"
+            subtitulo={`${filtrado.length} reprodutores · SE Agropecuária Nelore de Elite`}
+            orientacao="landscape"
+            nomeArquivo="SE_Machos.pdf"
+            colunas={[
+              { key: "nome",                  label: "Nome",            padrao: true,  largura: 2.0 },
+              { key: "rgn",                   label: "RGN",             padrao: true,  largura: 1.4 },
+              { key: "rgd",                   label: "RGD",             padrao: true,  largura: 1.2 },
+              { key: "nascimento",            label: "Nascimento",      padrao: true,  largura: 1.2 },
+              { key: "idade_meses",           label: "Idade (m)",       padrao: true,  largura: 0.8 },
+              { key: "pai_nome",              label: "Pai",             padrao: true,  largura: 1.8 },
+              { key: "mae_nome",              label: "Mãe",             padrao: false, largura: 1.8 },
+              { key: "exame_andrologico",     label: "Andrológico",     padrao: true,  largura: 1.0 },
+              { key: "circunferencia_escrotal", label: "CE (cm)",       padrao: true,  largura: 0.7 },
+              { key: "data_ce",               label: "Data CE",         padrao: false, largura: 1.0 },
+              { key: "percentual_proprio",    label: "% Próprio",       padrao: false, largura: 0.8 },
+              { key: "valor_parcela",         label: "Vl. Parcela",     padrao: false, largura: 1.0 },
+              { key: "para_pista",            label: "Para Pista",      padrao: false, largura: 0.8 },
+              { key: "localizacao",           label: "Localização",     padrao: false, largura: 1.0 },
+            ] satisfies ColunaPDF[]}
+            dados={filtrado.map((m: any) => {
+              const andro = m.exame_andrologico;
+              const androLabel = andro === "APTO" ? "Apto" : andro === "INAPTO" ? "Inapto" : "Pendente";
+              return {
+                nome:                   m.nome ?? "—",
+                rgn:                    m.rgn ?? "—",
+                rgd:                    m.rgd ?? "—",
+                nascimento:             m.nascimento ? formatDate(m.nascimento) : "—",
+                idade_meses:            (() => { const mm = idadeEmMeses(m.nascimento); return mm != null ? `${mm}m` : "—"; })(),
+                pai_nome:               m.pai_nome ?? "—",
+                mae_nome:               m.mae_nome ?? "—",
+                exame_andrologico:      androLabel,
+                circunferencia_escrotal: m.circunferencia_escrotal != null ? `${m.circunferencia_escrotal} cm` : "—",
+                data_ce:                m.data_ce ? formatDate(m.data_ce) : "—",
+                percentual_proprio:     m.percentual_proprio != null ? `${(m.percentual_proprio * 100).toFixed(0)}%` : "—",
+                valor_parcela:          m.valor_parcela != null ? formatCurrency(m.valor_parcela) : "—",
+                para_pista:             m.para_pista ? "Sim" : "Não",
+                localizacao:            m.localizacao ?? "—",
+              };
+            })}
+          />
           <Link
             href="/machos/novo"
             className="inline-flex items-center gap-1.5 bg-brand-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shrink-0"
