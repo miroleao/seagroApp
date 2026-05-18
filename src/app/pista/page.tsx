@@ -432,11 +432,16 @@ export default async function PistaPage() {
                                 {apto && grupo ? (
                                   <div>
                                     <span className="badge bg-brand-100 text-brand-700">{grupo.nome}</span>
-                                    <p className="text-gray-400 mt-0.5">{m}m {d}d</p>
+                                    <p className="text-gray-400 mt-0.5">
+                                      {m}m {d}d
+                                      {a.peso_atual != null && (
+                                        <span className="ml-1.5 font-semibold text-gray-700">· {a.peso_atual} kg</span>
+                                      )}
+                                    </p>
                                     <p className="text-gray-400">
-                                      <span className="text-green-600 font-medium">{min ?? "—"}</span>
+                                      <span className="text-red-500 font-medium">{min ?? "—"}</span>
                                       <span className="mx-0.5">–</span>
-                                      <span className="text-orange-500 font-medium">{max ?? "—"}</span>
+                                      <span className="text-green-600 font-medium">{max ?? "—"}</span>
                                       {" "}kg
                                     </p>
                                   </div>
