@@ -31,6 +31,60 @@ export async function toggleParaPistaMacho(formData: FormData) {
   redirect(`/machos/${id}`);
 }
 
+export async function toggleParaLeilaoMacho(formData: FormData) {
+  const id    = formData.get("id") as string;
+  const valor = formData.get("para_leilao") === "true";
+
+  const supabase = await createClient();
+  await supabase
+    .from("animals")
+    .update({ para_leilao: valor })
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+
+  revalidatePath(`/machos/${id}`);
+  revalidatePath("/machos");
+  redirect(`/machos/${id}`);
+}
+
+export async function salvarInfoLeilaoMacho(formData: FormData) {
+  const animal_id           = formData.get("animal_id") as string;
+  const convite_nome        = (formData.get("convite_nome") as string)?.trim() || null;
+  const convite_data        = (formData.get("convite_data") as string) || null;
+  const convite_promotores  = (formData.get("convite_promotores") as string)?.trim() || null;
+  const compra_leilao_nome  = (formData.get("compra_leilao_nome") as string)?.trim() || null;
+  const compra_leilao_data  = (formData.get("compra_leilao_data") as string) || null;
+  const compra_parcela_raw  = formData.get("compra_valor_parcela") as string;
+  const meta_parcela_raw    = formData.get("meta_valor_parcela") as string;
+
+  const compra_valor_parcela = compra_parcela_raw ? parseFloat(compra_parcela_raw) : null;
+  const meta_valor_parcela   = meta_parcela_raw   ? parseFloat(meta_parcela_raw)   : null;
+
+  if (!animal_id) return;
+
+  const supabase = await createClient();
+  await supabase
+    .from("animal_leilao_info")
+    .upsert(
+      {
+        animal_id,
+        farm_id: FARM_ID,
+        convite_nome,
+        convite_data,
+        convite_promotores,
+        compra_leilao_nome,
+        compra_leilao_data,
+        compra_valor_parcela: compra_valor_parcela && !isNaN(compra_valor_parcela) ? compra_valor_parcela : null,
+        meta_valor_parcela:   meta_valor_parcela   && !isNaN(meta_valor_parcela)   ? meta_valor_parcela   : null,
+        atualizado_em: new Date().toISOString(),
+      },
+      { onConflict: "animal_id,farm_id" }
+    );
+
+  revalidatePath(`/machos/${animal_id}`);
+  redirect(`/machos/${animal_id}`);
+}
+
 export async function toggleNascidoSeAgroMacho(formData: FormData) {
   const id    = formData.get("id") as string;
   const valor = formData.get("nascido_se_agro") === "true";

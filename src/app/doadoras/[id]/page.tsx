@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
-import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2 } from "lucide-react";
-import { toggleParaPista, toggleNascidoSeAgro, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio } from "./actions";
+import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2, Gavel } from "lucide-react";
+import { toggleParaPista, toggleNascidoSeAgro, toggleParaLeilao, salvarInfoLeilao, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio } from "./actions";
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
@@ -426,6 +426,14 @@ export default async function DoadoraDetalhePage({
     .eq("farm_id", FARM_ID)
     .order("data_base", { ascending: false });
 
+  // Info de leilão do animal
+  const { data: leilaoInfo } = await supabase
+    .from("animal_leilao_info")
+    .select("*")
+    .eq("animal_id", id)
+    .eq("farm_id", FARM_ID)
+    .maybeSingle();
+
   // Embriões — guard: só busca se há aspirações
   const aspIds = (aspiracoes ?? []).map((a: any) => a.id);
   let embrioes: any[] = [];
@@ -617,6 +625,23 @@ export default async function DoadoraDetalhePage({
                 ) : null;
               })()}
             </div>
+
+            {/* Toggle Para Leilão */}
+            <form action={toggleParaLeilao}>
+              <input type="hidden" name="id" value={doadora.id} />
+              <input type="hidden" name="para_leilao" value={(doadora as any).para_leilao ? "false" : "true"} />
+              <button
+                type="submit"
+                className={`inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full font-medium transition-colors cursor-pointer border ${
+                  (doadora as any).para_leilao
+                    ? "bg-amber-500 text-white border-amber-500 hover:bg-amber-600"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-amber-400 hover:text-amber-600"
+                }`}
+              >
+                <Gavel className="w-3.5 h-3.5" />
+                {(doadora as any).para_leilao ? "Para Leilão" : "Preparar para Leilão"}
+              </button>
+            </form>
           </div>
         </div>
 
@@ -1242,6 +1267,117 @@ export default async function DoadoraDetalhePage({
           </div>
         )}
       </div>
+
+      {/* ── Card Leilão ─────────────────────────────────────────────────────── */}
+      {(doadora as any).para_leilao && (
+        <section className="card overflow-hidden border-amber-200">
+          <div className="px-5 py-4 border-b border-amber-100 bg-amber-50 flex items-center gap-2">
+            <Gavel className="w-4 h-4 text-amber-600" />
+            <h2 className="font-semibold text-amber-900">Animal Para Leilão</h2>
+          </div>
+
+          <form action={salvarInfoLeilao} className="px-5 py-5 space-y-6">
+            <input type="hidden" name="animal_id" value={doadora.id} />
+
+            {/* Convite */}
+            <div>
+              <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide mb-3">Convite</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="md:col-span-2">
+                  <label className="text-xs text-gray-500 mb-1 block">Nome do Leilão</label>
+                  <input name="convite_nome" type="text"
+                    defaultValue={leilaoInfo?.convite_nome ?? ""}
+                    placeholder="Ex: ExpoPecuária Elite 2026"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Data</label>
+                  <input name="convite_data" type="date"
+                    defaultValue={leilaoInfo?.convite_data ?? ""}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                </div>
+                <div className="md:col-span-3">
+                  <label className="text-xs text-gray-500 mb-1 block">Promotor(es)</label>
+                  <input name="convite_promotores" type="text"
+                    defaultValue={leilaoInfo?.convite_promotores ?? ""}
+                    placeholder="Ex: SE Agropecuária, Gran Nelore"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                </div>
+              </div>
+            </div>
+
+            {/* Leilão de compra */}
+            <div>
+              <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide mb-3">Leilão onde Comprou</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="md:col-span-2">
+                  <label className="text-xs text-gray-500 mb-1 block">Nome do Leilão</label>
+                  <input name="compra_leilao_nome" type="text"
+                    defaultValue={leilaoInfo?.compra_leilao_nome ?? ""}
+                    placeholder="Ex: Leilão Gran Nelore 2025"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Data</label>
+                  <input name="compra_leilao_data" type="date"
+                    defaultValue={leilaoInfo?.compra_leilao_data ?? ""}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Parcela (R$)</label>
+                  <input name="compra_valor_parcela" type="number" step="0.01" min="0"
+                    defaultValue={leilaoInfo?.compra_valor_parcela ?? ""}
+                    placeholder="Ex: 600.00"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                </div>
+                <div className="flex items-end pb-2">
+                  {leilaoInfo?.compra_valor_parcela != null ? (
+                    <p className="text-sm text-gray-700">
+                      Total: <span className="font-bold text-gray-900">
+                        {formatCurrency(leilaoInfo.compra_valor_parcela * 30)}
+                      </span>
+                      <span className="text-xs text-gray-400 ml-1">(× 30)</span>
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">Total = parcela × 30</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Meta de valor */}
+            <div>
+              <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide mb-3">Meta de Valor</p>
+              <div className="flex flex-wrap items-end gap-4">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Parcela Alvo (R$)</label>
+                  <input name="meta_valor_parcela" type="number" step="0.01" min="0"
+                    defaultValue={leilaoInfo?.meta_valor_parcela ?? ""}
+                    placeholder="Ex: 1500.00"
+                    className="w-44 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                </div>
+                <div className="pb-2">
+                  {leilaoInfo?.meta_valor_parcela != null ? (
+                    <p className="text-sm text-gray-700">
+                      Meta Total: <span className="font-bold text-green-700 text-base">
+                        {formatCurrency(leilaoInfo.meta_valor_parcela * 30)}
+                      </span>
+                      <span className="text-xs text-gray-400 ml-1">(× 30)</span>
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">Total = parcela × 30</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <button type="submit"
+              className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
+              <Gavel className="w-4 h-4" /> Salvar Informações de Leilão
+            </button>
+          </form>
+        </section>
+      )}
 
       {/* Histórico de Pesagens */}
       <div className="card overflow-hidden">

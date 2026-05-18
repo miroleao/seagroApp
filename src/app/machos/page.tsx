@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Plus, CheckCircle, XCircle, Clock, Star, Trophy } from "lucide-react";
+import { Plus, CheckCircle, XCircle, Clock, Star, Trophy, Gavel } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
@@ -289,6 +289,11 @@ export default async function MachosPage({
                         {m.para_pista && (
                           <span title="Selecionado para Pista">
                             <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                          </span>
+                        )}
+                        {(m as any).para_leilao && (
+                          <span title="Preparado para Leilão">
+                            <Gavel className="w-3.5 h-3.5 text-amber-500" />
                           </span>
                         )}
                         {animaisComPremio.has(m.id) && (
