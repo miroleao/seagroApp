@@ -421,9 +421,9 @@ export default async function MachoDetalhePage({
           </div>
 
           {/* Peso atual */}
-          <div className="md:col-span-2">
+          <div className="col-span-2 md:col-span-2">
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Peso Atual (kg)</p>
-            <form action={atualizarPesoMacho} className="flex items-center gap-2">
+            <form action={atualizarPesoMacho} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="id" value={macho.id} />
               <input
                 name="peso_atual" type="number" step="0.1" min="0"
@@ -432,32 +432,32 @@ export default async function MachoDetalhePage({
                 className="w-32 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-300"
               />
               <button type="submit"
-                className="text-xs text-brand-600 hover:text-brand-800 font-medium px-2 py-1.5 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors">
+                className="shrink-0 text-xs text-brand-600 hover:text-brand-800 font-medium px-2 py-1.5 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors">
                 <Scale className="w-3.5 h-3.5 inline mr-1" />Salvar
               </button>
             </form>
           </div>
 
           {/* Localização */}
-          <div className="md:col-span-2">
+          <div className="col-span-2 md:col-span-2">
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Localização</p>
-            <form action={atualizarLocalizacaoMacho} className="flex items-center gap-2">
+            <form action={atualizarLocalizacaoMacho} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="id" value={macho.id} />
               <input
                 name="localizacao" type="text"
                 defaultValue={macho.localizacao ?? ""}
                 placeholder="Ex: Pasto 1, Curral B…"
-                className="w-48 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+                className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
               />
               <button type="submit"
-                className="text-xs text-brand-600 hover:text-brand-800 font-medium px-2 py-1.5 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors">
+                className="shrink-0 text-xs text-brand-600 hover:text-brand-800 font-medium px-2 py-1.5 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors">
                 Salvar
               </button>
             </form>
           </div>
 
           {/* RGD */}
-          <div className="md:col-span-2">
+          <div className="col-span-2 md:col-span-2">
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">RGD (Definitivo)</p>
             <form action={atualizarRGD} className="flex items-center gap-2">
               <input type="hidden" name="id" value={macho.id} />

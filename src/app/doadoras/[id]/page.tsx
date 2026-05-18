@@ -737,9 +737,9 @@ export default async function DoadoraDetalhePage({
           </div>
 
           {/* Peso atual com atualização inline */}
-          <div className="md:col-span-2">
+          <div className="col-span-2 md:col-span-2">
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Peso Atual (kg)</p>
-            <form action={atualizarPeso} className="flex items-center gap-2">
+            <form action={atualizarPeso} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="id" value={doadora.id} />
               <input
                 name="peso_atual"
@@ -751,14 +751,14 @@ export default async function DoadoraDetalhePage({
                 className="w-32 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-300"
               />
               <button type="submit"
-                className="text-xs text-brand-600 hover:text-brand-800 font-medium px-2 py-1.5 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors">
+                className="shrink-0 text-xs text-brand-600 hover:text-brand-800 font-medium px-2 py-1.5 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors">
                 <Scale className="w-3.5 h-3.5 inline mr-1" />Salvar
               </button>
             </form>
           </div>
 
           {/* Localização — texto editável inline */}
-          <div className="md:col-span-2">
+          <div className="col-span-2 md:col-span-2">
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Localização</p>
             <form action={atualizarLocalizacao} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="id" value={doadora.id} />

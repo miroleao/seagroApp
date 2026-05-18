@@ -140,12 +140,22 @@ export async function atualizarPesoMacho(formData: FormData) {
   if (!id || isNaN(peso)) return;
 
   const supabase = await createClient();
+
+  // Atualiza peso_atual no animal
   await supabase
     .from("animals")
     .update({ peso_atual: peso })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+
+  // Registra no histórico de pesagens (weight_records)
+  const hoje = new Date().toISOString().split("T")[0];
+  await supabase
+    .from("weight_records")
+    .insert({ animal_id: id, farm_id: FARM_ID, data: hoje, peso_kg: peso });
 
   revalidatePath(`/machos/${id}`);
+  revalidatePath("/machos");
   redirect(`/machos/${id}`);
 }
 

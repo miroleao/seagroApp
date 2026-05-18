@@ -425,13 +425,20 @@ export default async function PistaPage() {
                             const sexo: "M" | "F" = (a.sexo === "M" || a.tipo === "TOURO") ? "M" : "F";
                             const grupo = grupoNaData(a.nascimento, sexo, dataExpo);
                             const min   = pesoMinimo(sexo, m);
+                            const max   = pesoMaximo(sexo, m, d);
                             const apto  = grupo !== null;
                             return (
                               <td key={e.id} className="px-4 py-2">
                                 {apto && grupo ? (
                                   <div>
                                     <span className="badge bg-brand-100 text-brand-700">{grupo.nome}</span>
-                                    <p className="text-gray-400 mt-0.5">{m}m {d}d · mín. {min ?? "—"} kg</p>
+                                    <p className="text-gray-400 mt-0.5">{m}m {d}d</p>
+                                    <p className="text-gray-400">
+                                      <span className="text-green-600 font-medium">{min ?? "—"}</span>
+                                      <span className="mx-0.5">–</span>
+                                      <span className="text-orange-500 font-medium">{max ?? "—"}</span>
+                                      {" "}kg
+                                    </p>
                                   </div>
                                 ) : (
                                   <span className="text-gray-300">Fora de faixa</span>

@@ -7,6 +7,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 import { ExcluirMachoBtn } from "./ExcluirMachoBtn";
+import { EditarMachoInlineBtn } from "./EditarMachoInlineBtn";
 
 /** Calcula meses inteiros entre uma data ISO e hoje */
 function idadeEmMeses(nascimento: string | null): number | null {
@@ -377,8 +378,17 @@ export default async function MachosPage({
                     </td>
 
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{m.localizacao ?? "—"}</td>
-                    <td className="px-2 py-3">
-                      <ExcluirMachoBtn id={m.id} nome={m.nome} />
+                    <td className="px-2 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <EditarMachoInlineBtn
+                          id={m.id}
+                          nome={m.nome}
+                          valorParcela={m.valor_parcela ?? null}
+                          percentualProprio={m.percentual_proprio ?? null}
+                          localizacao={m.localizacao ?? null}
+                        />
+                        <ExcluirMachoBtn id={m.id} nome={m.nome} />
+                      </div>
                     </td>
                   </tr>
                 );
