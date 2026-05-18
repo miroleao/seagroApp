@@ -230,7 +230,7 @@ export default async function DoadorasPage({
                         className="h-4 w-auto shrink-0" style={{ filter: "brightness(0)" }} />
                     )}
                     {d.para_pista && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400 shrink-0" />}
-                    {(d as any).para_leilao && <Gavel className="w-3 h-3 text-amber-500 shrink-0" title="Preparada para Leilão" />}
+                    {(d as any).para_leilao && <span title="Preparada para Leilão"><Gavel className="w-3 h-3 text-amber-500 shrink-0" /></span>}
                     {animaisComPremio.has(d.id) && <Trophy className="w-3 h-3 text-yellow-500 shrink-0" />}
                   </div>
                   <span className="text-[11px] text-gray-400 font-mono">{d.rgn ?? "—"}</span>
