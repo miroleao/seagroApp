@@ -871,6 +871,31 @@ export default async function DoadoraDetalhePage({
                     )}
                   </span>
                 )}
+                {/* Previsão de parto — 290 dias após inseminação, só quando Prenha */}
+                {doadora.status_reprodutivo === "GESTANTE" && (doadora as any).data_inseminacao && (() => {
+                  const insem = new Date((doadora as any).data_inseminacao);
+                  insem.setDate(insem.getDate() + 290);
+                  const previsto = insem.toISOString().split("T")[0];
+                  const hoje = new Date().toISOString().split("T")[0];
+                  const diasRestantes = Math.round(
+                    (new Date(previsto).getTime() - new Date(hoje).getTime()) / 86400000
+                  );
+                  const passou = diasRestantes < 0;
+                  return (
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                      passou
+                        ? "bg-rose-50 text-rose-600 border border-rose-200"
+                        : diasRestantes <= 30
+                        ? "bg-amber-50 text-amber-700 border border-amber-200"
+                        : "bg-green-50 text-green-700 border border-green-200"
+                    }`}>
+                      🗓 Prev. parto: {formatDate(previsto)}
+                      <span className="font-normal opacity-75">
+                        ({passou ? `${Math.abs(diasRestantes)}d atraso` : `${diasRestantes}d`})
+                      </span>
+                    </span>
+                  );
+                })()}
                 {/* Touro do último parto */}
                 {doadora.status_reprodutivo === "PARIDA" && (doadora as any).touro_ultimo_parto && (
                   <span className="text-xs text-gray-600">
