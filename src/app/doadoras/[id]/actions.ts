@@ -340,13 +340,44 @@ export async function atualizarStatusReprodutivo(formData: FormData) {
   // ── 2. Campos extras que requerem a migração SQL (falham silenciosamente) ────
 
   if (status === "INSEMINADA" || status === "GESTANTE") {
-    // Salva touro + data de inseminação
+    // Salva touro + data de inseminação no animal
     await supabase.from("animals").update({
       touro_prenhez:    touroNome,
       rgd_touro_prenhez: touroRgd,
       data_inseminacao:  dataEvento,
       data_status:       dataEvento,
     }).eq("id", id);
+
+    // ── Histórico: GESTANTE cria (ou edita) um registro de prenhez natural ──
+    if (status === "GESTANTE") {
+      const { data: ativa } = await supabase
+        .from("prenhezes_naturais")
+        .select("id")
+        .eq("doadora_id", id)
+        .eq("resultado", "ATIVA")
+        .order("criado_em", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ativa) {
+        // Atualiza a prenhez ativa existente (pode ser edição da data/touro)
+        await supabase.from("prenhezes_naturais").update({
+          data_inseminacao: dataEvento,
+          touro_nome:       touroNome,
+          touro_rgd:        touroRgd,
+        }).eq("id", ativa.id);
+      } else {
+        // Nova prenhez
+        await supabase.from("prenhezes_naturais").insert({
+          farm_id:          FARM_ID,
+          doadora_id:       id,
+          data_inseminacao: dataEvento,
+          touro_nome:       touroNome,
+          touro_rgd:        touroRgd,
+          resultado:        "ATIVA",
+        });
+      }
+    }
   }
 
   else if (status === "PARIDA" && dataEvento) {
@@ -377,9 +408,24 @@ export async function atualizarStatusReprodutivo(formData: FormData) {
       partoPayload.data_primeiro_parto = dataEvento;
     }
     await supabase.from("animals").update(partoPayload).eq("id", id);
+
+    // ── Histórico: fecha a prenhez ativa como PARIDA ──
+    const { data: ativa } = await supabase
+      .from("prenhezes_naturais")
+      .select("id")
+      .eq("doadora_id", id)
+      .eq("resultado", "ATIVA")
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (ativa) {
+      await supabase.from("prenhezes_naturais")
+        .update({ resultado: "PARIDA", data_parto: dataEvento })
+        .eq("id", ativa.id);
+    }
   }
 
-  else if (status === "ABORTOU" && dataEvento) {
+  else if (status === "ABORTOU") {
     await supabase.from("animals").update({
       data_status:      dataEvento,
       // Limpa prenhez ativa
@@ -387,6 +433,21 @@ export async function atualizarStatusReprodutivo(formData: FormData) {
       rgd_touro_prenhez: null,
       data_inseminacao: null,
     }).eq("id", id);
+
+    // ── Histórico: fecha a prenhez ativa como ABORTOU ──
+    const { data: ativa } = await supabase
+      .from("prenhezes_naturais")
+      .select("id")
+      .eq("doadora_id", id)
+      .eq("resultado", "ATIVA")
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (ativa) {
+      await supabase.from("prenhezes_naturais")
+        .update({ resultado: "ABORTOU", data_parto: dataEvento })
+        .eq("id", ativa.id);
+    }
   }
 
   else {
@@ -468,6 +529,35 @@ export async function registrarNascimentoNatural(formData: FormData) {
   }
   await supabase.from("animals").update(partoPayload).eq("id", doadora_id).eq("farm_id", FARM_ID);
 
+  // ── Histórico: atualiza/cria a prenhez natural com filhote vinculado ──
+  const { data: pnAtiva } = await supabase
+    .from("prenhezes_naturais")
+    .select("id")
+    .eq("doadora_id", doadora_id)
+    .eq("resultado", "ATIVA")
+    .order("criado_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (pnAtiva) {
+    await supabase.from("prenhezes_naturais").update({
+      resultado: "PARIDA",
+      data_parto: nascimento,
+      animal_nascido_id: animal.id,
+    }).eq("id", pnAtiva.id);
+  } else {
+    // Cria registro histórico mesmo que prenhez não tenha sido lançada antes
+    await supabase.from("prenhezes_naturais").insert({
+      farm_id:          FARM_ID,
+      doadora_id:       doadora_id,
+      touro_nome:       (doadora as any).touro_prenhez ?? null,
+      touro_rgd:        (doadora as any).rgd_touro_prenhez ?? null,
+      data_parto:       nascimento,
+      resultado:        "PARIDA",
+      animal_nascido_id: animal.id,
+    });
+  }
+
   revalidatePath(`/doadoras/${doadora_id}`);
   revalidatePath("/doadoras");
   revalidatePath("/machos");
@@ -524,6 +614,34 @@ export async function vincularNascimentoNatural(formData: FormData) {
     partoPayload.data_primeiro_parto = nascimento;
   }
   await supabase.from("animals").update(partoPayload).eq("id", doadora_id).eq("farm_id", FARM_ID);
+
+  // ── Histórico: atualiza/cria a prenhez natural com filhote vinculado ──
+  const { data: pnAtiva } = await supabase
+    .from("prenhezes_naturais")
+    .select("id")
+    .eq("doadora_id", doadora_id)
+    .eq("resultado", "ATIVA")
+    .order("criado_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (pnAtiva) {
+    await supabase.from("prenhezes_naturais").update({
+      resultado: "PARIDA",
+      data_parto: nascimento,
+      animal_nascido_id: animal_id,
+    }).eq("id", pnAtiva.id);
+  } else {
+    await supabase.from("prenhezes_naturais").insert({
+      farm_id:          FARM_ID,
+      doadora_id:       doadora_id,
+      touro_nome:       (doadora as any).touro_prenhez ?? null,
+      touro_rgd:        (doadora as any).rgd_touro_prenhez ?? null,
+      data_parto:       nascimento,
+      resultado:        "PARIDA",
+      animal_nascido_id: animal_id,
+    });
+  }
 
   revalidatePath(`/doadoras/${doadora_id}`);
   revalidatePath("/doadoras");

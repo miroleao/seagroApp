@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
-import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2, Gavel } from "lucide-react";
+import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2, Gavel, Heart } from "lucide-react";
 import { toggleParaPista, toggleNascidoSeAgro, toggleParaLeilao, salvarInfoLeilao, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio, atualizarValorParcela } from "./actions";
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 import RegistrarVendaForm from "./RegistrarVendaForm";
@@ -493,6 +493,19 @@ export default async function DoadoraDetalhePage({
     .eq("farm_id", FARM_ID)
     .in("tipo", ["DOADORA", "TOURO"])
     .order("nome");
+
+  // Histórico reprodutivo: prenhezes naturais desta doadora
+  const { data: prenhezes_historico } = await supabase
+    .from("prenhezes_naturais")
+    .select(`
+      id, data_inseminacao, touro_nome, touro_rgd,
+      data_parto, resultado, criado_em,
+      animal_nascido:animals!prenhezes_naturais_animal_nascido_id_fkey (
+        id, nome, tipo, rgn
+      )
+    `)
+    .eq("doadora_id", id)
+    .order("criado_em", { ascending: false });
 
   // Info de leilão do animal
   const { data: leilaoInfo } = await supabase
@@ -1101,6 +1114,91 @@ export default async function DoadoraDetalhePage({
           <RegistrarVendaForm doadoraId={id} />
         </div>
       </details>
+
+      {/* ── Histórico Reprodutivo (prenhezes naturais) ──────────── */}
+      {(prenhezes_historico ?? []).length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+            <Heart className="w-4 h-4 text-rose-500" />
+            <h2 className="font-semibold text-gray-900 text-sm">Histórico Reprodutivo</h2>
+            <span className="badge bg-rose-50 text-rose-600 ml-auto">
+              {(prenhezes_historico ?? []).length} prenhe{(prenhezes_historico ?? []).length !== 1 ? "zes" : "z"}
+            </span>
+          </div>
+
+          <div className="divide-y divide-gray-50">
+            {(prenhezes_historico ?? []).map((pn: any, idx: number) => {
+              const numPrenhez = (prenhezes_historico ?? []).length - idx;
+              const statusCls =
+                pn.resultado === "PARIDA"  ? "bg-indigo-100 text-indigo-700" :
+                pn.resultado === "ABORTOU" ? "bg-rose-100 text-rose-700"     :
+                                             "bg-green-100 text-green-700";
+              const statusLabel =
+                pn.resultado === "PARIDA"  ? "Parida"  :
+                pn.resultado === "ABORTOU" ? "Abortou" :
+                                             "Prenha";
+              const animalNascido = pn.animal_nascido as any;
+              const rota = animalNascido?.tipo === "TOURO"
+                ? `/machos/${animalNascido.id}`
+                : `/doadoras/${animalNascido?.id}`;
+
+              return (
+                <div key={pn.id} className="px-5 py-3.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
+                  {/* Número da prenhez */}
+                  <span className="text-xs font-bold text-gray-400 w-6 shrink-0">{numPrenhez}ª</span>
+
+                  {/* Status */}
+                  <span className={`badge text-xs px-2 py-0.5 font-semibold shrink-0 ${statusCls}`}>
+                    {statusLabel}
+                  </span>
+
+                  {/* Touro */}
+                  {pn.touro_nome ? (
+                    <span className="text-xs text-gray-700">
+                      🐂 <span className="font-medium">{pn.touro_nome}</span>
+                      {pn.touro_rgd && (
+                        <span className="text-gray-400 font-mono ml-1">({pn.touro_rgd})</span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-300 italic">Touro não informado</span>
+                  )}
+
+                  {/* Data de inseminação */}
+                  {pn.data_inseminacao && (
+                    <span className="text-xs text-gray-500">
+                      Insem.: <span className="font-medium">{formatDate(pn.data_inseminacao)}</span>
+                    </span>
+                  )}
+
+                  {/* Data do parto */}
+                  {pn.data_parto && (
+                    <span className="text-xs text-gray-500">
+                      Parto: <span className="font-medium">{formatDate(pn.data_parto)}</span>
+                    </span>
+                  )}
+
+                  {/* Animal nascido */}
+                  {animalNascido ? (
+                    <Link
+                      href={rota}
+                      className="ml-auto text-xs text-brand-600 hover:underline font-medium flex items-center gap-1"
+                    >
+                      <Baby className="w-3 h-3" />
+                      {animalNascido.nome}
+                      {animalNascido.rgn && (
+                        <span className="text-gray-400 font-mono">({animalNascido.rgn})</span>
+                      )}
+                    </Link>
+                  ) : pn.resultado === "PARIDA" ? (
+                    <span className="ml-auto text-xs text-gray-300 italic">Filhote não vinculado</span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Aspirações */}
       <div className="card">
