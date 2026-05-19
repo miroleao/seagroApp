@@ -461,7 +461,41 @@ export default function PrenhezeTabela({
   const colunas = ["Doadora", "Touro", "Brinco Receptora", "Prev. Parto", "Vendedor", "Situação", "Desfecho", ""];
 
   return (
-    <div className="overflow-x-auto">
+    <>
+    {/* ── VIEW MOBILE ─────────────────────────────────────────────────── */}
+    <div className="md:hidden divide-y divide-gray-100">
+      {rows.length === 0 ? (
+        <p className="px-4 py-8 text-center text-sm text-gray-400">Nenhuma prenhez encontrada.</p>
+      ) : rows.map((r) => (
+        <div key={r.aspId} className="px-4 py-3 flex items-center gap-3 hover:bg-gray-50/50">
+          {/* Esquerda: doadora + touro */}
+          <div className="flex-1 min-w-0">
+            <Link
+              href={`/reproducao/prenhezes/${r.aspId}`}
+              className="font-semibold text-brand-700 text-sm leading-tight block truncate"
+            >
+              {r.doadoraNome ?? "—"}
+            </Link>
+            {r.touroNome && (
+              <p className="text-xs text-gray-500 mt-0.5 truncate">× {r.touroNome}</p>
+            )}
+          </div>
+          {/* Direita: desfecho */}
+          <div className="shrink-0">
+            {r.resultado ? (
+              <ResultadoBadge resultado={r.resultado} dataResultado={r.dataResultado} />
+            ) : (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
+                P+
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* ── VIEW DESKTOP ────────────────────────────────────────────────── */}
+    <div className="hidden md:block overflow-x-auto">
       <table className="w-full text-sm text-left min-w-[900px]">
         <thead>
           <tr className="border-b border-gray-100 bg-gray-50">
@@ -553,5 +587,6 @@ export default function PrenhezeTabela({
         </tbody>
       </table>
     </div>
+    </>
   );
 }

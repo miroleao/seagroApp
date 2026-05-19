@@ -217,11 +217,11 @@ function AspCard({ asp, session, receptoras }: { asp: any; session: any; recepto
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-gray-400">
-              {session.local ? `${session.local}` : ""}
-              {session.laboratorio ? ` · Lab: ${session.laboratorio}` : ""}
-              {asp.touro_nome ? ` · Touro: ${asp.touro_nome}` : ""}
-            </p>
+            {asp.touro_nome && (
+              <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                × {asp.touro_nome}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0 text-right">
@@ -243,10 +243,26 @@ function AspCard({ asp, session, receptoras }: { asp: any; session: any; recepto
               <p className="text-xs font-semibold text-violet-600">{taxa}%</p>
             </div>
           )}
-          <div className="text-center">
-            <p className="text-[10px] text-gray-400">P+</p>
-            <p className="text-xs font-semibold text-green-600">{positivos || "—"}</p>
-          </div>
+          {positivos > 0 ? (
+            <div className="text-center">
+              <p className="text-[10px] text-gray-400">P+</p>
+              <p className="text-xs font-semibold text-green-600">{positivos}</p>
+            </div>
+          ) : (
+            <div className="text-center">
+              {asp.embryos_congelados != null && asp.embryos_congelados > 0 ? (
+                <>
+                  <p className="text-[10px] text-gray-400">Cong.</p>
+                  <p className="text-xs font-semibold text-blue-600">{asp.embryos_congelados}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] text-gray-400">P+</p>
+                  <p className="text-xs font-semibold text-gray-400">—</p>
+                </>
+              )}
+            </div>
+          )}
           {open
             ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
             : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />

@@ -17,18 +17,18 @@ function StatCard({ label, value, sub, icon: Icon, color, href }: {
   icon: React.ElementType; color: string; href?: string;
 }) {
   const inner = (
-    <div className="card p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
-      <div className={`p-3 rounded-xl ${color}`}>
+    <div className="card p-5 flex items-start gap-4 hover:shadow-md transition-shadow h-full">
+      <div className={`p-3 rounded-xl shrink-0 ${color}`}>
         <Icon className="w-5 h-5 text-white" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-500 truncate">{label}</p>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        <p className="text-xs sm:text-sm text-gray-500 leading-tight">{label}</p>
+        <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
         {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
       </div>
     </div>
   );
-  return href ? <Link href={href}>{inner}</Link> : inner;
+  return href ? <Link href={href} className="block h-full">{inner}</Link> : inner;
 }
 
 // ─── BigFinancialCard — valor em destaque ─────────────────────────────────────
@@ -268,16 +268,16 @@ export default async function DashboardPage() {
       </div>
 
       {/* Cards — Linha 1: Rebanho + Reprodução */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Doadoras ativas"
-          value={totalDoadoras ?? 0}
-          icon={Heart}
-          color="bg-pink-500"
-          href="/doadoras"
+          label="Rebanho Total"
+          value={totalAnimais ?? 0}
+          icon={TrendingUp}
+          color="bg-indigo-500"
+          href="/rebanho"
         />
         <StatCard
-          label="Receptoras Prenhas"
+          label="Receptoras Com Embrião"
           value={totalPrenhas ?? 0}
           sub={`de ${totalReceptoras ?? 0} receptoras`}
           icon={Baby}
@@ -285,19 +285,19 @@ export default async function DashboardPage() {
           href="/rebanho?st=PRENHA_EMBRIAO"
         />
         <StatCard
-          label="Embriões Efetivados"
-          value={totalEfetivados ?? 0}
-          sub="implantados em receptoras"
-          icon={FlaskConical}
-          color="bg-orange-500"
-          href="/reproducao"
+          label="Doadoras"
+          value={totalDoadoras ?? 0}
+          icon={Heart}
+          color="bg-pink-500"
+          href="/doadoras"
         />
         <StatCard
-          label="Total de animais"
-          value={totalAnimais ?? 0}
-          icon={TrendingUp}
-          color="bg-indigo-500"
-          href="/rebanho"
+          label="Estoque de Embriões"
+          value={totalEmbrioes ?? 0}
+          sub="embriões disponíveis"
+          icon={FlaskConical}
+          color="bg-orange-500"
+          href="/embrioes"
         />
       </div>
 
@@ -339,8 +339,8 @@ export default async function DashboardPage() {
           <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
             <Baby className="w-4 h-4 text-brand-600" />
             <h2 className="font-semibold text-gray-900">Nascimentos Próximos 30 Dias</h2>
-            <span className="badge bg-brand-100 text-brand-700 ml-auto">
-              {nascimentos?.length ?? 0} previstos
+            <span className="badge bg-brand-100 text-brand-700 ml-auto text-center">
+              {String(nascimentos?.length ?? 0).padStart(2, "0")} previstos
             </span>
           </div>
           {!nascimentos?.length ? (
@@ -396,8 +396,8 @@ export default async function DashboardPage() {
           <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-brand-600" />
             <h2 className="font-semibold text-gray-900">Top Doadoras — Embriões Produzidos</h2>
-            <span className="badge bg-brand-100 text-brand-700 ml-auto">
-              {Object.keys(rankingMap).length} doadoras
+            <span className="badge bg-brand-100 text-brand-700 ml-auto text-center">
+              {String(Object.keys(rankingMap).length).padStart(2, "0")} doadoras
             </span>
           </div>
           <div className="px-5 py-5">
@@ -421,8 +421,8 @@ export default async function DashboardPage() {
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
           <CalendarDays className="w-4 h-4 text-brand-600" />
           <h2 className="font-semibold text-gray-900">Próximas Exposições</h2>
-          <span className="badge bg-brand-100 text-brand-700 ml-auto">
-            {proxExpos?.length ?? 0} agendadas
+          <span className="badge bg-brand-100 text-brand-700 ml-auto text-center">
+            {String(proxExpos?.length ?? 0).padStart(2, "0")} agendadas
           </span>
           <Link href="/pista" className="text-xs text-brand-600 hover:underline ml-2">
             Ver todas →
