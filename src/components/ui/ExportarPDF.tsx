@@ -29,7 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
   // Doadoras
   COLETANDO: "Coletando",
   INSEMINADA: "Inseminada",
-  GESTANTE: "Gestante",
+  GESTANTE: "Prenha",
   PARIDA: "Parida",
   ABORTOU: "Abortou",
   VAZIA: "Vazia",

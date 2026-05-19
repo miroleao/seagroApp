@@ -12,7 +12,7 @@ import { FiltrosRapidos, type GrupoFiltro } from "@/components/ui/FiltrosRapidos
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   COLETANDO:  { label: "Coletando",  cls: "bg-purple-100 text-purple-700" },
   INSEMINADA: { label: "Inseminada", cls: "bg-amber-100  text-amber-700"  },
-  GESTANTE:   { label: "Gestante",   cls: "bg-green-100  text-green-700"  },
+  GESTANTE:   { label: "Prenha",      cls: "bg-green-100  text-green-700"  },
   PARIDA:     { label: "Parida",     cls: "bg-indigo-100 text-indigo-700" },
   ABORTOU:    { label: "Abortou",    cls: "bg-rose-100   text-rose-700"   },
   VAZIA:      { label: "Vazia",      cls: "bg-gray-100   text-gray-500"   },
@@ -420,7 +420,7 @@ export default async function DoadorasPage({
                         { value: "VAZIA",      label: "Vazia"      },
                         { value: "COLETANDO",  label: "Coletando"  },
                         { value: "INSEMINADA", label: "Inseminada" },
-                        { value: "GESTANTE",   label: "Gestante"   },
+                        { value: "GESTANTE",   label: "Prenha"     },
                         { value: "PARIDA",     label: "Parida"     },
                         { value: "ABORTOU",    label: "Abortou"    },
                         { value: "SECA",       label: "Seca"       },

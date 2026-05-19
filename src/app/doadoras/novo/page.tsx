@@ -73,7 +73,7 @@ export default async function NovaDoadoraPage({
                 <option value="VAZIA">Vazia</option>
                 <option value="COLETANDO">Coletando</option>
                 <option value="INSEMINADA">Inseminada</option>
-                <option value="GESTANTE">Gestante</option>
+                <option value="GESTANTE">Prenha</option>
                 <option value="PARIDA">Parida</option>
                 <option value="SECA">Seca</option>
                 <option value="DESCARTADA">Descartada</option>
