@@ -297,9 +297,6 @@ export default async function MachosPage({
               </th>
 
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">CE (cm)</th>
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Vl. Parcela</th>
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Valorização</th>
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">% Próprio</th>
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Localização</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -307,7 +304,7 @@ export default async function MachosPage({
           <tbody className="divide-y divide-gray-50">
             {filtrado.length === 0 ? (
               <tr>
-                <td colSpan={12} className="px-4 py-10 text-center text-gray-400 text-sm">
+                <td colSpan={9} className="px-4 py-10 text-center text-gray-400 text-sm">
                   Nenhum macho encontrado{q ? ` para "${q}"` : ""}.
                 </td>
               </tr>
@@ -318,9 +315,6 @@ export default async function MachosPage({
                 const ceOk     = m.circunferencia_escrotal != null && ceMin != null
                   ? m.circunferencia_escrotal >= ceMin
                   : null;
-                const perc     = m.percentual_proprio != null
-                  ? `${(m.percentual_proprio * 100).toFixed(0)}%`
-                  : "—";
 
                 return (
                   <tr key={m.id} className="table-row-hover">
@@ -408,35 +402,6 @@ export default async function MachosPage({
                       ) : (
                         <span className="text-gray-300">—</span>
                       )}
-                    </td>
-
-                    {/* Vl. Parcela */}
-                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap font-medium">
-                      {m.valor_parcela != null ? formatCurrency(m.valor_parcela) : "—"}
-                    </td>
-
-                    {/* Valorização */}
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {(() => {
-                        if (m.valor_parcela == null) return <span className="text-gray-300">—</span>;
-                        const percM = m.percentual_proprio != null && m.percentual_proprio > 0
-                          ? m.percentual_proprio
-                          : null;
-                        const valTotalM = percM
-                          ? (m.valor_parcela / percM) * 30
-                          : m.valor_parcela * 30;
-                        return (
-                          <span className="font-semibold text-green-700">
-                            {formatCurrency(valTotalM)}
-                            {!percM && <span className="ml-1 text-[10px] text-gray-400 font-normal">(sem %)</span>}
-                          </span>
-                        );
-                      })()}
-                    </td>
-
-                    {/* % Próprio */}
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="badge bg-brand-100 text-brand-700">{perc}</span>
                     </td>
 
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{m.localizacao ?? "—"}</td>

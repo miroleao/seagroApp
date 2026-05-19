@@ -29,6 +29,17 @@ function idadeEmMeses(nascimento: string | null): number | null {
   return (hoje.getFullYear() - inicio.getFullYear()) * 12 + (hoje.getMonth() - inicio.getMonth());
 }
 
+/** Previsão de parto: inseminação + 290 dias */
+function previsaoParto(dataInseminacao: string | null): { iso: string; diasRestantes: number } | null {
+  if (!dataInseminacao) return null;
+  const d = new Date(dataInseminacao);
+  d.setDate(d.getDate() + 290);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dias = Math.round((d.getTime() - hoje.getTime()) / 86_400_000);
+  return { iso: d.toISOString().split("T")[0], diasRestantes: dias };
+}
+
 export const revalidate = 0;
 
 export default async function DoadorasPage({
@@ -41,7 +52,7 @@ export default async function DoadorasPage({
 
   const { data: doadoras } = await supabase
     .from("animals")
-    .select("id, nome, rgn, nascimento, pai_nome, mae_nome, localizacao, percentual_proprio, valor_parcela, status_reprodutivo, touro_prenhez, touro_ultimo_parto, para_pista, para_leilao, nascido_se_agro")
+    .select("id, nome, rgn, nascimento, pai_nome, mae_nome, localizacao, percentual_proprio, valor_parcela, status_reprodutivo, touro_prenhez, touro_ultimo_parto, data_inseminacao, para_pista, para_leilao, nascido_se_agro")
     .eq("farm_id", FARM_ID)
     .eq("tipo", "DOADORA")
     .order("nome", { ascending: true });
@@ -387,27 +398,6 @@ export default async function DoadorasPage({
                 </div>
               </th>
 
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">% Próprio</th>
-
-              {/* Vl. Parcela — com ordenação */}
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">
-                <div className="flex flex-col gap-1">
-                  <span>Vl. Parcela</span>
-                  <Suspense>
-                    <ColumnFilter
-                      param="parc"
-                      placeholder="Ordenar"
-                      options={[
-                        { value: "parc_asc",  label: "↑ Menor valor" },
-                        { value: "parc_desc", label: "↓ Maior valor" },
-                      ]}
-                    />
-                  </Suspense>
-                </div>
-              </th>
-
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Valorização</th>
-
               {/* Reprodutivo */}
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">
                 <div className="flex flex-col gap-1">
@@ -433,6 +423,7 @@ export default async function DoadorasPage({
               </th>
 
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Pai da Prenhez</th>
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Prev. Parto</th>
 
               {/* Localização */}
 
@@ -453,15 +444,11 @@ export default async function DoadorasPage({
           <tbody className="divide-y divide-gray-50">
             {filtrado.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-4 py-10 text-center text-gray-400 text-sm">
+                <td colSpan={9} className="px-4 py-10 text-center text-gray-400 text-sm">
                   Nenhuma doadora encontrada{q ? ` para "${q}"` : ""}.
                 </td>
               </tr>
             ) : filtrado.map((d: any) => {
-              const percentualProprio = d.percentual_proprio != null
-                ? `${(d.percentual_proprio * 100).toFixed(0)}%`
-                : "—";
-
               return (
                 <tr key={d.id} className="table-row-hover">
                   {/* Nome clicável + indicador de pista */}
@@ -516,29 +503,6 @@ export default async function DoadorasPage({
                   <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.pai_nome ?? ""}>{d.pai_nome ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.mae_nome ?? ""}>{d.mae_nome ?? "—"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="badge bg-brand-100 text-brand-700">{percentualProprio}</span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap font-medium">
-                    {d.valor_parcela != null ? formatCurrency(d.valor_parcela) : "—"}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {(() => {
-                      if (d.valor_parcela == null) return <span className="text-gray-300">—</span>;
-                      const perc = d.percentual_proprio != null && d.percentual_proprio > 0
-                        ? d.percentual_proprio
-                        : null;
-                      const valTotal = perc
-                        ? (d.valor_parcela / perc) * 30
-                        : d.valor_parcela * 30;
-                      return (
-                        <span className="font-semibold text-green-700">
-                          {formatCurrency(valTotal)}
-                          {!perc && <span className="ml-1 text-[10px] text-gray-400 font-normal">(sem %)</span>}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
                     {d.status_reprodutivo && STATUS_MAP[d.status_reprodutivo] ? (
                       <span className={`badge text-xs font-semibold ${STATUS_MAP[d.status_reprodutivo].cls}`}>
                         {STATUS_MAP[d.status_reprodutivo].label}
@@ -555,6 +519,23 @@ export default async function DoadorasPage({
                         ? <span className="text-gray-400 italic">{d.touro_ultimo_parto}</span>
                         : <span className="text-gray-300">—</span>
                     }
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {(() => {
+                      if (d.status_reprodutivo !== "GESTANTE") return <span className="text-gray-300">—</span>;
+                      const prev = previsaoParto(d.data_inseminacao ?? null);
+                      if (!prev) return <span className="text-gray-300">—</span>;
+                      const cls = prev.diasRestantes < 0
+                        ? "bg-rose-100 text-rose-700"
+                        : prev.diasRestantes <= 30
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-green-100 text-green-700";
+                      return (
+                        <span className={`badge text-xs font-medium ${cls}`}>
+                          {formatDate(prev.iso)}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                     {d.localizacao ?? "—"}
