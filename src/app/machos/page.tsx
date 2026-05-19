@@ -64,7 +64,7 @@ export default async function MachosPage({
     .from("animals")
     .select(
       "id, nome, rgn, rgd, nascimento, pai_nome, mae_nome, localizacao, " +
-      "percentual_proprio, valor_parcela, exame_andrologico, circunferencia_escrotal, data_ce, para_pista, nascido_se_agro"
+      "percentual_proprio, valor_parcela, exame_andrologico, circunferencia_escrotal, data_ce, para_pista, para_leilao, nascido_se_agro"
     )
     .eq("farm_id", FARM_ID)
     .eq("tipo", "TOURO")
