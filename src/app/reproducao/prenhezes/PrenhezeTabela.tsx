@@ -10,6 +10,8 @@ import {
   registrarDesfecho,
   registrarNascimento,
   atualizarSituacaoReposicao,
+  marcarComoNascido,
+  vincularAnimalExistente,
 } from "./actions";
 import { excluirPrenhez } from "../actions";
 
@@ -185,8 +187,18 @@ function ResultadoBadge({ resultado, dataResultado }: { resultado: string; dataR
 }
 
 // ── Form de Desfecho (inline) ─────────────────────────────────────────────────
-function DesfechoForm({ row, onClose }: { row: PrenheZListRow; onClose: () => void }) {
-  const [tipo, setTipo] = useState<"NASCIMENTO" | "ABORTO" | "OBITO_RECEPTORA">("NASCIMENTO");
+function DesfechoForm({
+  row,
+  onClose,
+  animaisParaVincular,
+}: {
+  row: PrenheZListRow;
+  onClose: () => void;
+  animaisParaVincular: { id: string; nome: string }[];
+}) {
+  const [tipo, setTipo]             = useState<"NASCIMENTO" | "ABORTO" | "OBITO_RECEPTORA">("NASCIMENTO");
+  const [modoNasc, setModoNasc]     = useState<"novo" | "marcar" | "vincular">("novo");
+  const [busca, setBusca]           = useState("");
 
   const opcoes = [
     { value: "NASCIMENTO"      as const, label: "Nascimento",          icon: <Baby className="w-3.5 h-3.5" />,          cls: "border-green-300 text-green-700 bg-green-50 ring-green-400"  },
@@ -194,7 +206,9 @@ function DesfechoForm({ row, onClose }: { row: PrenheZListRow; onClose: () => vo
     { value: "OBITO_RECEPTORA" as const, label: "Óbito da Receptora",  icon: <Skull className="w-3.5 h-3.5" />,          cls: "border-red-300 text-red-700 bg-red-50 ring-red-400"           },
   ];
 
-  const sexoDefault = "F";
+  const animaisFiltrados = busca.length >= 2
+    ? animaisParaVincular.filter(a => a.nome.toLowerCase().includes(busca.toLowerCase())).slice(0, 8)
+    : [];
 
   return (
     <tr className="bg-gray-50/80 border-t border-gray-200">
@@ -226,38 +240,136 @@ function DesfechoForm({ row, onClose }: { row: PrenheZListRow; onClose: () => vo
             ))}
           </div>
 
-          {/* Formulário de nascimento */}
+          {/* Formulário de nascimento — 3 modos */}
           {tipo === "NASCIMENTO" && (
-            <form action={registrarNascimento} className="space-y-3">
-              <input type="hidden" name="asp_id"       value={row.aspId} />
-              <input type="hidden" name="doadora_nome" value={row.doadoraNome ?? ""} />
-              <input type="hidden" name="touro_nome"   value={row.touroNome   ?? ""} />
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="col-span-2">
-                  <label className="text-xs text-gray-500 mb-1 block">Nome do animal <span className="text-red-500">*</span></label>
-                  <input name="nome" type="text" required placeholder="Ex: SE FILHA DA KARINA"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Data de nascimento <span className="text-red-500">*</span></label>
-                  <input name="nascimento" type="date" required
-                    defaultValue={new Date().toISOString().split("T")[0]}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Sexo <span className="text-red-500">*</span></label>
-                  <select name="sexo" required defaultValue={sexoDefault}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white">
-                    <option value="F">♀ Fêmea</option>
-                    <option value="M">♂ Macho</option>
-                  </select>
-                </div>
+            <div className="space-y-3">
+              {/* Sub-modo selector */}
+              <div className="flex gap-2">
+                {[
+                  { key: "novo"     as const, label: "Registrar novo animal"      },
+                  { key: "vincular" as const, label: "Vincular animal já cadastrado" },
+                  { key: "marcar"   as const, label: "Só marcar como nascido"     },
+                ].map(({ key, label }) => (
+                  <button key={key} type="button" onClick={() => setModoNasc(key)}
+                    className={`text-xs px-3 py-1.5 rounded-lg border transition-all font-medium ${
+                      modoNasc === key
+                        ? "bg-green-100 text-green-800 border-green-300 ring-1 ring-green-400"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
-              <button type="submit"
-                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                <Baby className="w-3.5 h-3.5" /> Salvar e abrir ficha do animal
-              </button>
-            </form>
+
+              {/* Modo: novo animal */}
+              {modoNasc === "novo" && (
+                <form action={registrarNascimento} className="space-y-3">
+                  <input type="hidden" name="asp_id"       value={row.aspId} />
+                  <input type="hidden" name="doadora_nome" value={row.doadoraNome ?? ""} />
+                  <input type="hidden" name="touro_nome"   value={row.touroNome   ?? ""} />
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="col-span-2">
+                      <label className="text-xs text-gray-500 mb-1 block">Nome do animal <span className="text-red-500">*</span></label>
+                      <input name="nome" type="text" required placeholder="Ex: SE FILHA DA KARINA"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Data de nascimento <span className="text-red-500">*</span></label>
+                      <input name="nascimento" type="date" required
+                        defaultValue={new Date().toISOString().split("T")[0]}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Sexo <span className="text-red-500">*</span></label>
+                      <select name="sexo" required defaultValue="F"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white">
+                        <option value="F">♀ Fêmea</option>
+                        <option value="M">♂ Macho</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button type="submit"
+                    className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                    <Baby className="w-3.5 h-3.5" /> Salvar e abrir ficha do animal
+                  </button>
+                </form>
+              )}
+
+              {/* Modo: vincular animal existente */}
+              {modoNasc === "vincular" && (
+                <form action={vincularAnimalExistente} className="space-y-3">
+                  <input type="hidden" name="asp_id" value={row.aspId} />
+                  <p className="text-xs text-gray-500">
+                    Busque o animal já cadastrado no sistema para vinculá-lo a esta prenhez.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2 relative">
+                      <label className="text-xs text-gray-500 mb-1 block">Buscar animal <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        value={busca}
+                        onChange={e => setBusca(e.target.value)}
+                        placeholder="Digite o nome do animal…"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white"
+                        autoComplete="off"
+                      />
+                      {animaisFiltrados.length > 0 && (
+                        <div className="absolute z-10 top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {animaisFiltrados.map(a => (
+                            <button
+                              key={a.id}
+                              type="button"
+                              onClick={() => { setBusca(a.nome); }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-brand-50 transition-colors"
+                            >
+                              {a.nome}
+                              <input type="hidden" name="animal_id" value={a.id} />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {/* Campo oculto para o ID — preenchido pelo select */}
+                      <input type="hidden" name="animal_id"
+                        value={animaisParaVincular.find(a => a.nome === busca)?.id ?? ""} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Data de nascimento</label>
+                      <input name="data_resultado" type="date"
+                        defaultValue={new Date().toISOString().split("T")[0]}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white" />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!animaisParaVincular.find(a => a.nome === busca)}
+                    className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <Baby className="w-3.5 h-3.5" /> Vincular e marcar como nascido
+                  </button>
+                </form>
+              )}
+
+              {/* Modo: só marcar como nascido */}
+              {modoNasc === "marcar" && (
+                <form action={marcarComoNascido} className="flex items-end gap-3">
+                  <input type="hidden" name="asp_id" value={row.aspId} />
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Data do nascimento</label>
+                    <input name="data_resultado" type="date"
+                      defaultValue={new Date().toISOString().split("T")[0]}
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-2">O animal já existe no sistema — apenas marca esta prenhez como concluída.</p>
+                    <button type="submit"
+                      className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                      <Baby className="w-3.5 h-3.5" /> Marcar como nascido
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           )}
 
           {/* Formulário de aborto / óbito */}
@@ -337,7 +449,13 @@ function BotaoExcluirPrenhez({ row }: { row: PrenheZListRow }) {
 }
 
 // ── Tabela principal ──────────────────────────────────────────────────────────
-export default function PrenhezeTabela({ rows }: { rows: PrenheZListRow[] }) {
+export default function PrenhezeTabela({
+  rows,
+  animaisParaVincular = [],
+}: {
+  rows: PrenheZListRow[];
+  animaisParaVincular?: { id: string; nome: string }[];
+}) {
   const [desfechoRowId, setDesfechoRowId] = useState<string | null>(null);
 
   const colunas = ["Doadora", "Touro", "Brinco Receptora", "Prev. Parto", "Vendedor", "Situação", "Desfecho", ""];
@@ -428,7 +546,7 @@ export default function PrenhezeTabela({ rows }: { rows: PrenheZListRow[] }) {
               </tr>
 
               {desfechoRowId === r.aspId && !r.resultado && (
-                <DesfechoForm row={r} onClose={() => setDesfechoRowId(null)} />
+                <DesfechoForm row={r} onClose={() => setDesfechoRowId(null)} animaisParaVincular={animaisParaVincular} />
               )}
             </Fragment>
           ))}

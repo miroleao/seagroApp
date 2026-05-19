@@ -33,13 +33,26 @@ export default async function PrenhezesList({
 
   const { data: doadoras } = await supabase
     .from("animals")
-    .select("nome")
+    .select("id, nome")
     .eq("farm_id", FARM_ID)
     .eq("tipo", "DOADORA");
 
   const nomesPropriosSet = new Set(
     (doadoras ?? []).map((d) => d.nome?.toLowerCase().trim()).filter(Boolean)
   );
+
+  // Lista de todos os animais próprios (para vincular a prenhezes históricas)
+  const { data: machosProprios } = await supabase
+    .from("animals")
+    .select("id, nome")
+    .eq("farm_id", FARM_ID)
+    .eq("tipo", "TOURO")
+    .order("nome");
+
+  const animaisParaVincular: { id: string; nome: string }[] = [
+    ...(doadoras ?? []).map((d: any) => ({ id: d.id, nome: d.nome ?? "" })),
+    ...(machosProprios ?? []).map((m: any) => ({ id: m.id, nome: m.nome ?? "" })),
+  ].sort((a, b) => a.nome.localeCompare(b.nome));
 
   const { data: sessoes } = await supabase
     .from("opu_sessions")
@@ -167,7 +180,7 @@ export default async function PrenhezesList({
             </Link>
           </div>
         ) : (
-          <PrenhezeTabela rows={rows} />
+          <PrenhezeTabela rows={rows} animaisParaVincular={animaisParaVincular} />
         )}
       </div>
     </div>

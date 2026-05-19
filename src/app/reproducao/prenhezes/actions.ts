@@ -318,3 +318,54 @@ export async function registrarNascimento(formData: FormData) {
 
   redirect(sexo === "F" ? `/doadoras/${animal.id}` : `/machos/${animal.id}`);
 }
+
+// ── Marcar prenhez como Nascido (sem criar novo animal) ───────────────────────
+// Útil quando o animal já foi cadastrado diretamente em outra aba
+export async function marcarComoNascido(formData: FormData) {
+  const asp_id          = (formData.get("asp_id") as string)?.trim();
+  const data_resultado  = (formData.get("data_resultado") as string) || new Date().toISOString().split("T")[0];
+
+  if (!asp_id) return;
+
+  const supabase = await createClient();
+  const { data: asp } = await supabase.from("aspirations").select("observacoes").eq("id", asp_id).single();
+  const novaObs = buildObs(asp?.observacoes ?? null, { RESULTADO: "NASCIMENTO", DATA_RESULTADO: data_resultado });
+  await supabase.from("aspirations").update({ observacoes: novaObs || null }).eq("id", asp_id);
+
+  revalidatePath("/reproducao/prenhezes");
+  redirect("/reproducao/prenhezes");
+}
+
+// ── Vincular animal já existente à prenhez ────────────────────────────────────
+// Linka um animal já cadastrado (não cria duplicata) e marca como nascido
+export async function vincularAnimalExistente(formData: FormData) {
+  const asp_id         = (formData.get("asp_id") as string)?.trim();
+  const animal_id      = (formData.get("animal_id") as string)?.trim();
+  const data_resultado = (formData.get("data_resultado") as string) || new Date().toISOString().split("T")[0];
+
+  if (!asp_id || !animal_id) return;
+
+  const supabase = await createClient();
+
+  // Busca tipo do animal para saber a rota
+  const { data: animal } = await supabase
+    .from("animals")
+    .select("tipo")
+    .eq("id", animal_id)
+    .eq("farm_id", FARM_ID)
+    .single();
+
+  // Marca aspiration como nascido e linka o animal
+  const { data: asp } = await supabase.from("aspirations").select("observacoes").eq("id", asp_id).single();
+  const novaObs = buildObs(asp?.observacoes ?? null, { RESULTADO: "NASCIMENTO", DATA_RESULTADO: data_resultado });
+  await supabase.from("aspirations").update({
+    observacoes:         novaObs || null,
+    animal_nascido_id:   animal_id,
+    animal_nascido_tipo: animal?.tipo ?? null,
+  }).eq("id", asp_id);
+
+  revalidatePath("/reproducao/prenhezes");
+  revalidatePath("/doadoras");
+  revalidatePath("/machos");
+  redirect("/reproducao/prenhezes");
+}
