@@ -53,7 +53,7 @@ interface AnimalDB {
 }
 
 // ─── hook de busca com debounce ───────────────────────────────────────────────
-function useBusca(q: string) {
+function useBusca(q: string, filtroTipo?: string) {
   const [animais, setAnimais] = useState<AnimalDB[]>([]);
   const [nomesGenealogia, setNomesGenealogia] = useState<string[]>([]);
   const [carregando, setCarregando] = useState(false);
@@ -65,7 +65,9 @@ function useBusca(q: string) {
     timer.current = setTimeout(async () => {
       setCarregando(true);
       try {
-        const res = await fetch(`/api/ancestrais/buscar?q=${encodeURIComponent(q)}`);
+        const params = new URLSearchParams({ q });
+        if (filtroTipo) params.set("tipo", filtroTipo);
+        const res = await fetch(`/api/ancestrais/buscar?${params}`);
         const data = await res.json();
         setAnimais(data.animais ?? []);
         setNomesGenealogia(data.ancestrais ?? []);
@@ -73,7 +75,7 @@ function useBusca(q: string) {
       finally { setCarregando(false); }
     }, 280);
     return () => { if (timer.current) clearTimeout(timer.current); };
-  }, [q]);
+  }, [q, filtroTipo]);
 
   return { animais, nomesGenealogia, carregando };
 }
@@ -115,14 +117,15 @@ const TIPO_COLOR: Record<string, string> = {
 };
 
 // ─── input simples com autocomplete de nomes ──────────────────────────────────
-function AncestralInput({ name, label, value, placeholder, onChange }: {
+function AncestralInput({ name, label, value, placeholder, onChange, filtroTipo }: {
   name: string; label: string; value: string;
   placeholder: string; onChange: (v: string) => void;
+  filtroTipo?: string; // "TOURO" | "DOADORA" — filtra animais cadastrados por tipo
 }) {
   const [aberto, setAberto] = useState(false);
   const [inputQ, setInputQ] = useState(value);
   const ref = useRef<HTMLDivElement>(null);
-  const { animais, nomesGenealogia, carregando } = useBusca(inputQ);
+  const { animais, nomesGenealogia, carregando } = useBusca(inputQ, filtroTipo);
 
   useEffect(() => { setInputQ(value); }, [value]);
   useEffect(() => {
@@ -137,9 +140,21 @@ function AncestralInput({ name, label, value, placeholder, onChange }: {
   const pick = (nome: string) => { setInputQ(nome); onChange(nome); setAberto(false); };
   const temResultados = animais.length > 0 || nomesGenealogia.length > 0;
 
+  const filtroLabel = filtroTipo === "TOURO" ? "touros" : filtroTipo === "DOADORA" ? "doadoras" : null;
+
   return (
     <div className="relative" ref={ref}>
-      <label className="text-xs text-gray-400 mb-1 block">{label}</label>
+      <label className="text-xs text-gray-400 mb-1 flex items-center gap-1.5">
+        {label}
+        {filtroLabel && (
+          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+            filtroTipo === "TOURO"   ? "bg-blue-50 text-blue-500"  :
+            filtroTipo === "DOADORA" ? "bg-pink-50 text-pink-500"  : ""
+          }`}>
+            busca {filtroLabel}
+          </span>
+        )}
+      </label>
       <div className="relative">
         <input name={name} type="text" value={inputQ}
           onChange={(e) => handleChange(e.target.value)}
@@ -487,8 +502,8 @@ export default function GenealogyForm({
       <div>
         <p className="text-xs font-medium text-gray-500 mb-2">Pais</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <AncestralInput name="pai_nome" label="Pai" value={vals.pai_nome} placeholder="Nome do pai…" onChange={(v) => set({ pai_nome: v })} />
-          <AncestralInput name="mae_nome" label="Mãe" value={vals.mae_nome} placeholder="Nome da mãe…" onChange={(v) => set({ mae_nome: v })} />
+          <AncestralInput name="pai_nome" label="Pai" value={vals.pai_nome} placeholder="Nome do pai…" onChange={(v) => set({ pai_nome: v })} filtroTipo="TOURO" />
+          <AncestralInput name="mae_nome" label="Mãe" value={vals.mae_nome} placeholder="Nome da mãe…" onChange={(v) => set({ mae_nome: v })} filtroTipo="DOADORA" />
         </div>
       </div>
 

@@ -7,20 +7,26 @@ import { NextRequest, NextResponse } from "next/server";
 // 2. Nomes que já aparecem como ancestrais em outros animais (só texto)
 
 export async function GET(request: NextRequest) {
-  const q = request.nextUrl.searchParams.get("q") ?? "";
+  const q    = request.nextUrl.searchParams.get("q")    ?? "";
+  const tipo = request.nextUrl.searchParams.get("tipo") ?? ""; // "TOURO" | "DOADORA" | ""
   if (q.length < 2) return NextResponse.json({ animais: [], ancestrais: [] });
 
   const supabase = await createClient();
   const like = `%${q}%`;
 
   // ── 1. Animais cadastrados ────────────────────────────────────────────────
-  const { data: animais } = await supabase
+  let query = supabase
     .from("animals")
     .select("id, nome, tipo, rgn")
     .eq("farm_id", FARM_ID)
     .ilike("nome", like)
     .order("nome", { ascending: true })
     .limit(8);
+
+  // Filtra por tipo quando informado (ex: só touros para campo Pai)
+  if (tipo) query = query.eq("tipo", tipo);
+
+  const { data: animais } = await query;
 
   // ── 2. Nomes ancestrais que aparecem em genealogias de outros animais ─────
   const camposGenealogia = [
