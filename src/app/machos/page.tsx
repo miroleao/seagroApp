@@ -8,6 +8,7 @@ import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 import { ExcluirMachoBtn } from "./ExcluirMachoBtn";
 import { EditarMachoInlineBtn } from "./EditarMachoInlineBtn";
+import { FiltrosRapidos, type GrupoFiltro } from "@/components/ui/FiltrosRapidos";
 
 /** Calcula meses inteiros entre uma data ISO e hoje */
 function idadeEmMeses(nascimento: string | null): number | null {
@@ -55,9 +56,9 @@ export const revalidate = 0;
 export default async function MachosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; andro?: string; ord?: string }>;
+  searchParams: Promise<{ q?: string; andro?: string; ord?: string; pista?: string; se?: string; leilao?: string; idade?: string }>;
 }) {
-  const { q, andro, ord } = await searchParams;
+  const { q, andro, ord, pista, se, leilao, idade } = await searchParams;
   const supabase = await createClient();
 
   const { data: machos } = await supabase
@@ -96,6 +97,22 @@ export default async function MachosPage({
   if (andro === "APTO")    filtrado = filtrado.filter((m: any) => m.exame_andrologico === "APTO");
   if (andro === "INAPTO")  filtrado = filtrado.filter((m: any) => m.exame_andrologico === "INAPTO");
   if (andro === "PEND")    filtrado = filtrado.filter((m: any) => !m.exame_andrologico);
+
+  // Filtros rápidos
+  if (pista  === "1") filtrado = filtrado.filter((m: any) => m.para_pista);
+  if (se     === "1") filtrado = filtrado.filter((m: any) => m.nascido_se_agro);
+  if (leilao === "1") filtrado = filtrado.filter((m: any) => (m as any).para_leilao);
+
+  // Filtro por faixa etária
+  if (idade) {
+    filtrado = filtrado.filter((m: any) => {
+      const mes = idadeEmMeses(m.nascimento);
+      if (mes == null) return false;
+      if (idade === "30+") return mes >= 30;
+      const [min, max] = idade.split("-").map(Number);
+      return mes >= min && mes < max;
+    });
+  }
 
   // Ordenação por idade
   if (ord === "idade_asc")  filtrado = [...filtrado].sort((a: any, b: any) => ((b.nascimento ?? "") as string).localeCompare((a.nascimento ?? "") as string));
@@ -170,6 +187,46 @@ export default async function MachosPage({
           </Link>
         </div>
       </div>
+
+      {/* ── Filtros rápidos ───────────────────────────────────────── */}
+      <Suspense>
+        <FiltrosRapidos
+          totalFiltrado={filtrado.length}
+          totalGeral={all.length}
+          grupos={[
+            {
+              rotulo: "Seleção",
+              chips: [
+                { param: "pista",  value: "1", label: "Para Pista",     cor: "bg-yellow-100 text-yellow-800 border-yellow-300", icon: <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /> },
+                { param: "se",     value: "1", label: "Nascido na SE",  cor: "bg-gray-100 text-gray-800 border-gray-400" },
+                { param: "leilao", value: "1", label: "Para Leilão",    cor: "bg-amber-100 text-amber-800 border-amber-300", icon: <Gavel className="w-3 h-3 text-amber-500" /> },
+              ],
+            },
+            {
+              rotulo: "Andrológico",
+              unico: true,
+              chips: [
+                { param: "andro", value: "APTO",   label: "Apto",     cor: "bg-green-100 text-green-800 border-green-300", icon: <CheckCircle className="w-3 h-3 text-green-600" /> },
+                { param: "andro", value: "INAPTO",  label: "Inapto",   cor: "bg-red-100 text-red-700 border-red-300",       icon: <XCircle className="w-3 h-3 text-red-500" />     },
+                { param: "andro", value: "PEND",    label: "Pendente", cor: "bg-gray-100 text-gray-700 border-gray-300",    icon: <Clock className="w-3 h-3 text-gray-400" />      },
+              ],
+            },
+            {
+              rotulo: "Idade",
+              unico: true,
+              chips: [
+                { param: "idade", value: "6-9",  label: "6–9m",   cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "9-12",  label: "9–12m",  cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "12-16", label: "12–16m", cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "16-20", label: "16–20m", cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "20-24", label: "20–24m", cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "24-30", label: "24–30m", cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "30+",   label: "30m+",   cor: "bg-blue-50 text-blue-700 border-blue-300" },
+              ],
+            },
+          ] satisfies GrupoFiltro[]}
+        />
+      </Suspense>
 
       {/* Cards de status andrológico */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

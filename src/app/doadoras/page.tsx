@@ -7,6 +7,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { ExcluirDoadoraBtn } from "./ExcluirDoadoraBtn";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
+import { FiltrosRapidos, type GrupoFiltro } from "@/components/ui/FiltrosRapidos";
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   COLETANDO:  { label: "Coletando",  cls: "bg-purple-100 text-purple-700" },
@@ -33,9 +34,9 @@ export const revalidate = 0;
 export default async function DoadorasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; pai?: string; mae?: string; loc?: string; status?: string; ord?: string; parc?: string }>;
+  searchParams: Promise<{ q?: string; pai?: string; mae?: string; loc?: string; status?: string; ord?: string; parc?: string; pista?: string; se?: string; leilao?: string; idade?: string }>;
 }) {
-  const { q, pai, mae, loc, status, ord, parc } = await searchParams;
+  const { q, pai, mae, loc, status, ord, parc, pista, se, leilao, idade } = await searchParams;
   const supabase = await createClient();
 
   const { data: doadoras } = await supabase
@@ -121,6 +122,22 @@ export default async function DoadorasPage({
   // Filtro por status reprodutivo
   if (status) filtrado = filtrado.filter((d: any) => (d.status_reprodutivo ?? "") === status);
 
+  // Filtros rápidos
+  if (pista  === "1") filtrado = filtrado.filter((d: any) => d.para_pista);
+  if (se     === "1") filtrado = filtrado.filter((d: any) => d.nascido_se_agro);
+  if (leilao === "1") filtrado = filtrado.filter((d: any) => (d as any).para_leilao);
+
+  // Filtro por faixa etária (param: "6-9", "9-12", "12-16", "16-20", "20-24", "24-30", "30+")
+  if (idade) {
+    filtrado = filtrado.filter((d: any) => {
+      const m = idadeEmMeses(d.nascimento);
+      if (m == null) return false;
+      if (idade === "30+") return m >= 30;
+      const [min, max] = idade.split("-").map(Number);
+      return m >= min && m < max;
+    });
+  }
+
   // Ordenação por idade
   if (ord === "idade_asc") {
     filtrado = [...filtrado].sort((a, b) => (b.nascimento ?? "").localeCompare(a.nascimento ?? ""));
@@ -198,6 +215,47 @@ export default async function DoadorasPage({
           </Link>
         </div>
       </div>
+
+      {/* ── Filtros rápidos ─────────────────────────────────────────────────── */}
+      <Suspense>
+        <FiltrosRapidos
+          totalFiltrado={filtrado.length}
+          totalGeral={all.length}
+          grupos={[
+            {
+              rotulo: "Seleção",
+              chips: [
+                { param: "pista",  value: "1", label: "Para Pista",     cor: "bg-yellow-100 text-yellow-800 border-yellow-300", icon: <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /> },
+                { param: "se",     value: "1", label: "Nascida na SE",  cor: "bg-gray-100 text-gray-800 border-gray-400" },
+                { param: "leilao", value: "1", label: "Para Leilão",    cor: "bg-amber-100 text-amber-800 border-amber-300", icon: <Gavel className="w-3 h-3 text-amber-500" /> },
+              ],
+            },
+            {
+              rotulo: "Idade",
+              unico: true,
+              chips: [
+                { param: "idade", value: "6-9",  label: "6–9m",   cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "9-12",  label: "9–12m",  cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "12-16", label: "12–16m", cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "16-20", label: "16–20m", cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "20-24", label: "20–24m", cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "24-30", label: "24–30m", cor: "bg-blue-50 text-blue-700 border-blue-300" },
+                { param: "idade", value: "30+",   label: "30m+",   cor: "bg-blue-50 text-blue-700 border-blue-300" },
+              ],
+            },
+            {
+              rotulo: "Status",
+              unico: true,
+              chips: statuses.map(s => ({
+                param: "status",
+                value: s,
+                label: STATUS_MAP[s]?.label ?? s,
+                cor: "bg-purple-50 text-purple-700 border-purple-300",
+              })),
+            },
+          ] satisfies GrupoFiltro[]}
+        />
+      </Suspense>
 
       {/* ── VIEW MOBILE — cards (visível apenas abaixo de md) ─────────────────── */}
       <div className="md:hidden space-y-3">
