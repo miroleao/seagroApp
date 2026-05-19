@@ -7,12 +7,13 @@ import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
 import { EditReprodutivoInline } from "@/app/rebanho/EditReprodutivoInline";
+import { NascimentoDoadoraForm } from "./NascimentoDoadoraForm";
 
 // Mapa de cores para cada status reprodutivo
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   COLETANDO:  { label: "Coletando",  cls: "bg-purple-100 text-purple-700" },
   INSEMINADA: { label: "Inseminada", cls: "bg-amber-100  text-amber-700"  },
-  GESTANTE:   { label: "Gestante",   cls: "bg-green-100  text-green-700"  },
+  GESTANTE:   { label: "Prenha",     cls: "bg-green-100  text-green-700"  },
   PARIDA:     { label: "Parida",     cls: "bg-indigo-100 text-indigo-700" },
   ABORTOU:    { label: "Abortou",    cls: "bg-rose-100   text-rose-700"   },
   VAZIA:      { label: "Vazia",      cls: "bg-gray-100   text-gray-500"   },
@@ -485,6 +486,14 @@ export default async function DoadoraDetalhePage({
     .eq("farm_id", FARM_ID)
     .order("data_base", { ascending: false });
 
+  // Animais da fazenda (doadoras + touros) para vincular como nascidos
+  const { data: animaisVincular } = await supabase
+    .from("animals")
+    .select("id, nome")
+    .eq("farm_id", FARM_ID)
+    .in("tipo", ["DOADORA", "TOURO"])
+    .order("nome");
+
   // Info de leilão do animal
   const { data: leilaoInfo } = await supabase
     .from("animal_leilao_info")
@@ -830,6 +839,14 @@ export default async function DoadoraDetalhePage({
               dataUltimoParto={(doadora as any).data_ultimo_parto ?? null}
               numeroParto={(doadora as any).numero_partos ?? 0}
             />
+
+            {/* Card de nascimento — só aparece quando a doadora está prenha */}
+            {doadora.status_reprodutivo === "GESTANTE" && (
+              <NascimentoDoadoraForm
+                doadoraId={doadora.id}
+                animaisParaVincular={(animaisVincular ?? []).map((a: any) => ({ id: a.id, nome: a.nome ?? "" }))}
+              />
+            )}
           </div>
 
           {/* Peso atual com atualização inline */}

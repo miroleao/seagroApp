@@ -18,7 +18,7 @@ interface ReproStatusFormProps {
 const STATUS_LABELS: Record<string, string> = {
   COLETANDO:  "Coletando",
   INSEMINADA: "Inseminada",
-  GESTANTE:   "Gestante",
+  GESTANTE:   "Prenha",
   PARIDA:     "Parida",
   ABORTOU:    "Abortou",
   VAZIA:      "Vazia",
@@ -65,7 +65,7 @@ export function ReproStatusForm({
             <option value="VAZIA">Vazia</option>
             <option value="COLETANDO">Coletando</option>
             <option value="INSEMINADA">Inseminada</option>
-            <option value="GESTANTE">Gestante</option>
+            <option value="GESTANTE">Prenha</option>
             <option value="PARIDA">Parida</option>
             <option value="ABORTOU">Abortou</option>
             <option value="SECA">Seca</option>
@@ -129,9 +129,14 @@ export function ReproStatusForm({
           {numeroParto > 0 ? ` (atual: ${numeroParto}º parto)` : " (será o 1º parto)"} e o touro da prenhez será registrado.
         </p>
       )}
-      {showTouro && (
+      {selectedStatus === "INSEMINADA" && (
         <p className="text-[11px] text-amber-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5">
           🐂 Informe o touro utilizado na inseminação/cobertura para rastrear a prenhez.
+        </p>
+      )}
+      {selectedStatus === "GESTANTE" && (
+        <p className="text-[11px] text-green-600 bg-green-50 border border-green-100 rounded-lg px-3 py-1.5">
+          ✏️ Ajuste a data da inseminação ou o touro se necessário e clique em <strong>Salvar</strong>.
         </p>
       )}
     </form>

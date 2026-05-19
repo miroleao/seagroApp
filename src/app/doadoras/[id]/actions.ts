@@ -401,6 +401,139 @@ export async function atualizarStatusReprodutivo(formData: FormData) {
   redirect(`/doadoras/${id}`);
 }
 
+// ── Registrar nascimento natural a partir da ficha da doadora ─────────────────
+
+export async function registrarNascimentoNatural(formData: FormData) {
+  const doadora_id      = (formData.get("doadora_id")         as string)?.trim();
+  const nome            = (formData.get("nome")               as string)?.trim();
+  const nascimento      = (formData.get("nascimento")         as string);
+  const sexo            = (formData.get("sexo")               as string);
+  const rgn             = (formData.get("rgn")                as string)?.trim() || null;
+  const percentual_raw  = (formData.get("percentual_proprio") as string)?.trim();
+  const percentual_proprio = percentual_raw ? parseFloat(percentual_raw) / 100 : 1.0;
+  const nascido_se_agro = formData.get("nascido_se_agro") === "on";
+
+  if (!doadora_id || !nome || !nascimento || !sexo) return;
+
+  const tipo = sexo === "F" ? "DOADORA" : "TOURO";
+  const supabase = await createClient();
+
+  const { data: doadora } = await supabase
+    .from("animals")
+    .select("nome, touro_prenhez, rgd_touro_prenhez, numero_partos, data_primeiro_parto")
+    .eq("id", doadora_id)
+    .eq("farm_id", FARM_ID)
+    .single();
+
+  if (!doadora) return;
+
+  const { data: animal, error } = await supabase
+    .from("animals")
+    .insert({
+      farm_id: FARM_ID,
+      tipo,
+      nome,
+      nascimento,
+      sexo,
+      rgn,
+      mae_nome: doadora.nome,
+      pai_nome: (doadora as any).touro_prenhez ?? null,
+      situacao: "ATIVA",
+      percentual_proprio: isNaN(percentual_proprio) ? 1.0 : percentual_proprio,
+      nascido_se_agro,
+    })
+    .select("id")
+    .single();
+
+  if (error || !animal) {
+    revalidatePath(`/doadoras/${doadora_id}`);
+    return;
+  }
+
+  // Marca doadora como PARIDA e incrementa partos
+  const numAtual = ((doadora as any).numero_partos ?? 0) as number;
+  const partoPayload: Record<string, unknown> = {
+    status_reprodutivo:    "PARIDA",
+    data_status:           nascimento,
+    data_ultimo_parto:     nascimento,
+    numero_partos:         numAtual + 1,
+    touro_ultimo_parto:    (doadora as any).touro_prenhez    ?? null,
+    rgd_touro_ultimo_parto: (doadora as any).rgd_touro_prenhez ?? null,
+    touro_prenhez:         null,
+    rgd_touro_prenhez:     null,
+    data_inseminacao:      null,
+  };
+  if (!(doadora as any).data_primeiro_parto) {
+    partoPayload.data_primeiro_parto = nascimento;
+  }
+  await supabase.from("animals").update(partoPayload).eq("id", doadora_id).eq("farm_id", FARM_ID);
+
+  revalidatePath(`/doadoras/${doadora_id}`);
+  revalidatePath("/doadoras");
+  revalidatePath("/machos");
+  revalidatePath("/dashboard");
+
+  redirect(sexo === "F" ? `/doadoras/${animal.id}` : `/machos/${animal.id}`);
+}
+
+// ── Vincular animal já cadastrado como nascido desta doadora ──────────────────
+
+export async function vincularNascimentoNatural(formData: FormData) {
+  const doadora_id  = (formData.get("doadora_id")  as string)?.trim();
+  const animal_id   = (formData.get("animal_id")   as string)?.trim();
+  const nascimento  = (formData.get("nascimento")  as string) || new Date().toISOString().split("T")[0];
+
+  if (!doadora_id || !animal_id) return;
+
+  const supabase = await createClient();
+
+  const [{ data: doadora }, { data: animal }] = await Promise.all([
+    supabase.from("animals")
+      .select("nome, touro_prenhez, rgd_touro_prenhez, numero_partos, data_primeiro_parto")
+      .eq("id", doadora_id).eq("farm_id", FARM_ID).single(),
+    supabase.from("animals")
+      .select("tipo, mae_nome, pai_nome")
+      .eq("id", animal_id).eq("farm_id", FARM_ID).single(),
+  ]);
+
+  if (!doadora) return;
+
+  // Preenche mae/pai no filho se estiverem vazios
+  const animalUpdate: Record<string, unknown> = {};
+  if (!(animal as any)?.mae_nome && doadora.nome)
+    animalUpdate.mae_nome = doadora.nome;
+  if (!(animal as any)?.pai_nome && (doadora as any).touro_prenhez)
+    animalUpdate.pai_nome = (doadora as any).touro_prenhez;
+  if (Object.keys(animalUpdate).length > 0)
+    await supabase.from("animals").update(animalUpdate).eq("id", animal_id).eq("farm_id", FARM_ID);
+
+  // Marca doadora como PARIDA
+  const numAtual = ((doadora as any).numero_partos ?? 0) as number;
+  const partoPayload: Record<string, unknown> = {
+    status_reprodutivo:    "PARIDA",
+    data_status:           nascimento,
+    data_ultimo_parto:     nascimento,
+    numero_partos:         numAtual + 1,
+    touro_ultimo_parto:    (doadora as any).touro_prenhez    ?? null,
+    rgd_touro_ultimo_parto: (doadora as any).rgd_touro_prenhez ?? null,
+    touro_prenhez:         null,
+    rgd_touro_prenhez:     null,
+    data_inseminacao:      null,
+  };
+  if (!(doadora as any).data_primeiro_parto) {
+    partoPayload.data_primeiro_parto = nascimento;
+  }
+  await supabase.from("animals").update(partoPayload).eq("id", doadora_id).eq("farm_id", FARM_ID);
+
+  revalidatePath(`/doadoras/${doadora_id}`);
+  revalidatePath("/doadoras");
+  revalidatePath("/machos");
+  revalidatePath("/dashboard");
+
+  const rota = (animal as any)?.tipo === "TOURO" ? `/machos/${animal_id}` : `/doadoras/${animal_id}`;
+  redirect(rota);
+}
+
 /** Registra uma venda na tabela transactions, pré-vinculando esta doadora */
 export async function registrarVendaDoadora(formData: FormData) {
   const doadora_id     = (formData.get("doadora_id")     as string)?.trim();
