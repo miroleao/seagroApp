@@ -51,6 +51,8 @@ export default async function PrenhezesList({
         doadora_nome,
         touro_nome,
         observacoes,
+        animal_nascido_id,
+        animal_nascido_tipo,
         embryos:embryos!embryos_aspiration_id_fkey (
           id,
           transfers:transfers!transfers_embryo_id_fkey (
@@ -111,6 +113,8 @@ export default async function PrenhezesList({
         resultado,
         dataResultado,
         situacaoReposicao:  parseKey(obs, "SITUACAO_REPOSICAO"),
+        animalNascidoId:    (a.animal_nascido_id   as string | null) ?? null,
+        animalNascidoTipo:  (a.animal_nascido_tipo as string | null) ?? null,
       });
     }
   }

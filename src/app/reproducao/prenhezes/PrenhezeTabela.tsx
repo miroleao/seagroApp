@@ -28,6 +28,8 @@ export type PrenheZListRow = {
   resultado:          string | null;   // NASCIMENTO | ABORTO | OBITO_RECEPTORA
   dataResultado:      string | null;
   situacaoReposicao:  string | null;
+  animalNascidoId?:   string | null;   // link para a ficha do animal nascido
+  animalNascidoTipo?: string | null;   // "DOADORA" | "TOURO"
 };
 
 // ── Célula com lock (texto) ───────────────────────────────────────────────────
@@ -393,19 +395,30 @@ export default function PrenhezeTabela({ rows }: { rows: PrenheZListRow[] }) {
 
                 {/* Desfecho */}
                 <td className="py-2.5 px-3">
-                  {r.resultado ? (
-                    <ResultadoBadge resultado={r.resultado} dataResultado={r.dataResultado} />
-                  ) : desfechoRowId === r.aspId ? (
-                    <button onClick={() => setDesfechoRowId(null)}
-                      className="text-xs text-gray-400 hover:text-gray-600">Fechar</button>
-                  ) : (
-                    <button
-                      onClick={() => setDesfechoRowId(r.aspId)}
-                      className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded px-2 py-1 whitespace-nowrap transition-colors"
-                    >
-                      <Baby className="w-3 h-3" /> Registrar
-                    </button>
-                  )}
+                  <div className="flex flex-col gap-1">
+                    {r.resultado ? (
+                      <ResultadoBadge resultado={r.resultado} dataResultado={r.dataResultado} />
+                    ) : desfechoRowId === r.aspId ? (
+                      <button onClick={() => setDesfechoRowId(null)}
+                        className="text-xs text-gray-400 hover:text-gray-600">Fechar</button>
+                    ) : (
+                      <button
+                        onClick={() => setDesfechoRowId(r.aspId)}
+                        className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded px-2 py-1 whitespace-nowrap transition-colors"
+                      >
+                        <Baby className="w-3 h-3" /> Registrar
+                      </button>
+                    )}
+                    {/* Link direto para a ficha do animal nascido */}
+                    {r.animalNascidoId && (
+                      <Link
+                        href={`/${r.animalNascidoTipo === "TOURO" ? "machos" : "doadoras"}/${r.animalNascidoId}`}
+                        className="inline-flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-800 hover:underline whitespace-nowrap"
+                      >
+                        ↗ Ver ficha do animal
+                      </Link>
+                    )}
+                  </div>
                 </td>
 
                 {/* Excluir */}

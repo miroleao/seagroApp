@@ -283,17 +283,31 @@ function Genealogia({ animal }: { animal: any }) {
   );
 }
 
+// ── Helper para parsear campos das observações (chave:valor|...) ──────────────
+function parseObsKey(obs: string | null | undefined, key: string): string | null {
+  if (!obs) return null;
+  const m = obs.match(new RegExp(`${key}:([^|]+)`));
+  return m ? m[1].trim() : null;
+}
+
 // ── ROI Section ───────────────────────────────────────────────────────────────
 function ROISection({
   valorParcela,
   somaParcelasVenda,
+  parcelaCompra,
+  numParcelasCompra,
+  leilaoCompra,
 }: {
   valorParcela: number;
   somaParcelasVenda: number;
+  parcelaCompra?: number;
+  numParcelasCompra?: number;
+  leilaoCompra?: string | null;
 }) {
+  const totalCompra  = (parcelaCompra ?? 0) * (numParcelasCompra ?? 0);
   const totalReceita = somaParcelasVenda * 30;
   const totalCusto   = valorParcela * 30;
-  const saldo        = totalReceita - totalCusto;
+  const saldo        = totalReceita - totalCusto - totalCompra;
   const positivo     = saldo >= 0;
 
   return (
@@ -350,10 +364,34 @@ function ROISection({
           </p>
           <p className="text-xs text-gray-400 mt-0.5">
             {formatCurrency(totalReceita)} − {formatCurrency(totalCusto)}
+            {totalCompra > 0 ? ` − ${formatCurrency(totalCompra)}` : ""}
           </p>
         </div>
 
       </div>
+
+      {/* Custo de aquisição via prenhez comprada */}
+      {(parcelaCompra ?? 0) > 0 && (
+        <div className="mt-3 p-3 bg-orange-50 border border-orange-100 rounded-lg">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-1.5">
+              <ShoppingCart className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+              <span className="text-xs font-semibold text-orange-700">
+                Custo de aquisição (prenhez comprada)
+                {leilaoCompra ? <span className="font-normal text-orange-500"> — {leilaoCompra}</span> : ""}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <span className="font-bold text-orange-600">{formatCurrency(parcelaCompra!)}/parcela</span>
+              {(numParcelasCompra ?? 0) > 0 && (
+                <span className="text-orange-400 text-xs">
+                  × {numParcelasCompra} = <span className="font-semibold text-orange-600">{formatCurrency(totalCompra)}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -521,6 +559,18 @@ export default async function DoadoraDetalhePage({
 
   // Une as duas listas (por ID + legados por nome)
   const transacoes = [...(txPorId ?? []), ...(txPorNome ?? [])];
+
+  // Prenhez de origem — se este animal nasceu de uma prenhez comprada
+  const { data: prenhez } = await supabase
+    .from("aspirations")
+    .select("observacoes")
+    .eq("animal_nascido_id", id)
+    .eq("farm_id", FARM_ID)
+    .maybeSingle();
+
+  const parcelaCompra    = prenhez ? parseFloat(parseObsKey(prenhez.observacoes, "PARCELA")     ?? "0") || 0 : 0;
+  const numParcelasCompra= prenhez ? parseInt(  parseObsKey(prenhez.observacoes, "NUM_PARCELAS") ?? "0") || 0 : 0;
+  const leilaoCompra     = prenhez ? parseObsKey(prenhez.observacoes, "LEILAO") : null;
 
   if (!doadora) {
     return (
@@ -995,6 +1045,9 @@ export default async function DoadoraDetalhePage({
       <ROISection
         valorParcela={valorParcela}
         somaParcelasVenda={somaParcelasVenda}
+        parcelaCompra={parcelaCompra}
+        numParcelasCompra={numParcelasCompra}
+        leilaoCompra={leilaoCompra}
       />
 
       {/* ── Registrar Venda ─────────────────────────────────── */}

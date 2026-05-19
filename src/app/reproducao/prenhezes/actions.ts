@@ -262,11 +262,15 @@ export async function registrarNascimento(formData: FormData) {
     return;
   }
 
-  // Marca resultado na aspiração
+  // Marca resultado na aspiração e linka o animal nascido
   if (asp_id) {
     const { data: asp } = await supabase.from("aspirations").select("observacoes").eq("id", asp_id).single();
     const novaObs = buildObs(asp?.observacoes ?? null, { RESULTADO: "NASCIMENTO", DATA_RESULTADO: nascimento });
-    await supabase.from("aspirations").update({ observacoes: novaObs || null }).eq("id", asp_id);
+    await supabase.from("aspirations").update({
+      observacoes:         novaObs || null,
+      animal_nascido_id:   animal.id,
+      animal_nascido_tipo: tipo,          // "DOADORA" | "TOURO"
+    }).eq("id", asp_id);
   }
 
   // Libera a receptora após parto

@@ -3,7 +3,7 @@ import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import {
   ArrowLeft, Scale, Plus, Trophy, CheckCircle, XCircle, Clock,
-  AlertTriangle, Star, Edit2, Gavel,
+  AlertTriangle, Star, Edit2, Gavel, ShoppingCart,
 } from "lucide-react";
 import {
   toggleParaPistaMacho,
@@ -259,6 +259,23 @@ export default async function MachoDetalhePage({
     .eq("animal_id", id)
     .eq("farm_id", FARM_ID)
     .maybeSingle();
+
+  // Prenhez de origem — se este macho nasceu de prenhez comprada
+  const { data: prenhez } = await supabase
+    .from("aspirations")
+    .select("observacoes")
+    .eq("animal_nascido_id", id)
+    .eq("farm_id", FARM_ID)
+    .maybeSingle();
+
+  function parseObsKey(obs: string | null | undefined, key: string): string | null {
+    if (!obs) return null;
+    const m = obs.match(new RegExp(`${key}:([^|]+)`));
+    return m ? m[1].trim() : null;
+  }
+  const parcelaCompra     = prenhez ? parseFloat(parseObsKey(prenhez.observacoes, "PARCELA")     ?? "0") || 0 : 0;
+  const numParcelasCompra = prenhez ? parseInt(  parseObsKey(prenhez.observacoes, "NUM_PARCELAS") ?? "0") || 0 : 0;
+  const leilaoCompra      = prenhez ? parseObsKey(prenhez.observacoes, "LEILAO") : null;
 
   // Histórico de pesagens (mais recente primeiro)
   const { data: pesagens } = await supabase
@@ -863,6 +880,31 @@ export default async function MachoDetalhePage({
             </button>
           </form>
         </section>
+      )}
+
+      {/* ── Custo de aquisição (nascido de prenhez comprada) ── */}
+      {parcelaCompra > 0 && (
+        <div className="card p-5">
+          <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+            <ShoppingCart className="w-4 h-4 text-orange-500" />
+            Custo de Aquisição
+          </h2>
+          <div className="p-3 bg-orange-50 border border-orange-100 rounded-lg">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="text-xs font-semibold text-orange-700">
+                Prenhez comprada{leilaoCompra ? <span className="font-normal text-orange-500"> — {leilaoCompra}</span> : ""}
+              </span>
+              <div className="flex items-center gap-3 text-sm">
+                <span className="font-bold text-orange-600">{formatCurrency(parcelaCompra)}/parcela</span>
+                {numParcelasCompra > 0 && (
+                  <span className="text-orange-400 text-xs">
+                    × {numParcelasCompra} = <span className="font-semibold text-orange-600">{formatCurrency(parcelaCompra * numParcelasCompra)}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Histórico de Pesagens com Ponderal ──────────────── */}
