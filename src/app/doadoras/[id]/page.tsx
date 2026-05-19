@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2, Gavel, Heart } from "lucide-react";
-import { toggleParaPista, toggleNascidoSeAgro, toggleParaLeilao, salvarInfoLeilao, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio, atualizarValorParcela } from "./actions";
+import { toggleParaPista, toggleNascidoSeAgro, toggleParaLeilao, salvarInfoLeilao, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio, atualizarValorParcela, corrigirPartos } from "./actions";
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
@@ -743,10 +743,9 @@ export default async function DoadoraDetalhePage({
           <div>
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Nascimento</p>
             <p className="font-medium text-gray-900">{formatDate(doadora.nascimento)}</p>
-            {/* Badge mostrando o último parto e a idade que tinha */}
+            {/* Badges de parto + edição inline */}
             {(doadora as any).numero_partos > 0 && (doadora as any).data_ultimo_parto && (
               <div className="mt-1.5 flex flex-col gap-1">
-                {/* Mostrar cada parto: 1º parto e os seguintes */}
                 {(doadora as any).data_primeiro_parto && (() => {
                   const meses1 = mesesEntre(doadora.nascimento, (doadora as any).data_primeiro_parto);
                   return (
@@ -755,7 +754,6 @@ export default async function DoadoraDetalhePage({
                     </span>
                   );
                 })()}
-                {/* Último parto se for diferente do primeiro */}
                 {(doadora as any).numero_partos > 1 && (doadora as any).data_ultimo_parto !== (doadora as any).data_primeiro_parto && (() => {
                   const n      = (doadora as any).numero_partos as number;
                   const mesesN = mesesEntre(doadora.nascimento, (doadora as any).data_ultimo_parto);
@@ -767,6 +765,51 @@ export default async function DoadoraDetalhePage({
                 })()}
               </div>
             )}
+            {/* Corrigir partos — edição inline */}
+            <details className="group mt-1.5">
+              <summary className="list-none cursor-pointer text-[10px] text-gray-300 hover:text-gray-500 transition-colors select-none">
+                ✏ corrigir partos
+              </summary>
+              <form action={corrigirPartos} className="mt-2 space-y-1.5 bg-orange-50 border border-orange-100 rounded-lg p-2.5">
+                <input type="hidden" name="id" value={doadora.id} />
+                <p className="text-[10px] font-semibold text-orange-600 uppercase tracking-wide mb-1">Corrigir contagem de partos</p>
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-0.5">
+                    <label className="text-[10px] text-gray-500">Nº de partos</label>
+                    <input
+                      name="numero_partos"
+                      type="number"
+                      min="0"
+                      step="1"
+                      defaultValue={(doadora as any).numero_partos ?? ""}
+                      className="w-16 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-orange-300 text-center"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <label className="text-[10px] text-gray-500">1º parto</label>
+                    <input
+                      name="data_primeiro_parto"
+                      type="date"
+                      defaultValue={(doadora as any).data_primeiro_parto ?? ""}
+                      className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-orange-300"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <label className="text-[10px] text-gray-500">Último parto</label>
+                    <input
+                      name="data_ultimo_parto"
+                      type="date"
+                      defaultValue={(doadora as any).data_ultimo_parto ?? ""}
+                      className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-orange-300"
+                    />
+                  </div>
+                </div>
+                <button type="submit"
+                  className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded transition-colors font-medium">
+                  Salvar correção
+                </button>
+              </form>
+            </details>
           </div>
 
           {/* % Próprio — editável inline */}
