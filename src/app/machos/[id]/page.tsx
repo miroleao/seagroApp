@@ -19,6 +19,7 @@ import {
   registrarPesagemMacho,
   adicionarPremiacaoMacho,
   atualizarGenealogiaTouro,
+  atualizarValorParcelaMacho,
 } from "./actions";
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 
@@ -881,6 +882,46 @@ export default async function MachoDetalhePage({
           </form>
         </section>
       )}
+
+      {/* ── Parcela mensal do macho ──────────────────────────── */}
+      <div className="card p-5">
+        <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+          <ShoppingCart className="w-4 h-4 text-gray-500" />
+          Desempenho Financeiro
+        </h2>
+        <div className="flex items-center gap-6 flex-wrap">
+          <div>
+            <details className="group">
+              <summary className="list-none cursor-pointer flex items-center gap-1.5">
+                <span className={`text-2xl font-bold ${(macho.valor_parcela ?? 0) > 0 ? "text-red-500" : "text-gray-300"}`}>
+                  {(macho.valor_parcela ?? 0) > 0 ? formatCurrency(macho.valor_parcela!) : "—"}
+                </span>
+                <Edit2 className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-500 transition-colors" />
+              </summary>
+              <form action={atualizarValorParcelaMacho} className="mt-2 flex items-center gap-2">
+                <input type="hidden" name="id" value={macho.id} />
+                <input
+                  name="valor_parcela"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  defaultValue={(macho.valor_parcela ?? 0) > 0 ? macho.valor_parcela! : ""}
+                  placeholder="0,00"
+                  className="w-28 border border-brand-400 bg-white rounded px-2 py-1 text-sm outline-none ring-1 ring-brand-200"
+                />
+                <button type="submit"
+                  className="text-xs bg-brand-600 text-white px-2 py-1 rounded hover:bg-brand-700 transition-colors">
+                  OK
+                </button>
+              </form>
+            </details>
+            <p className="text-xs text-gray-400 mt-0.5">Parcela mensal</p>
+            {(macho.valor_parcela ?? 0) > 0 && (
+              <p className="text-xs text-red-300">×30 = {formatCurrency((macho.valor_parcela ?? 0) * 30)}</p>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ── Custo de aquisição (nascido de prenhez comprada) ── */}
       {parcelaCompra > 0 && (

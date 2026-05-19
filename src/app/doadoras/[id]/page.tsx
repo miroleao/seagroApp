@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2, Gavel } from "lucide-react";
-import { toggleParaPista, toggleNascidoSeAgro, toggleParaLeilao, salvarInfoLeilao, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio } from "./actions";
+import { toggleParaPista, toggleNascidoSeAgro, toggleParaLeilao, salvarInfoLeilao, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio, atualizarValorParcela } from "./actions";
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
@@ -297,12 +297,14 @@ function ROISection({
   parcelaCompra,
   numParcelasCompra,
   leilaoCompra,
+  animalId,
 }: {
   valorParcela: number;
   somaParcelasVenda: number;
   parcelaCompra?: number;
   numParcelasCompra?: number;
   leilaoCompra?: string | null;
+  animalId: string;
 }) {
   const totalCompra  = (parcelaCompra ?? 0) * (numParcelasCompra ?? 0);
   const totalReceita = somaParcelasVenda * 30;
@@ -337,21 +339,40 @@ function ROISection({
           )}
         </div>
 
-        {/* Parcela mensal (custo) */}
+        {/* Parcela mensal (custo) — editável inline */}
         <div>
-          {valorParcela > 0 ? (
-            <>
-              <p className="text-xl font-bold text-red-500">{formatCurrency(valorParcela)}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Parcela mensal</p>
-              <p className="text-xs text-red-300 mt-0.5">×30 = {formatCurrency(totalCusto)}</p>
-            </>
-          ) : (
-            <>
-              <p className="text-xl font-bold text-gray-300">—</p>
-              <p className="text-xs text-gray-400 mt-0.5">Parcela mensal</p>
-              <p className="text-xs text-gray-300 mt-0.5">×30 = {formatCurrency(0)}</p>
-            </>
-          )}
+          <details className="group">
+            <summary className="list-none cursor-pointer">
+              {valorParcela > 0 ? (
+                <p className="text-xl font-bold text-red-500 group-hover:opacity-80 transition-opacity">
+                  {formatCurrency(valorParcela)}
+                  <Edit2 className="inline w-3 h-3 text-gray-300 group-hover:text-gray-500 ml-1 transition-colors" />
+                </p>
+              ) : (
+                <p className="text-xl font-bold text-gray-300 group-hover:opacity-80 transition-opacity">
+                  — <Edit2 className="inline w-3 h-3 text-gray-300 group-hover:text-gray-500 ml-1 transition-colors" />
+                </p>
+              )}
+            </summary>
+            <form action={atualizarValorParcela} className="mt-2 flex items-center justify-center gap-2">
+              <input type="hidden" name="id" value={animalId} />
+              <input
+                name="valor_parcela"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={valorParcela > 0 ? valorParcela : ""}
+                placeholder="0,00"
+                className="w-28 border border-brand-400 bg-white rounded px-2 py-1 text-sm outline-none ring-1 ring-brand-200 text-center"
+              />
+              <button type="submit"
+                className="text-xs bg-brand-600 text-white px-2 py-1 rounded hover:bg-brand-700 transition-colors">
+                OK
+              </button>
+            </form>
+          </details>
+          <p className="text-xs text-gray-400 mt-0.5">Parcela mensal</p>
+          <p className="text-xs text-red-300 mt-0.5">×30 = {formatCurrency(totalCusto)}</p>
         </div>
 
         {/* Saldo ROI */}
@@ -1048,6 +1069,7 @@ export default async function DoadoraDetalhePage({
         parcelaCompra={parcelaCompra}
         numParcelasCompra={numParcelasCompra}
         leilaoCompra={leilaoCompra}
+        animalId={doadora.id}
       />
 
       {/* ── Registrar Venda ─────────────────────────────────── */}

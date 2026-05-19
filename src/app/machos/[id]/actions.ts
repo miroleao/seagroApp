@@ -155,6 +155,20 @@ export async function atualizarRgn(formData: FormData) {
   redirect(`/machos/${id}`);
 }
 
+export async function atualizarValorParcelaMacho(formData: FormData) {
+  const id      = formData.get("id") as string;
+  const parcela = parseFloat(formData.get("valor_parcela") as string);
+  if (!id) return;
+  const supabase = await createClient();
+  await supabase
+    .from("animals")
+    .update({ valor_parcela: isNaN(parcela) ? null : parcela })
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+  revalidatePath(`/machos/${id}`);
+  redirect(`/machos/${id}`);
+}
+
 export async function atualizarRGD(formData: FormData) {
   const id  = formData.get("id") as string;
   const rgd = formData.get("rgd") as string || null;

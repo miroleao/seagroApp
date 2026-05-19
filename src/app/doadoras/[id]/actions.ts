@@ -15,6 +15,20 @@ export async function atualizarRgn(formData: FormData) {
   redirect(`/doadoras/${id}`);
 }
 
+export async function atualizarValorParcela(formData: FormData) {
+  const id      = formData.get("id") as string;
+  const parcela = parseFloat(formData.get("valor_parcela") as string);
+  if (!id) return;
+  const supabase = await createClient();
+  await supabase
+    .from("animals")
+    .update({ valor_parcela: isNaN(parcela) ? null : parcela })
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+  revalidatePath(`/doadoras/${id}`);
+  redirect(`/doadoras/${id}`);
+}
+
 export async function toggleParaPista(formData: FormData) {
   const id    = formData.get("id") as string;
   const valor = formData.get("para_pista") === "true";
