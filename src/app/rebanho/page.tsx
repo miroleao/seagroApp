@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, FARM_ID } from "@/lib/utils";
-import { Beef, Plus, Search, Filter, Baby, ChevronRight, X } from "lucide-react";
+import { Plus, Search, Filter, X } from "lucide-react";
+import { PrenhasAtivasSection, type PrenhaAnimal } from "./PrenhasAtivasSection";
 import { cadastrarAnimal, cadastrarLote } from "./actions";
 import { FiltroStatus } from "./FiltroStatus";
 import { FiltroClassificacao } from "./FiltroClassificacao";
@@ -221,12 +222,23 @@ export default async function RebanhoPage({
 
   const animais = animaisRaw ?? [];
 
-  // Contagens por classificação
+  // Contagens por classificação (mantido para filtros)
   const counts = animais.reduce((acc, a) => {
     const k = a.classificacao ?? (a.tipo === "DESCARTE" ? "DESCARTE" : "OUTRO");
     acc[k] = (acc[k] ?? 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  // Contagens por status reprodutivo (para os novos cards)
+  const countStatus = animais.reduce((acc, a) => {
+    const k = a.status_rebanho ?? "VAZIA";
+    acc[k] = (acc[k] ?? 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const countPrenhas      = (countStatus["PRENHA"] ?? 0) + (countStatus["PRENHA_EMBRIAO"] ?? 0);
+  const countProtocoladas = countStatus["PROTOCOLADA"] ?? 0;
+  const countInseminadas  = countStatus["INSEMINADA"] ?? 0;
+  const countParidas      = countStatus["PARIDA"] ?? 0;
 
   // Filtro
   const filtered = animais.filter(a => {
@@ -250,6 +262,28 @@ export default async function RebanhoPage({
       if (!pb) return -1;
       return pa < pb ? -1 : pa > pb ? 1 : 0;
     });
+
+  // Serializar dados para o componente cliente da seção de prenhes
+  const prenhasComInfo: PrenhaAnimal[] = prenhas.map(a => {
+    const p = prenhezesMapa.get(a.id);
+    return {
+      id:             a.id,
+      brinco:         a.brinco ?? null,
+      nome:           a.nome ?? null,
+      status_rebanho: a.status_rebanho ?? null,
+      localizacao:    a.localizacao ?? null,
+      prenheInfo: p ? {
+        transferId:  p.transferId,
+        previsao:    p.previsao,
+        dataTe:      p.dataTe,
+        doadoraNome: p.doadoraNome,
+        doadoraId:   p.doadoraId,
+        touroNome:   p.touroNome,
+        sexagem:     p.sexagem,
+        tipoDesfecho: p.tipoDesfecho,
+      } : null,
+    };
+  });
 
   return (
     <div className="p-6 space-y-6">
@@ -319,104 +353,57 @@ export default async function RebanhoPage({
         </div>
       </div>
 
-      {/* Cards rápidos por classificação */}
+      {/* Cards rápidos por status */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {[
-          { key: "",          label: "Todos",      count: animais.length,           color: "brand" },
-          { key: "RECEPTORA", label: "Receptoras", count: counts["RECEPTORA"] ?? 0, color: "pink"  },
-          { key: "RECRIA",    label: "Recria",     count: counts["RECRIA"] ?? 0,    color: "orange"},
-          { key: "DESCARTE",  label: "Descarte",   count: counts["DESCARTE"] ?? 0,  color: "red"   },
-          { key: "OUTRO",     label: "Outros",     count: counts["OUTRO"] ?? 0,     color: "gray"  },
-        ].map(({ key, label, count, color }) => (
-          <Link key={key} href={`?${key ? `cls=${key}` : ""}${q ? `&q=${q}` : ""}${st ? `&st=${st}` : ""}`}
-            className={`card p-4 text-center transition-colors hover:shadow-md ${(cls ?? "") === key ? "ring-2 ring-brand-400" : ""}`}>
-            <p className={`text-3xl font-bold text-${color}-600`}>{count}</p>
-            <p className="text-xs text-gray-500 mt-1">{label}</p>
-          </Link>
-        ))}
+        {/* Rebanho Total */}
+        <Link
+          href={`?${q ? `q=${q}` : ""}${st ? `&st=${st}` : ""}`}
+          className={`card p-4 text-center transition-colors hover:shadow-md ${!cls && !st ? "ring-2 ring-brand-400" : ""}`}
+        >
+          <p className="text-3xl font-bold text-brand-600">{animais.length}</p>
+          <p className="text-xs text-gray-600 mt-1 font-medium">Rebanho Total</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">Gado PO e Receptoras</p>
+        </Link>
+
+        {/* Receptoras Prenhas */}
+        <Link
+          href={`?st=PRENHA${q ? `&q=${q}` : ""}`}
+          className={`card p-4 text-center transition-colors hover:shadow-md ${st === "PRENHA" ? "ring-2 ring-green-400" : ""}`}
+        >
+          <p className="text-3xl font-bold text-green-600">{countPrenhas}</p>
+          <p className="text-xs text-gray-500 mt-1">Prenhas</p>
+        </Link>
+
+        {/* Receptoras Protocoladas */}
+        <Link
+          href={`?st=PROTOCOLADA${q ? `&q=${q}` : ""}`}
+          className={`card p-4 text-center transition-colors hover:shadow-md ${st === "PROTOCOLADA" ? "ring-2 ring-purple-400" : ""}`}
+        >
+          <p className="text-3xl font-bold text-purple-600">{countProtocoladas}</p>
+          <p className="text-xs text-gray-500 mt-1">Protocoladas</p>
+        </Link>
+
+        {/* Receptoras Inseminadas */}
+        <Link
+          href={`?st=INSEMINADA${q ? `&q=${q}` : ""}`}
+          className={`card p-4 text-center transition-colors hover:shadow-md ${st === "INSEMINADA" ? "ring-2 ring-blue-400" : ""}`}
+        >
+          <p className="text-3xl font-bold text-blue-600">{countInseminadas}</p>
+          <p className="text-xs text-gray-500 mt-1">Inseminadas</p>
+        </Link>
+
+        {/* Receptoras Paridas */}
+        <Link
+          href={`?st=PARIDA${q ? `&q=${q}` : ""}`}
+          className={`card p-4 text-center transition-colors hover:shadow-md ${st === "PARIDA" ? "ring-2 ring-teal-400" : ""}`}
+        >
+          <p className="text-3xl font-bold text-teal-600">{countParidas}</p>
+          <p className="text-xs text-gray-500 mt-1">Paridas</p>
+        </Link>
       </div>
 
-      {/* Prenhas em destaque */}
-      {prenhas.length > 0 && (
-        <section className="card overflow-hidden border-green-200">
-          <div className="px-5 py-3 bg-green-50 border-b border-green-100 flex items-center gap-2">
-            <Baby className="w-4 h-4 text-green-600" />
-            <h2 className="font-semibold text-green-800 text-sm">Prenhes Ativas</h2>
-            <span className="badge bg-green-100 text-green-700 ml-auto">{prenhas.length}</span>
-          </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Brinco</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Status</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Doadora</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Touro</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Sexagem</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Data T.E.</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Prev. Parto</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Desfecho</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Local</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {prenhas.map((a: any) => {
-                const p = prenhezesMapa.get(a.id);
-                return (
-                  <tr key={a.id} className="table-row-hover">
-                    <td className="px-4 py-2.5 font-mono font-semibold">
-                      <Link href={`/rebanho/${a.id}`} className="text-brand-700 hover:text-brand-900 hover:underline">
-                        {a.brinco ?? a.nome}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5"><StatusBadge st={a.status_rebanho} /></td>
-                    <td className="px-4 py-2.5 text-xs">
-                      {p?.doadoraId ? (
-                        <Link href={`/doadoras/${p.doadoraId}`} className="text-brand-600 hover:underline font-medium">
-                          {p.doadoraNome}
-                        </Link>
-                      ) : p?.doadoraNome ?? <span className="text-gray-300">—</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600">{p?.touroNome ?? "—"}</td>
-                    <td className="px-4 py-2.5"><SexagemBadge sexagem={p?.sexagem ?? null} /></td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600">{formatDate(p?.dataTe ?? null)}</td>
-                    <td className="px-4 py-2.5 text-xs font-semibold text-green-700">{formatDate(p?.previsao ?? null)}</td>
-                    <td className="px-4 py-2.5">
-                      <DesfechoUnificadoInline
-                        animalId={a.id}
-                        brinco={a.brinco ?? a.nome ?? ""}
-                        isPrenha={true}
-                        transferId={p?.transferId ?? null}
-                        tipoDesfechoAtual={p?.tipoDesfecho ?? null}
-                        statusRebanho={a.status_rebanho ?? null}
-                      />
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <EditLocalizacaoRebanho animalId={a.id} localizacao={a.localizacao ?? null} />
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <Link href={`/rebanho/${a.id}`}
-                          className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline">
-                          Ficha <ChevronRight className="w-3 h-3" />
-                        </Link>
-                        <EditPrenheInline
-                          receptoraId={a.id}
-                          brinco={a.brinco ?? a.nome ?? ""}
-                          doadoraNome={p?.doadoraNome ?? null}
-                          touroNome={p?.touroNome ?? null}
-                          dataTe={p?.dataTe ?? null}
-                          previsao={p?.previsao ?? null}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </section>
-      )}
+      {/* Prenhes Ativas — colapsível */}
+      <PrenhasAtivasSection prenhas={prenhasComInfo} />
 
       {/* Filtros + Tabela principal */}
       <section className="card overflow-hidden">
