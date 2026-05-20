@@ -703,6 +703,7 @@ export async function vincularNascimentoNatural(formData: FormData) {
 export async function vincularFilhoteParida(formData: FormData) {
   const doadora_id = (formData.get("doadora_id") as string)?.trim();
   const animal_id  = (formData.get("animal_id")  as string)?.trim();
+  const prenhez_id = (formData.get("prenhez_id") as string)?.trim() || null;
 
   if (!doadora_id || !animal_id) return;
 
@@ -732,32 +733,40 @@ export async function vincularFilhoteParida(formData: FormData) {
   if (Object.keys(filhoteUpdate).length > 0)
     await supabase.from("animals").update(filhoteUpdate).eq("id", animal_id).eq("farm_id", FARM_ID);
 
-  // Encontra o registro PARIDA mais recente ou cria um
-  const { data: pnParida } = await supabase
-    .from("prenhezes_naturais")
-    .select("id")
-    .eq("doadora_id", doadora_id)
-    .eq("resultado", "PARIDA")
-    .is("animal_nascido_id", null)           // prioriza os sem animal vinculado
-    .order("criado_em", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (pnParida) {
+  if (prenhez_id) {
+    // Vincula ao registro específico informado
     await supabase.from("prenhezes_naturais")
       .update({ animal_nascido_id: animal_id })
-      .eq("id", pnParida.id);
+      .eq("id", prenhez_id)
+      .eq("doadora_id", doadora_id);
   } else {
-    // Cria registro retroativo se não existir nenhum
-    await supabase.from("prenhezes_naturais").insert({
-      farm_id:           FARM_ID,
-      doadora_id,
-      touro_nome:        (doadora as any).touro_ultimo_parto   ?? null,
-      touro_rgd:         (doadora as any).rgd_touro_ultimo_parto ?? null,
-      data_parto:        (doadora as any).data_ultimo_parto    ?? null,
-      resultado:         "PARIDA",
-      animal_nascido_id: animal_id,
-    });
+    // Fallback: encontra o PARIDA mais antigo sem filhote vinculado
+    const { data: pnParida } = await supabase
+      .from("prenhezes_naturais")
+      .select("id")
+      .eq("doadora_id", doadora_id)
+      .eq("resultado", "PARIDA")
+      .is("animal_nascido_id", null)
+      .order("data_parto", { ascending: true, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (pnParida) {
+      await supabase.from("prenhezes_naturais")
+        .update({ animal_nascido_id: animal_id })
+        .eq("id", pnParida.id);
+    } else {
+      // Cria registro retroativo se não existir nenhum
+      await supabase.from("prenhezes_naturais").insert({
+        farm_id:           FARM_ID,
+        doadora_id,
+        touro_nome:        (doadora as any).touro_ultimo_parto    ?? null,
+        touro_rgd:         (doadora as any).rgd_touro_ultimo_parto ?? null,
+        data_parto:        (doadora as any).data_ultimo_parto     ?? null,
+        resultado:         "PARIDA",
+        animal_nascido_id: animal_id,
+      });
+    }
   }
 
   revalidatePath(`/doadoras/${doadora_id}`);

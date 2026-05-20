@@ -506,6 +506,8 @@ export default async function DoadoraDetalhePage({
       )
     `)
     .eq("doadora_id", id)
+    .order("data_parto", { ascending: false, nullsFirst: false })
+    .order("data_inseminacao", { ascending: false, nullsFirst: false })
     .order("criado_em", { ascending: false });
 
   // Info de leilão do animal
@@ -1300,7 +1302,17 @@ export default async function DoadoraDetalhePage({
                       )}
                     </Link>
                   ) : pn.resultado === "PARIDA" ? (
-                    <span className="ml-auto text-xs text-gray-300 italic">Filhote não vinculado</span>
+                    <div className="ml-auto">
+                      <VincularFilhoteParida
+                        doadoraId={doadora.id}
+                        prenhezId={pn.id}
+                        animaisDisponiveis={(animaisVincular ?? []).map((a: any) => ({
+                          id:   a.id,
+                          nome: a.nome ?? "",
+                          tipo: a.tipo ?? "DOADORA",
+                        }))}
+                      />
+                    </div>
                   ) : null}
                 </div>
               );

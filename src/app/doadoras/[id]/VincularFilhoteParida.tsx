@@ -7,9 +7,10 @@ import { vincularFilhoteParida } from "./actions";
 interface Props {
   doadoraId: string;
   animaisDisponiveis: { id: string; nome: string; tipo: string }[];
+  prenhezId?: string; // se informado, vincula a esse registro específico
 }
 
-export function VincularFilhoteParida({ doadoraId, animaisDisponiveis }: Props) {
+export function VincularFilhoteParida({ doadoraId, animaisDisponiveis, prenhezId }: Props) {
   const [aberto, setAberto]         = useState(false);
   const [busca, setBusca]           = useState("");
   const [selecionado, setSelecionado] = useState<{ id: string; nome: string; tipo: string } | null>(null);
@@ -27,6 +28,7 @@ export function VincularFilhoteParida({ doadoraId, animaisDisponiveis }: Props) 
     const fd = new FormData();
     fd.append("doadora_id", doadoraId);
     fd.append("animal_id",  selecionado.id);
+    if (prenhezId) fd.append("prenhez_id", prenhezId);
     startTransition(() => vincularFilhoteParida(fd));
   }
 
