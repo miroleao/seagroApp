@@ -12,7 +12,7 @@ interface Props {
 export function VincularFilhoteParida({ doadoraId, animaisDisponiveis }: Props) {
   const [aberto, setAberto]         = useState(false);
   const [busca, setBusca]           = useState("");
-  const [selecionado, setSelecionado] = useState<{ id: string; nome: string } | null>(null);
+  const [selecionado, setSelecionado] = useState<{ id: string; nome: string; tipo: string } | null>(null);
   const [pending, startTransition]  = useTransition();
 
   const filtrados = busca.length >= 2
@@ -80,7 +80,7 @@ export function VincularFilhoteParida({ doadoraId, animaisDisponiveis }: Props) 
                 <button
                   key={a.id}
                   type="button"
-                  onClick={() => { setSelecionado({ id: a.id, nome: a.nome }); setBusca(""); }}
+                  onClick={() => { setSelecionado({ id: a.id, nome: a.nome, tipo: a.tipo }); setBusca(""); }}
                   className="w-full text-left px-3 py-2 text-xs hover:bg-brand-50 transition-colors flex items-center gap-2"
                 >
                   <span>{a.tipo === "TOURO" ? "🐂" : "🐄"}</span>

@@ -38,14 +38,11 @@ export function ReproStatusForm({
   dataUltimoParto,
   numeroParto,
 }: ReproStatusFormProps) {
-  const [selectedStatus, setSelectedStatus] = useState(statusAtual ?? "");
+  // Inicia sempre vazio — após salvar a action faz redirect, remontando a página limpa
+  const [selectedStatus, setSelectedStatus] = useState("");
 
   const showTouro = selectedStatus === "INSEMINADA" || selectedStatus === "GESTANTE";
   const showParto = selectedStatus === "PARIDA";
-
-  // Para PARIDA, pré-preenche o touro da inseminação atual
-  const touroDefault = showParto ? (touroPrenhez ?? touroUltimoParto ?? "") : (touroPrenhez ?? "");
-  const rgdDefault   = showParto ? (rgdTouroPrenhez ?? rgdTouroUltimoParto ?? "") : (rgdTouroPrenhez ?? "");
 
   return (
     <form action={atualizarStatusReprodutivo} className="space-y-3">
@@ -81,7 +78,6 @@ export function ReproStatusForm({
           <input
             name="data_status"
             type="date"
-            defaultValue={dataStatus ?? ""}
             className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white"
           />
         </div>
@@ -96,7 +92,6 @@ export function ReproStatusForm({
               <input
                 name="touro_nome"
                 type="text"
-                defaultValue={touroDefault}
                 placeholder="Nome do touro…"
                 className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white w-44"
               />
@@ -106,7 +101,6 @@ export function ReproStatusForm({
               <input
                 name="touro_rgd"
                 type="text"
-                defaultValue={rgdDefault}
                 placeholder="RGD ou RGN…"
                 className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 font-mono focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white w-32"
               />

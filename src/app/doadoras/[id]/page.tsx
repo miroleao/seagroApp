@@ -853,7 +853,7 @@ export default async function DoadoraDetalhePage({
           </div>
 
           {/* Status Reprodutivo — formulário contextual (client component) */}
-          <div className="md:col-span-4">
+          <div className="col-span-2 md:col-span-4">
             <p className="text-gray-400 text-xs uppercase tracking-wide mb-2">Status Reprodutivo</p>
 
             {/* Resumo visual do status atual */}
