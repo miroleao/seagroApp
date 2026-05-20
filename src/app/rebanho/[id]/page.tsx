@@ -150,7 +150,7 @@ export default async function FichaRebanhoPage({
   // Busca TODOS os filhotes nascidos nas datas de parição desta receptora (1 query só)
   const datasParicao = (historico ?? [])
     .flatMap((t: any) => t.diagnoses ?? [])
-    .filter((d: any) => d.tipo_desfecho === "PARIDA" && d.data_desfecho)
+    .filter((d: any) => (d.tipo_desfecho === "PARIDA" || d.resultado === "PARIDA") && d.data_desfecho)
     .map((d: any) => d.data_desfecho as string);
 
   const { data: todosFilhotes } = datasParicao.length > 0
@@ -189,7 +189,7 @@ export default async function FichaRebanhoPage({
   }
 
   // Bezerro da parição mais recente (para o card de cabeçalho)
-  const bezzerraNascida = ultimoDg?.tipo_desfecho === "PARIDA" && ultimoDg?.data_desfecho
+  const bezzerraNascida = (ultimoDg?.tipo_desfecho === "PARIDA" || ultimoDg?.resultado === "PARIDA") && ultimoDg?.data_desfecho
     ? filhoteDaParicao(ultimoDg.data_desfecho, ultimoAsp?.doadora_id ?? null)
     : null;
 
@@ -269,7 +269,7 @@ export default async function FichaRebanhoPage({
         {/* ── Desfecho do último embrião (se não for mais prenha) ─────────── */}
         {!isPrenha && ultimoDg?.tipo_desfecho && (
           <div className="mt-4 pt-4 border-t border-gray-100">
-            {ultimoDg.tipo_desfecho === "PARIDA" ? (
+            {(ultimoDg.tipo_desfecho === "PARIDA" || ultimoDg.resultado === "PARIDA") ? (
               <div className="flex flex-wrap items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                 <span className="text-green-700 font-semibold text-sm">🐄 Pariu em {formatDate(ultimoDg.data_desfecho)}</span>
                 <span className="text-green-600 text-sm">
@@ -437,9 +437,11 @@ export default async function FichaRebanhoPage({
               const isLast   = idx === historico.length - 1;
               const doadoraId = asp?.doadora?.id ?? asp?.doadora_id ?? null;
               const doadoraNome = asp?.doadora?.nome ?? asp?.doadora_nome ?? null;
+              // Considera parida tanto por tipo_desfecho quanto por resultado
+              const isParida = dg?.tipo_desfecho === "PARIDA" || dg?.resultado === "PARIDA";
               // Prioridade: FK direta > match por data de nascimento
               const filhoteVinculado = dg?.animal_nascido ?? null;
-              const filhotePorData   = dg?.tipo_desfecho === "PARIDA" && dg?.data_desfecho && !filhoteVinculado
+              const filhotePorData   = isParida && dg?.data_desfecho && !filhoteVinculado
                 ? filhoteDaParicao(dg.data_desfecho, doadoraId ?? null)
                 : null;
               const filhote = filhoteVinculado ?? filhotePorData;
@@ -448,11 +450,11 @@ export default async function FichaRebanhoPage({
               type EventConfig = { icon: React.ReactNode; dotCls: string; titulo: string; tituloCls: string };
               let cfg: EventConfig;
 
-              if (dg?.tipo_desfecho === "PARIDA") {
+              if (isParida) {
                 cfg = {
                   icon: <Baby className="w-3.5 h-3.5" />,
                   dotCls: "bg-green-500 ring-green-200",
-                  titulo: `Parto em ${formatDate(dg.data_desfecho)}`,
+                  titulo: dg?.data_desfecho ? `Parto em ${formatDate(dg.data_desfecho)}` : "Parida",
                   tituloCls: "text-green-700",
                 };
               } else if (dg?.tipo_desfecho === "ABORTOU") {
@@ -555,7 +557,7 @@ export default async function FichaRebanhoPage({
                           <span className="text-[11px] text-gray-400 font-mono">({filhote.rgn})</span>
                         )}
                       </div>
-                    ) : dg?.tipo_desfecho === "PARIDA" && dg?.id ? (
+                    ) : isParida && dg?.id ? (
                       <div className="mt-1.5">
                         <VincularBezerroReceptora
                           dgId={dg.id}

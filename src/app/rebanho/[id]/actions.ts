@@ -148,7 +148,7 @@ export async function registrarNascimento(formData: FormData) {
   // 2. Atualiza o diagnóstico de prenhez para PARIDA
   await supabase
     .from("pregnancy_diagnoses")
-    .update({ resultado: "PARIDA" })
+    .update({ resultado: "PARIDA", tipo_desfecho: "PARIDA", data_desfecho: data_nascimento })
     .eq("transfer_id", transfer_id)
     .eq("farm_id", FARM_ID);
 
