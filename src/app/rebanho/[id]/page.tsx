@@ -38,14 +38,24 @@ export default async function FichaRebanhoPage({
   // ── Animal ──────────────────────────────────────────────────────────────────
   const { data: animal } = await supabase
     .from("animals")
-    .select(`
-      id, nome, brinco, tipo, classificacao, status_rebanho, situacao, localizacao,
-      data_entrada, forma_entrada, peso_atual, observacoes, nascimento, cria_id,
-      cria:animals!animals_cria_id_fkey ( id, nome, tipo, rgn )
-    `)
+    .select("id, nome, brinco, tipo, classificacao, status_rebanho, situacao, localizacao, data_entrada, forma_entrada, peso_atual, observacoes, nascimento")
     .eq("id", id)
     .eq("farm_id", FARM_ID)
     .single();
+
+  // Busca cria vinculada manualmente — query separada para não quebrar se a migration ainda não rodou
+  let criaVinculada: { id: string; nome: string; tipo: string; rgn: string | null } | null = null;
+  try {
+    const { data: animalComCria } = await supabase
+      .from("animals")
+      .select("cria_id, cria:animals!animals_cria_id_fkey ( id, nome, tipo, rgn )")
+      .eq("id", id)
+      .eq("farm_id", FARM_ID)
+      .single();
+    criaVinculada = (animalComCria as any)?.cria ?? null;
+  } catch {
+    // migration ainda não rodada — ignora silenciosamente
+  }
 
   if (!animal) notFound();
 
@@ -199,7 +209,7 @@ export default async function FichaRebanhoPage({
     : null;
 
   // Cria vinculada manualmente (para receptoras sem TE)
-  const criaManual = (animal as any).cria ?? null;
+  const criaManual = criaVinculada;
 
   const isPrenha = animal.status_rebanho === "PRENHA" || animal.status_rebanho === "PRENHA_EMBRIAO";
 
@@ -451,7 +461,7 @@ export default async function FichaRebanhoPage({
                 )}
                 {/* Bezerro vinculado manualmente */}
                 {(() => {
-                  const cria = (animal as any).cria;
+                  const cria = criaVinculada;
                   return cria ? (
                     <div className="mt-2 flex items-center gap-1.5">
                       <span className="text-[11px] text-amber-600">Bezerro:</span>
