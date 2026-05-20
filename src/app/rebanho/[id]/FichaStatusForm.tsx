@@ -30,6 +30,8 @@ export function FichaStatusForm({
   const formRef = useRef<HTMLFormElement>(null);
   const router  = useRouter();
 
+  const isParida = status === "PARIDA";
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErro(null); setSalvo(false);
@@ -54,6 +56,21 @@ export function FichaStatusForm({
           ))}
         </select>
       </div>
+
+      {/* Data do parto — só aparece quando PARIDA */}
+      {isParida && (
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">Data do parto</label>
+          <input
+            name="data_parto"
+            type="date"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">
+            Registra o parto no histórico reprodutivo da receptora.
+          </p>
+        </div>
+      )}
 
       <div>
         <label className="text-xs text-gray-500 block mb-1">Observações</label>

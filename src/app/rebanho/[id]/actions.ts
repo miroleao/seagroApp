@@ -11,6 +11,7 @@ export async function atualizarStatusRebanho(formData: FormData): Promise<{ ok: 
   const animal_id    = formData.get("animal_id") as string;
   const status       = formData.get("status_rebanho") as string;
   const observacoes  = (formData.get("observacoes") as string)?.trim() || null;
+  const data_parto   = (formData.get("data_parto") as string)?.trim() || null;
 
   if (!animal_id || !status) return { ok: false, erro: "Dados incompletos" };
 
@@ -21,6 +22,47 @@ export async function atualizarStatusRebanho(formData: FormData): Promise<{ ok: 
     .eq("farm_id", FARM_ID);
 
   if (error) return { ok: false, erro: error.message };
+
+  // ── Se PARIDA com data, registra o desfecho no pregnancy_diagnoses mais recente ──
+  if (status === "PARIDA" && data_parto) {
+    // Encontra o transfer mais recente desta receptora
+    const { data: tf } = await supabase
+      .from("transfers")
+      .select("id")
+      .eq("farm_id", FARM_ID)
+      .eq("receptora_id", animal_id)
+      .order("data_te", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (tf) {
+      // Tenta atualizar o DG existente
+      const { data: dg } = await supabase
+        .from("pregnancy_diagnoses")
+        .select("id")
+        .eq("farm_id", FARM_ID)
+        .eq("transfer_id", tf.id)
+        .order("data_dg", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (dg) {
+        await supabase
+          .from("pregnancy_diagnoses")
+          .update({ tipo_desfecho: "PARIDA", data_desfecho: data_parto })
+          .eq("id", dg.id);
+      } else {
+        // Sem DG — cria um registro de desfecho direto
+        await supabase.from("pregnancy_diagnoses").insert({
+          farm_id:       FARM_ID,
+          transfer_id:   tf.id,
+          resultado:     "POSITIVO",
+          tipo_desfecho: "PARIDA",
+          data_desfecho: data_parto,
+        });
+      }
+    }
+  }
 
   revalidatePath(`/rebanho/${animal_id}`);
   revalidatePath("/rebanho");
