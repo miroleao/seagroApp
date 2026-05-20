@@ -7,6 +7,7 @@ import { FichaStatusForm }         from "./FichaStatusForm";
 import { FichaPesagemForm }        from "./FichaPesagemForm";
 import { NascimentoForm }          from "./NascimentoForm";
 import { VincularBezerroReceptora } from "./VincularBezerroReceptora";
+import { VincularCriaManual }      from "./VincularCriaManual";
 
 const CLASS_MAP: Record<string, { label: string; cls: string }> = {
   RECEPTORA: { label: "Receptora",  cls: "bg-pink-100 text-pink-700"    },
@@ -37,7 +38,11 @@ export default async function FichaRebanhoPage({
   // ── Animal ──────────────────────────────────────────────────────────────────
   const { data: animal } = await supabase
     .from("animals")
-    .select("id, nome, brinco, tipo, classificacao, status_rebanho, situacao, localizacao, data_entrada, forma_entrada, peso_atual, observacoes, nascimento")
+    .select(`
+      id, nome, brinco, tipo, classificacao, status_rebanho, situacao, localizacao,
+      data_entrada, forma_entrada, peso_atual, observacoes, nascimento, cria_id,
+      cria:animals!animals_cria_id_fkey ( id, nome, tipo, rgn )
+    `)
     .eq("id", id)
     .eq("farm_id", FARM_ID)
     .single();
@@ -193,6 +198,9 @@ export default async function FichaRebanhoPage({
     ? filhoteDaParicao(ultimoDg.data_desfecho, ultimoAsp?.doadora_id ?? null)
     : null;
 
+  // Cria vinculada manualmente (para receptoras sem TE)
+  const criaManual = (animal as any).cria ?? null;
+
   const isPrenha = animal.status_rebanho === "PRENHA" || animal.status_rebanho === "PRENHA_EMBRIAO";
 
   const classBadge  = CLASS_MAP[animal.classificacao ?? ""] ?? { label: animal.classificacao ?? "—", cls: "bg-gray-100 text-gray-500" };
@@ -265,6 +273,25 @@ export default async function FichaRebanhoPage({
             </div>
           )}
         </div>
+
+        {/* ── Bezerro vinculado manualmente (sem TE) ──────────────────────── */}
+        {!isPrenha && !ultimoDg?.tipo_desfecho && criaManual && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="flex flex-wrap items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <span className="text-green-700 font-semibold text-sm">🐄 Bezerro(a) registrado</span>
+              <span className="text-gray-400 mx-1">—</span>
+              <Link
+                href={criaManual.tipo === "TOURO" ? `/machos/${criaManual.id}` : `/doadoras/${criaManual.id}`}
+                className="font-semibold text-brand-600 hover:underline text-sm"
+              >
+                {criaManual.tipo === "TOURO" ? "🐂" : "🐄"} {criaManual.nome}
+              </Link>
+              {criaManual.rgn && (
+                <span className="text-xs text-gray-400 font-mono">({criaManual.rgn})</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Desfecho do último embrião (se não for mais prenha) ─────────── */}
         {!isPrenha && ultimoDg?.tipo_desfecho && (
@@ -422,6 +449,33 @@ export default async function FichaRebanhoPage({
                 {animal.situacao && (
                   <p className="text-xs text-amber-600 mt-1">Situação: {animal.situacao}</p>
                 )}
+                {/* Bezerro vinculado manualmente */}
+                {(() => {
+                  const cria = (animal as any).cria;
+                  return cria ? (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span className="text-[11px] text-amber-600">Bezerro:</span>
+                      <Link
+                        href={cria.tipo === "TOURO" ? `/machos/${cria.id}` : `/doadoras/${cria.id}`}
+                        className="text-xs font-semibold text-brand-600 hover:underline"
+                      >
+                        {cria.tipo === "TOURO" ? "🐂" : "🐄"} {cria.nome}
+                      </Link>
+                      {cria.rgn && <span className="text-[11px] text-gray-400 font-mono">({cria.rgn})</span>}
+                    </div>
+                  ) : animal.status_rebanho === "PARIDA" ? (
+                    <div className="mt-2">
+                      <VincularCriaManual
+                        animalId={id}
+                        animaisDisponiveis={(animaisVincular ?? []).map((a: any) => ({
+                          id:   a.id,
+                          nome: a.nome ?? "",
+                          tipo: a.tipo ?? "DOADORA",
+                        }))}
+                      />
+                    </div>
+                  ) : null;
+                })()}
               </div>
             ) : (
               <p className="text-center text-gray-400 text-sm py-4">

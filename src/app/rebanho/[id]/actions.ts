@@ -212,6 +212,26 @@ export async function vincularBezerroReceptora(formData: FormData): Promise<{ ok
   return { ok: true };
 }
 
+// ─── Vincular cria manualmente (receptoras sem TE no sistema) ─────────────────
+export async function vincularCriaManual(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
+  const supabase    = await createClient();
+  const animal_id   = (formData.get("animal_id") as string)?.trim();
+  const cria_id     = (formData.get("cria_id")   as string)?.trim();
+
+  if (!animal_id || !cria_id) return { ok: false, erro: "Dados incompletos" };
+
+  const { error } = await supabase
+    .from("animals")
+    .update({ cria_id })
+    .eq("id", animal_id)
+    .eq("farm_id", FARM_ID);
+
+  if (error) return { ok: false, erro: error.message };
+
+  revalidatePath(`/rebanho/${animal_id}`);
+  return { ok: true };
+}
+
 // ─── Atualizar dados gerais do animal ─────────────────────────────────────────
 export async function atualizarDadosAnimal(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
   const supabase      = await createClient();
