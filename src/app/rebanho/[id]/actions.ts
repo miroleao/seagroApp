@@ -25,8 +25,17 @@ export async function atualizarStatusRebanho(formData: FormData): Promise<{ ok: 
 
   // ── Se PARIDA com data, registra o desfecho no pregnancy_diagnoses mais recente ──
   if (status === "PARIDA" && data_parto) {
-    // Encontra o transfer mais recente desta receptora
-    const { data: tf } = await supabase
+    // Lê o brinco da receptora para buscar também por receptora_brinco
+    const { data: animalData } = await supabase
+      .from("animals")
+      .select("brinco")
+      .eq("id", animal_id)
+      .single();
+    const brinco = (animalData as any)?.brinco as string | null;
+
+    // Tenta encontrar por receptora_id primeiro, depois por brinco
+    let tf: { id: string } | null = null;
+    const { data: tfPorId } = await supabase
       .from("transfers")
       .select("id")
       .eq("farm_id", FARM_ID)
@@ -34,6 +43,19 @@ export async function atualizarStatusRebanho(formData: FormData): Promise<{ ok: 
       .order("data_te", { ascending: false })
       .limit(1)
       .maybeSingle();
+    tf = tfPorId ?? null;
+
+    if (!tf && brinco) {
+      const { data: tfPorBrinco } = await supabase
+        .from("transfers")
+        .select("id")
+        .eq("farm_id", FARM_ID)
+        .eq("receptora_brinco", brinco)
+        .order("data_te", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      tf = tfPorBrinco ?? null;
+    }
 
     if (tf) {
       // Tenta atualizar o DG existente

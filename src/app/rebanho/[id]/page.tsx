@@ -437,8 +437,10 @@ export default async function FichaRebanhoPage({
               const isLast   = idx === historico.length - 1;
               const doadoraId = asp?.doadora?.id ?? asp?.doadora_id ?? null;
               const doadoraNome = asp?.doadora?.nome ?? asp?.doadora_nome ?? null;
-              // Considera parida tanto por tipo_desfecho quanto por resultado
-              const isParida = dg?.tipo_desfecho === "PARIDA" || dg?.resultado === "PARIDA";
+              // Considera parida: tipo_desfecho, resultado, ou status do animal (no primeiro transfer)
+              const isParida = dg?.tipo_desfecho === "PARIDA"
+                || dg?.resultado === "PARIDA"
+                || (idx === 0 && animal.status_rebanho === "PARIDA");
               // Prioridade: FK direta > match por data de nascimento
               const filhoteVinculado = dg?.animal_nascido ?? null;
               const filhotePorData   = isParida && dg?.data_desfecho && !filhoteVinculado
