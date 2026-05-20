@@ -3,9 +3,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, FARM_ID } from "@/lib/utils";
 import { ArrowLeft, Weight, Baby, Heart, CalendarDays, Beef, ChevronRight, CheckCircle, XCircle, AlertTriangle, RefreshCw, Syringe, FlaskConical } from "lucide-react";
-import { FichaStatusForm }  from "./FichaStatusForm";
-import { FichaPesagemForm } from "./FichaPesagemForm";
-import { NascimentoForm }   from "./NascimentoForm";
+import { FichaStatusForm }         from "./FichaStatusForm";
+import { FichaPesagemForm }        from "./FichaPesagemForm";
+import { NascimentoForm }          from "./NascimentoForm";
+import { VincularBezerroReceptora } from "./VincularBezerroReceptora";
 
 const CLASS_MAP: Record<string, { label: string; cls: string }> = {
   RECEPTORA: { label: "Receptora",  cls: "bg-pink-100 text-pink-700"    },
@@ -105,7 +106,9 @@ export default async function FichaRebanhoPage({
         doadora:animals!aspirations_doadora_id_fkey ( id, nome )
       )
     ),
-    diagnoses:pregnancy_diagnoses ( resultado, data_dg, data_previsao_parto, tipo_desfecho, data_desfecho )
+    diagnoses:pregnancy_diagnoses ( id, resultado, data_dg, data_previsao_parto, tipo_desfecho, data_desfecho, animal_nascido_id,
+      animal_nascido:animals!pregnancy_diagnoses_animal_nascido_id_fkey ( id, nome, tipo, rgn )
+    )
   `;
 
   const { data: hPorId } = await supabase
@@ -158,6 +161,14 @@ export default async function FichaRebanhoPage({
         .eq("nascido_se_agro", true)
         .in("nascimento", datasParicao)
     : { data: [] };
+
+  // ── Animais disponíveis para vincular como bezerro ───────────────────────────
+  const { data: animaisVincular } = await supabase
+    .from("animals")
+    .select("id, nome, tipo")
+    .eq("farm_id", FARM_ID)
+    .in("tipo", ["DOADORA", "TOURO"])
+    .order("nome");
 
   // ── Transações da receptora (vendas) ─────────────────────────────────────────
   const { data: transacoes } = await supabase
@@ -426,9 +437,12 @@ export default async function FichaRebanhoPage({
               const isLast   = idx === historico.length - 1;
               const doadoraId = asp?.doadora?.id ?? asp?.doadora_id ?? null;
               const doadoraNome = asp?.doadora?.nome ?? asp?.doadora_nome ?? null;
-              const filhote  = dg?.tipo_desfecho === "PARIDA" && dg?.data_desfecho
+              // Prioridade: FK direta > match por data de nascimento
+              const filhoteVinculado = dg?.animal_nascido ?? null;
+              const filhotePorData   = dg?.tipo_desfecho === "PARIDA" && dg?.data_desfecho && !filhoteVinculado
                 ? filhoteDaParicao(dg.data_desfecho, doadoraId ?? null)
                 : null;
+              const filhote = filhoteVinculado ?? filhotePorData;
 
               // ── Configuração visual por tipo de desfecho ──────────────────
               type EventConfig = { icon: React.ReactNode; dotCls: string; titulo: string; tituloCls: string };
@@ -528,20 +542,32 @@ export default async function FichaRebanhoPage({
                     )}
 
                     {/* Bezerro nascido */}
-                    {filhote && (
+                    {filhote ? (
                       <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                         <span className="text-[11px] text-gray-400">Bezerro:</span>
                         <Link
-                          href={filhote.tipo === "DOADORA" ? `/doadoras/${filhote.id}` : `/machos/${filhote.id}`}
+                          href={filhote.tipo === "TOURO" ? `/machos/${filhote.id}` : `/doadoras/${filhote.id}`}
                           className="text-xs font-semibold text-brand-600 hover:underline"
                         >
-                          {filhote.nome}
+                          {filhote.tipo === "TOURO" ? "🐂" : "🐄"} {filhote.nome}
                         </Link>
                         {filhote.rgn && (
-                          <span className="text-[11px] text-gray-400 font-mono">RGN: {filhote.rgn}</span>
+                          <span className="text-[11px] text-gray-400 font-mono">({filhote.rgn})</span>
                         )}
                       </div>
-                    )}
+                    ) : dg?.tipo_desfecho === "PARIDA" && dg?.id ? (
+                      <div className="mt-1.5">
+                        <VincularBezerroReceptora
+                          dgId={dg.id}
+                          receptoraId={id}
+                          animaisDisponiveis={(animaisVincular ?? []).map((a: any) => ({
+                            id:   a.id,
+                            nome: a.nome ?? "",
+                            tipo: a.tipo ?? "DOADORA",
+                          }))}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );

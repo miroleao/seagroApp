@@ -169,6 +169,27 @@ export async function registrarNascimento(formData: FormData) {
   else redirect(`/rebanho/${receptora_id}`);
 }
 
+// ─── Vincular bezerro nascido a um diagnóstico de prenhez (PARIDA) ────────────
+export async function vincularBezerroReceptora(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
+  const supabase  = await createClient();
+  const dg_id     = (formData.get("dg_id")     as string)?.trim();
+  const animal_id = (formData.get("animal_id") as string)?.trim();
+  const receptora_id = (formData.get("receptora_id") as string)?.trim();
+
+  if (!dg_id || !animal_id) return { ok: false, erro: "Dados incompletos" };
+
+  const { error } = await supabase
+    .from("pregnancy_diagnoses")
+    .update({ animal_nascido_id: animal_id })
+    .eq("id", dg_id)
+    .eq("farm_id", FARM_ID);
+
+  if (error) return { ok: false, erro: error.message };
+
+  revalidatePath(`/rebanho/${receptora_id}`);
+  return { ok: true };
+}
+
 // ─── Atualizar dados gerais do animal ─────────────────────────────────────────
 export async function atualizarDadosAnimal(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
   const supabase      = await createClient();
