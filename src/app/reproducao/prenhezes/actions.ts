@@ -303,10 +303,10 @@ export async function registrarNascimento(formData: FormData) {
       .eq("farm_id", FARM_ID);
   }
 
-  // Marca DG com resultado do nascimento
+  // Marca DG com tipo_desfecho PARIDA e data do nascimento
   if (transfer_id) {
     await supabase.from("pregnancy_diagnoses")
-      .update({ resultado: "POSITIVO" })
+      .update({ tipo_desfecho: "PARIDA", data_desfecho: nascimento, animal_nascido_id: animal.id })
       .eq("transfer_id", transfer_id);
   }
 
