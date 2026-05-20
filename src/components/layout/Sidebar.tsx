@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Heart, FlaskConical,
-  DollarSign, Trophy, Beef, ChevronRight, ChevronDown, Menu, X, Dna, Baby, Sparkles,
+  DollarSign, Trophy, Beef, ChevronRight, ChevronDown, Menu, X, Dna, Baby, Sparkles, Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +34,12 @@ const bottomItems = [
     label: "Reprod.",
     icon: FlaskConical,
     match: (p: string) => p.startsWith("/reproducao"),
+  },
+  {
+    href: "/pista",
+    label: "Pista",
+    icon: Star,
+    match: (p: string) => p.startsWith("/pista"),
   },
   {
     href: "/financeiro",

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
-import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2, Gavel, Heart } from "lucide-react";
+import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2, Gavel, Heart, ChevronRight } from "lucide-react";
 import { toggleParaPista, toggleNascidoSeAgro, toggleParaLeilao, salvarInfoLeilao, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio, atualizarValorParcela, corrigirPartos } from "./actions";
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 import RegistrarVendaForm from "./RegistrarVendaForm";
@@ -628,6 +628,10 @@ export default async function DoadoraDetalhePage({
     ? `${(doadora.percentual_proprio * 100).toFixed(0)}%`
     : "—";
 
+  // Última prenhez parida (para link do filhote no card de status)
+  const ultimaParida = (prenhezes_historico ?? []).find((p: any) => p.resultado === "PARIDA");
+  const filhoteUltimoParto = ultimaParida ? (ultimaParida.animal_nascido as any) : null;
+
   // ── Cálculo ROI ──────────────────────────────────────────────────
   // valor_total = parcela mensal de cada venda; somaParcelasVenda × 30 = receita total
   const somaParcelasVenda = (transacoes ?? [])
@@ -853,24 +857,30 @@ export default async function DoadoraDetalhePage({
 
             {/* Resumo visual do status atual */}
             {doadora.status_reprodutivo && STATUS_MAP[doadora.status_reprodutivo] && (
-              <div className="flex flex-wrap items-center gap-2 mb-3 p-3 bg-gray-50 border border-gray-100 rounded-lg">
-                <span className={`badge text-xs px-2 py-1 font-semibold ${STATUS_MAP[doadora.status_reprodutivo].cls}`}>
-                  {STATUS_MAP[doadora.status_reprodutivo].label}
-                </span>
-                {(doadora as any).data_status && (
-                  <span className="text-xs text-gray-500">
-                    em {formatDate((doadora as any).data_status)}
+              <div className="mb-3 p-3 bg-gray-50 border border-gray-100 rounded-lg space-y-2">
+
+                {/* Linha 1: badge + data */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`badge text-xs px-2 py-1 font-semibold ${STATUS_MAP[doadora.status_reprodutivo].cls}`}>
+                    {STATUS_MAP[doadora.status_reprodutivo].label}
                   </span>
-                )}
-                {/* Touro da prenhez atual */}
-                {(doadora as any).touro_prenhez && (
-                  <span className="text-xs text-gray-600">
-                    · 🐂 <span className="font-medium">{(doadora as any).touro_prenhez}</span>
+                  {(doadora as any).data_status && (
+                    <span className="text-xs text-gray-500">
+                      em {formatDate((doadora as any).data_status)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Touro da prenhez atual (INSEMINADA / GESTANTE) */}
+                {(doadora as any).touro_prenhez && doadora.status_reprodutivo !== "PARIDA" && (
+                  <p className="text-xs text-gray-700">
+                    🐂 <span className="font-medium">{(doadora as any).touro_prenhez}</span>
                     {(doadora as any).rgd_touro_prenhez && (
                       <span className="text-gray-400 font-mono ml-1">({(doadora as any).rgd_touro_prenhez})</span>
                     )}
-                  </span>
+                  </p>
                 )}
+
                 {/* Previsão de parto — 290 dias após inseminação, só quando Prenha */}
                 {doadora.status_reprodutivo === "GESTANTE" && (doadora as any).data_inseminacao && (() => {
                   const insem = new Date((doadora as any).data_inseminacao);
@@ -896,15 +906,38 @@ export default async function DoadoraDetalhePage({
                     </span>
                   );
                 })()}
-                {/* Touro do último parto */}
-                {doadora.status_reprodutivo === "PARIDA" && (doadora as any).touro_ultimo_parto && (
-                  <span className="text-xs text-gray-600">
-                    · 🐄 Touro: <span className="font-medium">{(doadora as any).touro_ultimo_parto}</span>
-                    {(doadora as any).rgd_touro_ultimo_parto && (
-                      <span className="text-gray-400 font-mono ml-1">({(doadora as any).rgd_touro_ultimo_parto})</span>
+
+                {/* Card de parto — status PARIDA */}
+                {doadora.status_reprodutivo === "PARIDA" && (
+                  <div className="mt-1 space-y-1.5">
+                    {/* Touro */}
+                    {(doadora as any).touro_ultimo_parto && (
+                      <p className="text-xs text-gray-700">
+                        🐂 <span className="font-medium">{(doadora as any).touro_ultimo_parto}</span>
+                        {(doadora as any).rgd_touro_ultimo_parto && (
+                          <span className="text-gray-400 font-mono ml-1">({(doadora as any).rgd_touro_ultimo_parto})</span>
+                        )}
+                      </p>
                     )}
-                  </span>
+                    {/* Filhote nascido — com link se vinculado */}
+                    {filhoteUltimoParto ? (
+                      <Link
+                        href={`/${filhoteUltimoParto.tipo === "TOURO" ? "machos" : "doadoras"}/${filhoteUltimoParto.id}`}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-lg px-2.5 py-1.5 transition-colors"
+                      >
+                        {filhoteUltimoParto.tipo === "TOURO" ? "🐂" : "🐄"}
+                        <span>{filhoteUltimoParto.nome}</span>
+                        {filhoteUltimoParto.rgn && (
+                          <span className="font-normal text-brand-500 font-mono">({filhoteUltimoParto.rgn})</span>
+                        )}
+                        <ChevronRight className="w-3 h-3 opacity-60" />
+                      </Link>
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">Filhote não vinculado</p>
+                    )}
+                  </div>
                 )}
+
               </div>
             )}
 
