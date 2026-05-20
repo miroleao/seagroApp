@@ -8,6 +8,7 @@ import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
 import { EditReprodutivoInline } from "@/app/rebanho/EditReprodutivoInline";
 import { NascimentoDoadoraForm } from "./NascimentoDoadoraForm";
+import { VincularFilhoteParida } from "./VincularFilhoteParida";
 
 // Mapa de cores para cada status reprodutivo
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
@@ -489,7 +490,7 @@ export default async function DoadoraDetalhePage({
   // Animais da fazenda (doadoras + touros) para vincular como nascidos
   const { data: animaisVincular } = await supabase
     .from("animals")
-    .select("id, nome")
+    .select("id, nome, tipo")
     .eq("farm_id", FARM_ID)
     .in("tipo", ["DOADORA", "TOURO"])
     .order("nome");
@@ -919,7 +920,7 @@ export default async function DoadoraDetalhePage({
                         )}
                       </p>
                     )}
-                    {/* Filhote nascido — com link se vinculado */}
+                    {/* Filhote nascido — link se vinculado, botão de vincular se não */}
                     {filhoteUltimoParto ? (
                       <Link
                         href={`/${filhoteUltimoParto.tipo === "TOURO" ? "machos" : "doadoras"}/${filhoteUltimoParto.id}`}
@@ -933,7 +934,14 @@ export default async function DoadoraDetalhePage({
                         <ChevronRight className="w-3 h-3 opacity-60" />
                       </Link>
                     ) : (
-                      <p className="text-xs text-gray-400 italic">Filhote não vinculado</p>
+                      <VincularFilhoteParida
+                        doadoraId={doadora.id}
+                        animaisDisponiveis={(animaisVincular ?? []).map((a: any) => ({
+                          id:   a.id,
+                          nome: a.nome ?? "",
+                          tipo: a.tipo ?? "DOADORA",
+                        }))}
+                      />
                     )}
                   </div>
                 )}
