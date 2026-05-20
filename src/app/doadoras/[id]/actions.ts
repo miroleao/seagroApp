@@ -404,35 +404,45 @@ export async function atualizarStatusReprodutivo(formData: FormData) {
   }
 
   else if (status === "PARIDA" && dataEvento) {
-    // Lê dados atuais para calcular ordinal
+    // Lê dados atuais para calcular ordinal e comparar datas
     const { data: animal } = await supabase
       .from("animals")
-      .select("numero_partos, data_primeiro_parto, touro_prenhez, rgd_touro_prenhez")
+      .select("numero_partos, data_primeiro_parto, data_ultimo_parto, touro_prenhez, rgd_touro_prenhez")
       .eq("id", id)
       .single();
 
-    const numAtual    = ((animal as any)?.numero_partos ?? 0) as number;
-    const novoNumero  = numAtual + 1;
-    const touroPrenhez = touroNome || (animal as any)?.touro_prenhez || null;
-    const rgdPrenhez   = touroRgd  || (animal as any)?.rgd_touro_prenhez  || null;
+    const numAtual      = ((animal as any)?.numero_partos ?? 0) as number;
+    const novoNumero    = numAtual + 1;
+    const touroPrenhez  = touroNome || (animal as any)?.touro_prenhez || null;
+    const rgdPrenhez    = touroRgd  || (animal as any)?.rgd_touro_prenhez || null;
+    const dataUltimo    = (animal as any)?.data_ultimo_parto as string | null;
+
+    // Só sobrescreve touro_ultimo_parto/data_ultimo_parto se este for o parto mais recente
+    const ehMaisRecente = !dataUltimo || dataEvento >= dataUltimo;
 
     const partoPayload: Record<string, unknown> = {
-      data_status:           dataEvento,
-      data_ultimo_parto:     dataEvento,
-      numero_partos:         novoNumero,
-      touro_ultimo_parto:    touroPrenhez,
-      rgd_touro_ultimo_parto: rgdPrenhez,
-      // Limpa os campos de prenhez ativa
-      touro_prenhez:         null,
-      rgd_touro_prenhez:     null,
-      data_inseminacao:      null,
+      numero_partos:    novoNumero,
+      // Limpa campos de prenhez ativa
+      touro_prenhez:    null,
+      rgd_touro_prenhez: null,
+      data_inseminacao:  null,
     };
-    if (!(animal as any)?.data_primeiro_parto) {
+
+    if (ehMaisRecente) {
+      partoPayload.data_status            = dataEvento;
+      partoPayload.data_ultimo_parto      = dataEvento;
+      partoPayload.touro_ultimo_parto     = touroPrenhez;
+      partoPayload.rgd_touro_ultimo_parto = rgdPrenhez;
+    }
+
+    const primeiroPartoAtual = (animal as any)?.data_primeiro_parto as string | null;
+    if (!primeiroPartoAtual || dataEvento < primeiroPartoAtual) {
       partoPayload.data_primeiro_parto = dataEvento;
     }
+
     await supabase.from("animals").update(partoPayload).eq("id", id);
 
-    // ── Histórico: fecha a prenhez ativa como PARIDA ──
+    // ── Histórico: fecha prenhez ATIVA se existir; senão cria diretamente como PARIDA ──
     const { data: ativa } = await supabase
       .from("prenhezes_naturais")
       .select("id")
@@ -441,10 +451,21 @@ export async function atualizarStatusReprodutivo(formData: FormData) {
       .order("criado_em", { ascending: false })
       .limit(1)
       .maybeSingle();
+
     if (ativa) {
       await supabase.from("prenhezes_naturais")
         .update({ resultado: "PARIDA", data_parto: dataEvento })
         .eq("id", ativa.id);
+    } else {
+      // Parto histórico sem prenhez ativa — cria direto como PARIDA
+      await supabase.from("prenhezes_naturais").insert({
+        farm_id:    FARM_ID,
+        doadora_id: id,
+        touro_nome: touroPrenhez,
+        touro_rgd:  rgdPrenhez,
+        data_parto: dataEvento,
+        resultado:  "PARIDA",
+      });
     }
   }
 
