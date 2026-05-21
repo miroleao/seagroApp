@@ -24,6 +24,8 @@ export async function atualizarStatusRebanho(formData: FormData): Promise<{ ok: 
   if (error) return { ok: false, erro: error.message };
 
   // ── Se PARIDA com data, registra o desfecho no pregnancy_diagnoses mais recente ──
+  let aviso: string | undefined;
+
   if (status === "PARIDA" && data_parto) {
     // Lê o brinco da receptora para buscar também por receptora_brinco
     const { data: animalData } = await supabase
@@ -58,36 +60,47 @@ export async function atualizarStatusRebanho(formData: FormData): Promise<{ ok: 
     }
 
     if (tf) {
-      // Tenta atualizar o DG existente
+      // Tenta atualizar o DG existente (busca qualquer DG, com ou sem data_dg)
       const { data: dg } = await supabase
         .from("pregnancy_diagnoses")
         .select("id")
         .eq("farm_id", FARM_ID)
         .eq("transfer_id", tf.id)
-        .order("data_dg", { ascending: false })
+        .order("data_dg", { ascending: false, nullsFirst: false })
         .limit(1)
         .maybeSingle();
 
       if (dg) {
-        await supabase
+        const { error: errUpd } = await supabase
           .from("pregnancy_diagnoses")
           .update({ tipo_desfecho: "PARIDA", data_desfecho: data_parto })
-          .eq("id", dg.id);
+          .eq("id", dg.id)
+          .eq("farm_id", FARM_ID);
+        if (errUpd) aviso = `Status salvo, mas erro ao registrar parto no histórico: ${errUpd.message}`;
       } else {
         // Sem DG — cria um registro de desfecho direto
-        await supabase.from("pregnancy_diagnoses").insert({
+        const { error: errIns } = await supabase.from("pregnancy_diagnoses").insert({
           farm_id:       FARM_ID,
           transfer_id:   tf.id,
           resultado:     "POSITIVO",
           tipo_desfecho: "PARIDA",
           data_desfecho: data_parto,
+          data_dg:       data_parto,   // usa a data do parto como data do DG
         });
+        if (errIns) aviso = `Status salvo, mas erro ao criar registro de parto: ${errIns.message}`;
       }
+    } else {
+      // Transfer não encontrado: status foi salvo mas não há TE vinculada
+      aviso = `Status atualizado para Parida, mas nenhuma implantação foi encontrada para esta receptora (brinco: ${brinco ?? animal_id}). A data do parto não foi registrada no histórico.`;
     }
   }
 
   revalidatePath(`/rebanho/${animal_id}`);
   revalidatePath("/rebanho");
+
+  // Se houve aviso (DG não atualizado), retorna ok: false com a mensagem
+  // para que o usuário saiba que precisa verificar
+  if (aviso) return { ok: false, erro: aviso };
   return { ok: true };
 }
 
