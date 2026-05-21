@@ -154,10 +154,15 @@ export default async function FichaRebanhoPage({
   historico.sort((a, b) => (b.data_te ?? "").localeCompare(a.data_te ?? ""));
 
   // Desfecho mais recente (para o card de cabeçalho)
+  // Busca o primeiro transfer que tenha algum DG com tipo_desfecho preenchido
   const ultimoTransferComDesfecho = (historico ?? []).find(
-    (t: any) => (t.diagnoses?.[0] as any)?.tipo_desfecho
+    (t: any) => (t.diagnoses ?? []).some((d: any) => d?.tipo_desfecho)
   ) ?? null;
-  const ultimoDg  = ultimoTransferComDesfecho ? (ultimoTransferComDesfecho as any).diagnoses?.[0] : null;
+  // Dentro desse transfer, pega o DG com tipo_desfecho (pode haver múltiplos DGs)
+  const ultimoDg = ultimoTransferComDesfecho
+    ? ((ultimoTransferComDesfecho as any).diagnoses ?? []).find((d: any) => d?.tipo_desfecho)
+      ?? (ultimoTransferComDesfecho as any).diagnoses?.[0]
+    : null;
   const ultimoAsp = ultimoTransferComDesfecho
     ? (ultimoTransferComDesfecho as any).embryo?.aspiration
     : null;
@@ -205,8 +210,9 @@ export default async function FichaRebanhoPage({
   }
 
   // Bezerro da parição mais recente (para o card de cabeçalho)
+  // Prioridade: FK direta no DG > busca por data de nascimento
   const bezzerraNascida = (ultimoDg?.tipo_desfecho === "PARIDA" || ultimoDg?.resultado === "PARIDA") && ultimoDg?.data_desfecho
-    ? filhoteDaParicao(ultimoDg.data_desfecho, ultimoAsp?.doadora_id ?? null)
+    ? ((ultimoDg?.animal_nascido ?? null) || filhoteDaParicao(ultimoDg.data_desfecho, ultimoAsp?.doadora_id ?? null))
     : null;
 
   // Cria vinculada manualmente (para receptoras sem TE)
