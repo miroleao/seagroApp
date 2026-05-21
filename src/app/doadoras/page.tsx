@@ -59,10 +59,11 @@ export default async function DoadorasPage({
 
   const all = doadoras ?? [];
 
-  // Mapa id → { mae_nome } para resolver avó (mãe da mãe)
-  const idParaMaeNome: Record<string, string | null> = {};
+  // Mapa nome → mae_nome para resolver avó (mãe da mãe) por nome
+  // Funciona para doadoras importadas (sem mae_id), desde que a mãe também esteja cadastrada
+  const nomeParaMaeNome: Record<string, string | null> = {};
   for (const d of all) {
-    idParaMaeNome[(d as any).id] = (d as any).mae_nome ?? null;
+    if ((d as any).nome) nomeParaMaeNome[(d as any).nome] = (d as any).mae_nome ?? null;
   }
 
   // Busca IDs de animais que têm premiações
@@ -216,8 +217,8 @@ export default async function DoadorasPage({
               idade_meses:        (() => { const m = idadeEmMeses(d.nascimento); return m != null ? `${m}m` : "—"; })(),
               pai_nome:           d.pai_nome ?? "—",
               mae_nome:           d.mae_nome ?? "—",
-              // Avó: mae_nome da mãe (lookup pelo mae_id, ou "—" se não cadastrada)
-              avo_nome:           d.mae_id ? (idParaMaeNome[d.mae_id] ?? "—") : "—",
+              // Avó: mae_nome da mãe, resolvida por nome (funciona mesmo sem mae_id)
+              avo_nome:           d.mae_nome ? (nomeParaMaeNome[d.mae_nome] ?? "—") : "—",
               status_reprodutivo: d.status_reprodutivo ?? "—",
               touro_prenhez:      d.touro_prenhez ?? d.touro_ultimo_parto ?? "—",
               percentual_proprio: d.percentual_proprio != null ? `${(d.percentual_proprio * 100).toFixed(0)}%` : "—",
@@ -514,8 +515,8 @@ export default async function DoadorasPage({
                   </td>
                   <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.pai_nome ?? ""}>{d.pai_nome ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.mae_nome ?? ""}>{d.mae_nome ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.mae_id ? (idParaMaeNome[d.mae_id] ?? "") : ""}>
-                    {d.mae_id ? (idParaMaeNome[d.mae_id] ?? "—") : "—"}
+                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.mae_nome ? (nomeParaMaeNome[d.mae_nome] ?? "—") : "—"}>
+                    {d.mae_nome ? (nomeParaMaeNome[d.mae_nome] ?? "—") : "—"}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {d.status_reprodutivo && STATUS_MAP[d.status_reprodutivo] ? (

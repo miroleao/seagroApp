@@ -73,19 +73,19 @@ export default async function MachosPage({
 
   const all = machos ?? [];
 
-  // Mapa id → mae_nome (de todas as doadoras) para resolver avó
+  // Mapa nome → mae_nome para resolver avó por nome (funciona mesmo sem mae_id)
   const { data: todasDoadoras } = await supabase
     .from("animals")
-    .select("id, mae_nome")
+    .select("nome, mae_nome")
     .eq("farm_id", FARM_ID)
-    .eq("tipo", "DOADORA");
-  const idParaMaeNomeMachos: Record<string, string | null> = {};
+    .in("tipo", ["DOADORA", "TOURO"]);
+  const nomeParaMaeNomeMachos: Record<string, string | null> = {};
   for (const d of (todasDoadoras ?? [])) {
-    idParaMaeNomeMachos[(d as any).id] = (d as any).mae_nome ?? null;
+    if ((d as any).nome) nomeParaMaeNomeMachos[(d as any).nome] = (d as any).mae_nome ?? null;
   }
-  // Inclui também touros (caso a mãe seja TOURO — raro, mas cobre o caso)
+  // Inclui também os próprios machos (caso a mãe seja touro — raro)
   for (const m of all) {
-    idParaMaeNomeMachos[(m as any).id] = (m as any).mae_nome ?? null;
+    if ((m as any).nome) nomeParaMaeNomeMachos[(m as any).nome] = (m as any).mae_nome ?? null;
   }
 
   // Busca IDs de animais que têm premiações
@@ -185,7 +185,7 @@ export default async function MachosPage({
                 idade_meses:            (() => { const mm = idadeEmMeses(m.nascimento); return mm != null ? `${mm}m` : "—"; })(),
                 pai_nome:               m.pai_nome ?? "—",
                 mae_nome:               m.mae_nome ?? "—",
-                avo_nome:               m.mae_id ? (idParaMaeNomeMachos[m.mae_id] ?? "—") : "—",
+                avo_nome:               m.mae_nome ? (nomeParaMaeNomeMachos[m.mae_nome] ?? "—") : "—",
                 exame_andrologico:      androLabel,
                 circunferencia_escrotal: m.circunferencia_escrotal != null ? `${m.circunferencia_escrotal} cm` : "—",
                 data_ce:                m.data_ce ? formatDate(m.data_ce) : "—",
@@ -402,8 +402,8 @@ export default async function MachosPage({
 
                     <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{m.pai_nome ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{m.mae_nome ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate" title={m.mae_id ? (idParaMaeNomeMachos[m.mae_id] ?? "") : ""}>
-                      {m.mae_id ? (idParaMaeNomeMachos[m.mae_id] ?? "—") : "—"}
+                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate" title={m.mae_nome ? (nomeParaMaeNomeMachos[m.mae_nome] ?? "") : ""}>
+                      {m.mae_nome ? (nomeParaMaeNomeMachos[m.mae_nome] ?? "—") : "—"}
                     </td>
 
                     {/* Exame Andrológico */}
