@@ -64,7 +64,7 @@ export default async function MachosPage({
   const { data: machos } = await supabase
     .from("animals")
     .select(
-      "id, nome, rgn, rgd, nascimento, pai_nome, mae_nome, mae_id, localizacao, " +
+      "id, nome, rgn, rgd, nascimento, pai_nome, mae_nome, avo_materna, localizacao, " +
       "percentual_proprio, valor_parcela, exame_andrologico, circunferencia_escrotal, data_ce, para_pista, para_leilao, nascido_se_agro"
     )
     .eq("farm_id", FARM_ID)
@@ -72,21 +72,6 @@ export default async function MachosPage({
     .order("nome", { ascending: true });
 
   const all = machos ?? [];
-
-  // Mapa nome → mae_nome para resolver avó por nome (funciona mesmo sem mae_id)
-  const { data: todasDoadoras } = await supabase
-    .from("animals")
-    .select("nome, mae_nome")
-    .eq("farm_id", FARM_ID)
-    .in("tipo", ["DOADORA", "TOURO"]);
-  const nomeParaMaeNomeMachos: Record<string, string | null> = {};
-  for (const d of (todasDoadoras ?? [])) {
-    if ((d as any).nome) nomeParaMaeNomeMachos[(d as any).nome] = (d as any).mae_nome ?? null;
-  }
-  // Inclui também os próprios machos (caso a mãe seja touro — raro)
-  for (const m of all) {
-    if ((m as any).nome) nomeParaMaeNomeMachos[(m as any).nome] = (m as any).mae_nome ?? null;
-  }
 
   // Busca IDs de animais que têm premiações
   const { data: awardsData } = await supabase
@@ -185,7 +170,7 @@ export default async function MachosPage({
                 idade_meses:            (() => { const mm = idadeEmMeses(m.nascimento); return mm != null ? `${mm}m` : "—"; })(),
                 pai_nome:               m.pai_nome ?? "—",
                 mae_nome:               m.mae_nome ?? "—",
-                avo_nome:               m.mae_nome ? (nomeParaMaeNomeMachos[m.mae_nome] ?? "—") : "—",
+                avo_nome:               (m as any).avo_materna ?? "—",
                 exame_andrologico:      androLabel,
                 circunferencia_escrotal: m.circunferencia_escrotal != null ? `${m.circunferencia_escrotal} cm` : "—",
                 data_ce:                m.data_ce ? formatDate(m.data_ce) : "—",
@@ -402,8 +387,8 @@ export default async function MachosPage({
 
                     <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{m.pai_nome ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{m.mae_nome ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate" title={m.mae_nome ? (nomeParaMaeNomeMachos[m.mae_nome] ?? "") : ""}>
-                      {m.mae_nome ? (nomeParaMaeNomeMachos[m.mae_nome] ?? "—") : "—"}
+                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate" title={(m as any).avo_materna ?? "—"}>
+                      {(m as any).avo_materna ?? "—"}
                     </td>
 
                     {/* Exame Andrológico */}

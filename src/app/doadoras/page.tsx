@@ -52,19 +52,12 @@ export default async function DoadorasPage({
 
   const { data: doadoras } = await supabase
     .from("animals")
-    .select("id, nome, rgn, nascimento, pai_nome, mae_nome, mae_id, localizacao, percentual_proprio, valor_parcela, status_reprodutivo, touro_prenhez, touro_ultimo_parto, data_inseminacao, para_pista, para_leilao, nascido_se_agro")
+    .select("id, nome, rgn, nascimento, pai_nome, mae_nome, mae_id, avo_materna, localizacao, percentual_proprio, valor_parcela, status_reprodutivo, touro_prenhez, touro_ultimo_parto, data_inseminacao, para_pista, para_leilao, nascido_se_agro")
     .eq("farm_id", FARM_ID)
     .eq("tipo", "DOADORA")
     .order("nome", { ascending: true });
 
   const all = doadoras ?? [];
-
-  // Mapa nome → mae_nome para resolver avó (mãe da mãe) por nome
-  // Funciona para doadoras importadas (sem mae_id), desde que a mãe também esteja cadastrada
-  const nomeParaMaeNome: Record<string, string | null> = {};
-  for (const d of all) {
-    if ((d as any).nome) nomeParaMaeNome[(d as any).nome] = (d as any).mae_nome ?? null;
-  }
 
   // Busca IDs de animais que têm premiações
   const { data: awardsData } = await supabase
@@ -217,8 +210,7 @@ export default async function DoadorasPage({
               idade_meses:        (() => { const m = idadeEmMeses(d.nascimento); return m != null ? `${m}m` : "—"; })(),
               pai_nome:           d.pai_nome ?? "—",
               mae_nome:           d.mae_nome ?? "—",
-              // Avó: mae_nome da mãe, resolvida por nome (funciona mesmo sem mae_id)
-              avo_nome:           d.mae_nome ? (nomeParaMaeNome[d.mae_nome] ?? "—") : "—",
+              avo_nome:           (d as any).avo_materna ?? "—",
               status_reprodutivo: d.status_reprodutivo ?? "—",
               touro_prenhez:      d.touro_prenhez ?? d.touro_ultimo_parto ?? "—",
               percentual_proprio: d.percentual_proprio != null ? `${(d.percentual_proprio * 100).toFixed(0)}%` : "—",
@@ -515,8 +507,8 @@ export default async function DoadorasPage({
                   </td>
                   <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.pai_nome ?? ""}>{d.pai_nome ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.mae_nome ?? ""}>{d.mae_nome ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.mae_nome ? (nomeParaMaeNome[d.mae_nome] ?? "—") : "—"}>
-                    {d.mae_nome ? (nomeParaMaeNome[d.mae_nome] ?? "—") : "—"}
+                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={(d as any).avo_materna ?? "—"}>
+                    {(d as any).avo_materna ?? "—"}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {d.status_reprodutivo && STATUS_MAP[d.status_reprodutivo] ? (
