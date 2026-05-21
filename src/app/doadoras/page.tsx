@@ -407,6 +407,9 @@ export default async function DoadorasPage({
                 </div>
               </th>
 
+              {/* Avó */}
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Avó</th>
+
               {/* Reprodutivo */}
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">
                 <div className="flex flex-col gap-1">
@@ -511,6 +514,9 @@ export default async function DoadorasPage({
                   </td>
                   <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.pai_nome ?? ""}>{d.pai_nome ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.mae_nome ?? ""}>{d.mae_nome ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.mae_id ? (idParaMaeNome[d.mae_id] ?? "") : ""}>
+                    {d.mae_id ? (idParaMaeNome[d.mae_id] ?? "—") : "—"}
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {d.status_reprodutivo && STATUS_MAP[d.status_reprodutivo] ? (
                       <span className={`badge text-xs font-semibold ${STATUS_MAP[d.status_reprodutivo].cls}`}>

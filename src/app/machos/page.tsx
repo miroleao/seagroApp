@@ -64,7 +64,7 @@ export default async function MachosPage({
   const { data: machos } = await supabase
     .from("animals")
     .select(
-      "id, nome, rgn, rgd, nascimento, pai_nome, mae_nome, localizacao, " +
+      "id, nome, rgn, rgd, nascimento, pai_nome, mae_nome, mae_id, localizacao, " +
       "percentual_proprio, valor_parcela, exame_andrologico, circunferencia_escrotal, data_ce, para_pista, para_leilao, nascido_se_agro"
     )
     .eq("farm_id", FARM_ID)
@@ -72,6 +72,21 @@ export default async function MachosPage({
     .order("nome", { ascending: true });
 
   const all = machos ?? [];
+
+  // Mapa id → mae_nome (de todas as doadoras) para resolver avó
+  const { data: todasDoadoras } = await supabase
+    .from("animals")
+    .select("id, mae_nome")
+    .eq("farm_id", FARM_ID)
+    .eq("tipo", "DOADORA");
+  const idParaMaeNomeMachos: Record<string, string | null> = {};
+  for (const d of (todasDoadoras ?? [])) {
+    idParaMaeNomeMachos[(d as any).id] = (d as any).mae_nome ?? null;
+  }
+  // Inclui também touros (caso a mãe seja TOURO — raro, mas cobre o caso)
+  for (const m of all) {
+    idParaMaeNomeMachos[(m as any).id] = (m as any).mae_nome ?? null;
+  }
 
   // Busca IDs de animais que têm premiações
   const { data: awardsData } = await supabase
@@ -150,6 +165,7 @@ export default async function MachosPage({
               { key: "idade_meses",           label: "Idade (m)",       padrao: true,  largura: 0.8 },
               { key: "pai_nome",              label: "Pai",             padrao: true,  largura: 1.8 },
               { key: "mae_nome",              label: "Mãe",             padrao: false, largura: 1.8 },
+              { key: "avo_nome",              label: "Avó (mãe da mãe)", padrao: false, largura: 1.8 },
               { key: "exame_andrologico",     label: "Andrológico",     padrao: true,  largura: 1.0 },
               { key: "circunferencia_escrotal", label: "CE (cm)",       padrao: true,  largura: 0.7 },
               { key: "data_ce",               label: "Data CE",         padrao: false, largura: 1.0 },
@@ -169,6 +185,7 @@ export default async function MachosPage({
                 idade_meses:            (() => { const mm = idadeEmMeses(m.nascimento); return mm != null ? `${mm}m` : "—"; })(),
                 pai_nome:               m.pai_nome ?? "—",
                 mae_nome:               m.mae_nome ?? "—",
+                avo_nome:               m.mae_id ? (idParaMaeNomeMachos[m.mae_id] ?? "—") : "—",
                 exame_andrologico:      androLabel,
                 circunferencia_escrotal: m.circunferencia_escrotal != null ? `${m.circunferencia_escrotal} cm` : "—",
                 data_ce:                m.data_ce ? formatDate(m.data_ce) : "—",
@@ -277,6 +294,7 @@ export default async function MachosPage({
 
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Pai</th>
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Mãe</th>
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Avó</th>
 
               {/* Andrológico */}
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">
@@ -384,6 +402,9 @@ export default async function MachosPage({
 
                     <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{m.pai_nome ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{m.mae_nome ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate" title={m.mae_id ? (idParaMaeNomeMachos[m.mae_id] ?? "") : ""}>
+                      {m.mae_id ? (idParaMaeNomeMachos[m.mae_id] ?? "—") : "—"}
+                    </td>
 
                     {/* Exame Andrológico */}
                     <td className="px-4 py-3 whitespace-nowrap">
