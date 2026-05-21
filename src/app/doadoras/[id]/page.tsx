@@ -1823,9 +1823,10 @@ export default async function DoadoraDetalhePage({
                   <option value="CAMPEA">Campeã</option>
                   <option value="RESERVADO_CAMPEAO">Reservado Campeão</option>
                   <option value="RESERVADA_CAMPEA">Reservada Campeã</option>
-                  <option value="1_LUGAR">1° Lugar</option>
-                  <option value="2_LUGAR">2° Lugar</option>
-                  <option value="3_LUGAR">3° Lugar</option>
+                  <option value="3_LUGAR_CAMPEONATO">3° Lugar no Campeonato</option>
+                  <option value="1_LUGAR">1° Lugar na Categoria</option>
+                  <option value="2_LUGAR">2° Lugar na Categoria</option>
+                  <option value="3_LUGAR">3° Lugar na Categoria</option>
                   <option value="MELHOR_DO_EVENTO">Melhor do Evento</option>
                 </select>
               </div>
@@ -1873,9 +1874,26 @@ export default async function DoadoraDetalhePage({
                 {premiacoes.map((p: any) => (
                   <tr key={p.id} className="table-row-hover">
                     <td className="px-4 py-3">
-                      {(p.tipo_premio.includes("CAMPEAO") || p.tipo_premio.includes("CAMPEA") || p.tipo_premio.includes("GRAND"))
-                        ? <span className="badge bg-yellow-100 text-yellow-700">🏆 {p.tipo_premio.replace(/_/g, " ")}</span>
-                        : <span className="badge bg-gray-100 text-gray-600">{p.tipo_premio.replace(/_/g, " ")}</span>}
+                      {(() => {
+                        const LABELS: Record<string, string> = {
+                          GRANDE_CAMPEAO:       "Grande Campeão",
+                          GRANDE_CAMPEA:        "Grande Campeã",
+                          CAMPEAO:              "Campeão",
+                          CAMPEA:               "Campeã",
+                          RESERVADO_CAMPEAO:    "Reservado Campeão",
+                          RESERVADA_CAMPEA:     "Reservada Campeã",
+                          "3_LUGAR_CAMPEONATO": "3° Lugar no Campeonato",
+                          "1_LUGAR":            "1° Lugar na Categoria",
+                          "2_LUGAR":            "2° Lugar na Categoria",
+                          "3_LUGAR":            "3° Lugar na Categoria",
+                          MELHOR_DO_EVENTO:     "Melhor do Evento",
+                        };
+                        const label = LABELS[p.tipo_premio] ?? p.tipo_premio.replace(/_/g, " ");
+                        const isDestaque = p.tipo_premio.includes("CAMPEAO") || p.tipo_premio.includes("CAMPEA") || p.tipo_premio.includes("GRAND");
+                        return isDestaque
+                          ? <span className="badge bg-yellow-100 text-yellow-700">🏆 {label}</span>
+                          : <span className="badge bg-gray-100 text-gray-600">{label}</span>;
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{p.grupo_nelore ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{p.exhibition?.nome ?? "—"}</td>

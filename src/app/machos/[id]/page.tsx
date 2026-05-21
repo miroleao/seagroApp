@@ -1077,9 +1077,10 @@ export default async function MachoDetalhePage({
                   <option value="GRANDE_CAMPEAO">Grande Campeão</option>
                   <option value="CAMPEAO">Campeão</option>
                   <option value="RESERVADO_CAMPEAO">Reservado Campeão</option>
-                  <option value="1_LUGAR">1° Lugar</option>
-                  <option value="2_LUGAR">2° Lugar</option>
-                  <option value="3_LUGAR">3° Lugar</option>
+                  <option value="3_LUGAR_CAMPEONATO">3° Lugar no Campeonato</option>
+                  <option value="1_LUGAR">1° Lugar na Categoria</option>
+                  <option value="2_LUGAR">2° Lugar na Categoria</option>
+                  <option value="3_LUGAR">3° Lugar na Categoria</option>
                 </select>
               </div>
               <div>
@@ -1125,9 +1126,23 @@ export default async function MachoDetalhePage({
                 {premiacoes.map((pr: any) => (
                   <tr key={pr.id} className="table-row-hover">
                     <td className="px-4 py-3">
-                      <span className="badge bg-yellow-100 text-yellow-700 font-semibold text-xs">
-                        {pr.tipo_premio?.replace(/_/g, " ")}
-                      </span>
+                      {(() => {
+                        const LABELS: Record<string, string> = {
+                          GRANDE_CAMPEAO:       "Grande Campeão",
+                          CAMPEAO:              "Campeão",
+                          RESERVADO_CAMPEAO:    "Reservado Campeão",
+                          "3_LUGAR_CAMPEONATO": "3° Lugar no Campeonato",
+                          "1_LUGAR":            "1° Lugar na Categoria",
+                          "2_LUGAR":            "2° Lugar na Categoria",
+                          "3_LUGAR":            "3° Lugar na Categoria",
+                          MELHOR_DO_EVENTO:     "Melhor do Evento",
+                        };
+                        const label = LABELS[pr.tipo_premio] ?? pr.tipo_premio?.replace(/_/g, " ");
+                        const isDestaque = pr.tipo_premio?.includes("CAMPEAO") || pr.tipo_premio?.includes("GRAND");
+                        return isDestaque
+                          ? <span className="badge bg-yellow-100 text-yellow-700 font-semibold text-xs">🏆 {label}</span>
+                          : <span className="badge bg-gray-100 text-gray-600 font-semibold text-xs">{label}</span>;
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{pr.grupo_nelore ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-700 text-xs">
