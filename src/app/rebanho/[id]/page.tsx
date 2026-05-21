@@ -6,8 +6,9 @@ import { ArrowLeft, Weight, Baby, Heart, CalendarDays, Beef, ChevronRight, Check
 import { FichaStatusForm }         from "./FichaStatusForm";
 import { FichaPesagemForm }        from "./FichaPesagemForm";
 import { NascimentoForm }          from "./NascimentoForm";
-import { VincularBezerroReceptora } from "./VincularBezerroReceptora";
-import { VincularCriaManual }      from "./VincularCriaManual";
+import { VincularBezerroReceptora }   from "./VincularBezerroReceptora";
+import { VincularCriaManual }         from "./VincularCriaManual";
+import { MarcarDesfechoHistorico }    from "./MarcarDesfechoHistorico";
 
 const CLASS_MAP: Record<string, { label: string; cls: string }> = {
   RECEPTORA: { label: "Receptora",  cls: "bg-pink-100 text-pink-700"    },
@@ -656,6 +657,20 @@ export default async function FichaRebanhoPage({
                         />
                       </div>
                     ) : null}
+
+                    {/* Botão para registrar desfecho de TEs antigas sem desfecho
+                        Aparece quando: sem desfecho, não é DG negativo, não é a prenhez ativa atual */}
+                    {!dg?.tipo_desfecho && dg?.resultado !== "NEGATIVO" && !isParida && !(isPrenha && idx === 0) && (
+                      <MarcarDesfechoHistorico
+                        transferId={t.id}
+                        receptoraId={id}
+                        animaisDisponiveis={(animaisVincular ?? []).map((a: any) => ({
+                          id:   a.id,
+                          nome: a.nome ?? "",
+                          tipo: a.tipo ?? "DOADORA",
+                        }))}
+                      />
+                    )}
                   </div>
                 </div>
               );

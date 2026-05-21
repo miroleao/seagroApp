@@ -266,3 +266,59 @@ export async function atualizarDadosAnimal(formData: FormData): Promise<{ ok: bo
   revalidatePath(`/rebanho/${animal_id}`);
   return { ok: true };
 }
+
+// ─── Registrar desfecho de implantação passada (sem DG ativo) ─────────────────
+// Usado quando a receptora já pariu de uma TE anterior mas não tinha desfecho registrado
+export async function registrarDesfechoTransfer(
+  formData: FormData
+): Promise<{ ok: boolean; erro?: string }> {
+  const supabase      = await createClient();
+  const transfer_id   = (formData.get("transfer_id")   as string)?.trim();
+  const receptora_id  = (formData.get("receptora_id")  as string)?.trim();
+  const tipo_desfecho = (formData.get("tipo_desfecho") as string)?.trim();
+  const data_desfecho = (formData.get("data_desfecho") as string)?.trim() || null;
+  const animal_nascido_id = (formData.get("animal_nascido_id") as string)?.trim() || null;
+
+  if (!transfer_id || !tipo_desfecho) return { ok: false, erro: "Dados incompletos" };
+
+  // Busca DG existente para este transfer
+  const { data: dgExistente } = await supabase
+    .from("pregnancy_diagnoses")
+    .select("id")
+    .eq("farm_id", FARM_ID)
+    .eq("transfer_id", transfer_id)
+    .order("data_dg", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (dgExistente) {
+    const { error } = await supabase
+      .from("pregnancy_diagnoses")
+      .update({
+        tipo_desfecho,
+        data_desfecho,
+        ...(animal_nascido_id ? { animal_nascido_id } : {}),
+      })
+      .eq("id", dgExistente.id)
+      .eq("farm_id", FARM_ID);
+    if (error) return { ok: false, erro: error.message };
+  } else {
+    // Sem DG — cria registro de desfecho direto
+    const { error } = await supabase
+      .from("pregnancy_diagnoses")
+      .insert({
+        farm_id:      FARM_ID,
+        transfer_id,
+        resultado:    "POSITIVO",
+        tipo_desfecho,
+        data_desfecho,
+        data_dg:      data_desfecho,
+        ...(animal_nascido_id ? { animal_nascido_id } : {}),
+      });
+    if (error) return { ok: false, erro: error.message };
+  }
+
+  revalidatePath(`/rebanho/${receptora_id}`);
+  revalidatePath("/rebanho");
+  return { ok: true };
+}
