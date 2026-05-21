@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { formatDate } from "@/lib/utils";
@@ -28,7 +28,7 @@ interface Props {
   tituloCls: string; // ex: "text-purple-800"
   badgeCls:  string; // ex: "bg-purple-100 text-purple-700"
   dotCls:    string; // ex: "text-purple-600"
-  icono:     React.ReactNode;
+  icono:     ReactNode;
 }
 
 export function StatusReceptorasSection({
