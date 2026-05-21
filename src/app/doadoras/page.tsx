@@ -52,12 +52,18 @@ export default async function DoadorasPage({
 
   const { data: doadoras } = await supabase
     .from("animals")
-    .select("id, nome, rgn, nascimento, pai_nome, mae_nome, localizacao, percentual_proprio, valor_parcela, status_reprodutivo, touro_prenhez, touro_ultimo_parto, data_inseminacao, para_pista, para_leilao, nascido_se_agro")
+    .select("id, nome, rgn, nascimento, pai_nome, mae_nome, mae_id, localizacao, percentual_proprio, valor_parcela, status_reprodutivo, touro_prenhez, touro_ultimo_parto, data_inseminacao, para_pista, para_leilao, nascido_se_agro")
     .eq("farm_id", FARM_ID)
     .eq("tipo", "DOADORA")
     .order("nome", { ascending: true });
 
   const all = doadoras ?? [];
+
+  // Mapa id → { mae_nome } para resolver avó (mãe da mãe)
+  const idParaMaeNome: Record<string, string | null> = {};
+  for (const d of all) {
+    idParaMaeNome[(d as any).id] = (d as any).mae_nome ?? null;
+  }
 
   // Busca IDs de animais que têm premiações
   const { data: awardsData } = await supabase
@@ -194,6 +200,7 @@ export default async function DoadorasPage({
               { key: "idade_meses",        label: "Idade (m)",        padrao: true,  largura: 0.8 },
               { key: "pai_nome",           label: "Pai",              padrao: true,  largura: 2.0 },
               { key: "mae_nome",           label: "Mãe",              padrao: true,  largura: 2.0 },
+              { key: "avo_nome",           label: "Avó (mãe da mãe)", padrao: false, largura: 2.0 },
               { key: "status_reprodutivo", label: "Status Reprodutivo", padrao: false, largura: 1.3 },
               { key: "touro_prenhez",      label: "Touro da Prenhez", padrao: false, largura: 1.8 },
               { key: "percentual_proprio", label: "% Próprio",        padrao: false, largura: 0.8 },
@@ -209,6 +216,8 @@ export default async function DoadorasPage({
               idade_meses:        (() => { const m = idadeEmMeses(d.nascimento); return m != null ? `${m}m` : "—"; })(),
               pai_nome:           d.pai_nome ?? "—",
               mae_nome:           d.mae_nome ?? "—",
+              // Avó: mae_nome da mãe (lookup pelo mae_id, ou "—" se não cadastrada)
+              avo_nome:           d.mae_id ? (idParaMaeNome[d.mae_id] ?? "—") : "—",
               status_reprodutivo: d.status_reprodutivo ?? "—",
               touro_prenhez:      d.touro_prenhez ?? d.touro_ultimo_parto ?? "—",
               percentual_proprio: d.percentual_proprio != null ? `${(d.percentual_proprio * 100).toFixed(0)}%` : "—",
