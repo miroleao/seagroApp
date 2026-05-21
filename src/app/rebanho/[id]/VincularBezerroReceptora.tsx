@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { LinkIcon, X } from "lucide-react";
+import { LinkIcon, Pencil, X } from "lucide-react";
 import { vincularBezerroReceptora } from "./actions";
 import { useRouter } from "next/navigation";
 
@@ -9,9 +9,11 @@ interface Props {
   dgId: string;
   receptoraId: string;
   animaisDisponiveis: { id: string; nome: string; tipo: string }[];
+  /** "vincular" = sem bezerro ainda  |  "trocar" = já tem um, permite corrigir */
+  modo?: "vincular" | "trocar";
 }
 
-export function VincularBezerroReceptora({ dgId, receptoraId, animaisDisponiveis }: Props) {
+export function VincularBezerroReceptora({ dgId, receptoraId, animaisDisponiveis, modo = "vincular" }: Props) {
   const [aberto, setAberto]           = useState(false);
   const [busca, setBusca]             = useState("");
   const [selecionado, setSelecionado] = useState<{ id: string; nome: string; tipo: string } | null>(null);
@@ -40,6 +42,21 @@ export function VincularBezerroReceptora({ dgId, receptoraId, animaisDisponiveis
   }
 
   if (!aberto) {
+    // Modo "trocar": botão pequeno inline ao lado do bezerro atual
+    if (modo === "trocar") {
+      return (
+        <button
+          type="button"
+          onClick={() => setAberto(true)}
+          className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-brand-600 transition-colors ml-1"
+          title="Corrigir bezerro vinculado"
+        >
+          <Pencil className="w-3 h-3" />
+          Corrigir
+        </button>
+      );
+    }
+    // Modo "vincular": botão completo
     return (
       <button
         type="button"
@@ -55,7 +72,9 @@ export function VincularBezerroReceptora({ dgId, receptoraId, animaisDisponiveis
   return (
     <form onSubmit={handleSubmit} className="mt-2 space-y-2 bg-white border border-brand-200 rounded-lg p-3 max-w-xs">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs font-semibold text-gray-700">Vincular bezerro(a) nascido</p>
+        <p className="text-xs font-semibold text-gray-700">
+          {modo === "trocar" ? "Corrigir bezerro vinculado" : "Vincular bezerro(a) nascido"}
+        </p>
         <button type="button" onClick={() => { setAberto(false); setBusca(""); setSelecionado(null); setErro(null); }}
           className="text-gray-400 hover:text-gray-600">
           <X className="w-3.5 h-3.5" />

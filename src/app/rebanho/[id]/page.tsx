@@ -178,11 +178,12 @@ export default async function FichaRebanhoPage({
     : { data: [] };
 
   // ── Animais disponíveis para vincular como bezerro ───────────────────────────
+  // Inclui DOADORA, TOURO e NASCIDO (bezerros cadastrados via form de nascimento)
   const { data: animaisVincular } = await supabase
     .from("animals")
     .select("id, nome, tipo")
     .eq("farm_id", FARM_ID)
-    .in("tipo", ["DOADORA", "TOURO"])
+    .in("tipo", ["DOADORA", "TOURO", "NASCIDO"])
     .order("nome");
 
   // ── Transações da receptora (vendas) ─────────────────────────────────────────
@@ -621,6 +622,19 @@ export default async function FichaRebanhoPage({
                         </Link>
                         {filhote.rgn && (
                           <span className="text-[11px] text-gray-400 font-mono">({filhote.rgn})</span>
+                        )}
+                        {/* Botão para corrigir se bezerro errado */}
+                        {dg?.id && (
+                          <VincularBezerroReceptora
+                            dgId={dg.id}
+                            receptoraId={id}
+                            modo="trocar"
+                            animaisDisponiveis={(animaisVincular ?? []).map((a: any) => ({
+                              id:   a.id,
+                              nome: a.nome ?? "",
+                              tipo: a.tipo ?? "DOADORA",
+                            }))}
+                          />
                         )}
                       </div>
                     ) : isParida && dg?.id ? (
