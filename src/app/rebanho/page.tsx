@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, FARM_ID } from "@/lib/utils";
 import { Plus, Search, Filter, X } from "lucide-react";
 import { PrenhasAtivasSection, type PrenhaAnimal } from "./PrenhasAtivasSection";
+import { StatusReceptorasSection, type StatusItem } from "./StatusReceptorasSection";
 import { cadastrarAnimal, cadastrarLote } from "./actions";
 import { FiltroStatus } from "./FiltroStatus";
 import { FiltroClassificacao } from "./FiltroClassificacao";
@@ -263,6 +264,24 @@ export default async function RebanhoPage({
       return pa < pb ? -1 : pa > pb ? 1 : 0;
     });
 
+  // ── Contagem total de partos por receptora ────────────────────────────────────
+  // Busca TODOS os desfechos PARIDA para contar (não só o mais recente)
+  const { data: todasPartosRaw } = await supabase
+    .from("pregnancy_diagnoses")
+    .select("transfer:transfers(receptora_id, receptora_brinco)")
+    .eq("farm_id", FARM_ID)
+    .eq("tipo_desfecho", "PARIDA");
+
+  const partosMap = new Map<string, number>();
+  for (const dg of todasPartosRaw ?? []) {
+    const t = (dg as any).transfer;
+    if (!t) continue;
+    const receptoraId = t.receptora_id
+      ?? (t.receptora_brinco ? brincoToId.get(t.receptora_brinco) : undefined);
+    if (!receptoraId) continue;
+    partosMap.set(receptoraId, (partosMap.get(receptoraId) ?? 0) + 1);
+  }
+
   // Serializar dados para o componente cliente da seção de prenhes
   const prenhasComInfo: PrenhaAnimal[] = prenhas.map(a => {
     const p = prenhezesMapa.get(a.id);
@@ -284,6 +303,44 @@ export default async function RebanhoPage({
       } : null,
     };
   });
+
+  // ── Arrays para as seções colapsíveis ────────────────────────────────────────
+  function toStatusItem(a: (typeof animais)[number]): StatusItem {
+    return {
+      id:           a.id,
+      brinco:       a.brinco ?? null,
+      nome:         a.nome   ?? null,
+      localizacao:  a.localizacao ?? null,
+      peso_atual:   a.peso_atual  ?? null,
+      numeroPartos: partosMap.get(a.id) ?? 0,
+    };
+  }
+
+  const protocoladasSection: StatusItem[] = animais
+    .filter(a => a.status_rebanho === "PROTOCOLADA")
+    .map(toStatusItem);
+
+  const inseminadasSection: StatusItem[] = animais
+    .filter(a => a.status_rebanho === "INSEMINADA")
+    .map(toStatusItem);
+
+  const paridasSection: StatusItem[] = animais
+    .filter(a => a.status_rebanho === "PARIDA")
+    .sort((a, b) => {
+      const da = paridasMapa.get(a.id)?.dataDesfecho ?? "";
+      const db = paridasMapa.get(b.id)?.dataDesfecho ?? "";
+      return db.localeCompare(da); // mais recente primeiro
+    })
+    .map(a => {
+      const h = paridasMapa.get(a.id);
+      return {
+        ...toStatusItem(a),
+        doadoraNome:  h?.doadoraNome  ?? null,
+        doadoraId:    h?.doadoraId    ?? null,
+        touroNome:    h?.touroNome    ?? null,
+        dataDesfecho: h?.dataDesfecho ?? null,
+      };
+    });
 
   return (
     <div className="p-6 space-y-6">
@@ -405,6 +462,42 @@ export default async function RebanhoPage({
       {/* Prenhes Ativas — colapsível */}
       <PrenhasAtivasSection prenhas={prenhasComInfo} />
 
+      {/* Protocoladas — colapsível */}
+      <StatusReceptorasSection
+        titulo="Protocoladas"
+        animais={protocoladasSection}
+        tipo="simples"
+        headerBg="bg-purple-50 border-purple-100"
+        tituloCls="text-purple-800"
+        badgeCls="bg-purple-100 text-purple-700"
+        dotCls="text-purple-600"
+        icono={<span className="text-base">💉</span>}
+      />
+
+      {/* Inseminadas — colapsível */}
+      <StatusReceptorasSection
+        titulo="Inseminadas"
+        animais={inseminadasSection}
+        tipo="simples"
+        headerBg="bg-blue-50 border-blue-100"
+        tituloCls="text-blue-800"
+        badgeCls="bg-blue-100 text-blue-700"
+        dotCls="text-blue-600"
+        icono={<span className="text-base">🔬</span>}
+      />
+
+      {/* Paridas — colapsível */}
+      <StatusReceptorasSection
+        titulo="Paridas"
+        animais={paridasSection}
+        tipo="paridas"
+        headerBg="bg-teal-50 border-teal-100"
+        tituloCls="text-teal-800"
+        badgeCls="bg-teal-100 text-teal-700"
+        dotCls="text-teal-600"
+        icono={<span className="text-base">🐄</span>}
+      />
+
       {/* Filtros + Tabela principal */}
       <section className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
@@ -444,6 +537,7 @@ export default async function RebanhoPage({
                   <FiltroClassificacao q={q} cls={cls} st={st} />
                 </th>
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-40">Reprodutivo</th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-16 text-center">Partos</th>
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">Peso</th>
                 <th className="px-4 py-3 text-xs font-medium text-gray-500">Embrião</th>
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-20">Sexagem</th>
@@ -456,7 +550,7 @@ export default async function RebanhoPage({
             <tbody className="divide-y divide-gray-50">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-10 text-center text-gray-400 text-sm">
+                  <td colSpan={11} className="px-4 py-10 text-center text-gray-400 text-sm">
                     Nenhum animal encontrado{q ? ` para "${q}"` : ""}.
                   </td>
                 </tr>
@@ -483,6 +577,15 @@ export default async function RebanhoPage({
                     <td className="px-2 py-3"><ClassBadge cls={a.classificacao} /></td>
                     <td className="px-3 py-3">
                       <EditReprodutivoInline animalId={a.id} statusAtual={a.status_rebanho} />
+                    </td>
+                    <td className="px-3 py-3 text-center">
+                      {(partosMap.get(a.id) ?? 0) > 0 ? (
+                        <span className="text-xs font-bold text-gray-700 bg-gray-100 rounded-full px-2 py-0.5">
+                          {partosMap.get(a.id)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-3 py-3">
                       <EditPesoInline animalId={a.id} pesoAtual={a.peso_atual} />
