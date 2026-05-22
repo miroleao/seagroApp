@@ -30,6 +30,22 @@ export async function criarExposicao(formData: FormData) {
   redirect("/pista");
 }
 
+// ─── Excluir Exposição ────────────────────────────────────────────────────────
+export async function excluirExposicao(formData: FormData) {
+  const id = formData.get("id") as string;
+  if (!id) return;
+
+  const supabase = await createClient();
+  await supabase
+    .from("exhibitions")
+    .delete()
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+
+  revalidatePath("/pista");
+  redirect("/pista");
+}
+
 // ─── Criar Premiação ──────────────────────────────────────────────────────────
 export async function criarPremiacao(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
   const supabase = await createClient();
