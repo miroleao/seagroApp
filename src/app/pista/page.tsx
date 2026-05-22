@@ -111,7 +111,7 @@ export default async function PistaPage() {
     .order("nascimento", { ascending: false });
 
   const expos   = exhibitions ?? [];
-  const premios = (awards ?? []).filter((p: any) => p.animal?.para_pista);
+  const premios = awards ?? [];
   const animais = candidatos ?? [];
 
   const hoje      = new Date();
