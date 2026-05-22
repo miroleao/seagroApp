@@ -465,43 +465,46 @@ export default async function PistaPage() {
 
       {/* ── Histórico de Premiações ──────────────────────── */}
       <section className="card overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-yellow-500" />
-          <h2 className="font-semibold text-gray-900">Histórico de Premiações</h2>
-          <span className="badge bg-yellow-100 text-yellow-700 ml-auto">{premios.length} prêmios</span>
-        </div>
-        {premios.length === 0 ? (
-          <div className="px-5 py-10 text-center">
-            <Trophy className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">Nenhuma premiação registrada.</p>
-            <p className="text-xs text-gray-300 mt-1">Registre premiações na ficha individual de cada animal.</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-4 py-3 text-gray-500 text-xs font-medium">Animal</th>
-                <th className="px-4 py-3 text-gray-500 text-xs font-medium">Prêmio</th>
-                <th className="px-4 py-3 text-gray-500 text-xs font-medium">Grupo</th>
-                <th className="px-4 py-3 text-gray-500 text-xs font-medium">Exposição</th>
-                <th className="px-4 py-3 text-gray-500 text-xs font-medium">Data</th>
-                <th className="px-4 py-3 text-gray-500 text-xs font-medium">Obs.</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {premios.map((p: any) => (
-                <tr key={p.id} className="table-row-hover">
-                  <td className="px-4 py-3 font-medium text-gray-900 text-xs">{p.animal?.nome ?? "—"}</td>
-                  <td className="px-4 py-3"><PrêmioBadge tipo={p.tipo_premio} /></td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{(p as any).descricao_premio ?? p.grupo_nelore ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{p.exhibition?.nome ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(p.exhibition?.data_base)}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{p.observacoes ?? "—"}</td>
+        <details open>
+          <summary className="px-5 py-4 border-b border-gray-100 flex items-center gap-2 cursor-pointer list-none">
+            <Trophy className="w-4 h-4 text-yellow-500" />
+            <h2 className="font-semibold text-gray-900">Histórico de Premiações</h2>
+            <span className="badge bg-yellow-100 text-yellow-700 ml-auto">{premios.length} prêmios</span>
+            <span className="text-gray-400 text-xs ml-2">▼</span>
+          </summary>
+          {premios.length === 0 ? (
+            <div className="px-5 py-10 text-center">
+              <Trophy className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">Nenhuma premiação registrada.</p>
+              <p className="text-xs text-gray-300 mt-1">Registre premiações na ficha individual de cada animal.</p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left">
+                  <th className="px-4 py-3 text-gray-500 text-xs font-medium">Animal</th>
+                  <th className="px-4 py-3 text-gray-500 text-xs font-medium">Prêmio</th>
+                  <th className="px-4 py-3 text-gray-500 text-xs font-medium">Grupo</th>
+                  <th className="px-4 py-3 text-gray-500 text-xs font-medium">Exposição</th>
+                  <th className="px-4 py-3 text-gray-500 text-xs font-medium">Data</th>
+                  <th className="px-4 py-3 text-gray-500 text-xs font-medium">Obs.</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {premios.map((p: any) => (
+                  <tr key={p.id} className="table-row-hover">
+                    <td className="px-4 py-3 font-medium text-gray-900 text-xs">{p.animal?.nome ?? "—"}</td>
+                    <td className="px-4 py-3"><PrêmioBadge tipo={p.tipo_premio} /></td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{(p as any).descricao_premio ?? p.grupo_nelore ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-600 text-xs">{p.exhibition?.nome ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(p.exhibition?.data_base)}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{p.observacoes ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </details>
       </section>
 
       {/* ── Exposições Passadas ──────────────────────────── */}
