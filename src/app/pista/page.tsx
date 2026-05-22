@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, FARM_ID } from "@/lib/utils";
-import { Trophy, CalendarDays, Star, Plus, Scale, Trash2 } from "lucide-react";
-import { criarExposicao, excluirExposicao } from "./actions";
+import { Trophy, CalendarDays, Star, Plus, Scale } from "lucide-react";
+import { criarExposicao } from "./actions";
+import { ExcluirExposicaoBtn } from "./ExcluirExposicaoBtn";
 import { ResultadoCell } from "./ResultadoCell";
 import {
   idadeExata, pesoMinimo, pesoMaximo, statusPeso, StatusPeso,
@@ -530,15 +531,7 @@ export default async function PistaPage() {
                     <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(e.data_base)}</td>
                     <td className="px-4 py-3 text-gray-400 text-xs">{e.local ?? "—"}</td>
                     <td className="px-2 py-3">
-                      <form action={excluirExposicao}
-                        onSubmit={(ev) => { if (!confirm(`Excluir "${e.nome}"?`)) ev.preventDefault(); }}>
-                        <input type="hidden" name="id" value={e.id} />
-                        <button type="submit"
-                          className="text-gray-300 hover:text-red-500 transition-colors p-1 rounded"
-                          title="Excluir exposição">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </form>
+                      <ExcluirExposicaoBtn id={e.id} nome={e.nome} />
                     </td>
                   </tr>
                 ))}
