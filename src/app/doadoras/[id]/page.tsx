@@ -1833,17 +1833,19 @@ export default async function DoadoraDetalhePage({
                     <td className="px-4 py-3">
                       {(() => {
                         const LABELS: Record<string, string> = {
-                          GRANDE_CAMPEAO:       "Grande Campeão",
-                          GRANDE_CAMPEA:        "Grande Campeã",
-                          CAMPEAO:              "Campeão",
-                          CAMPEA:               "Campeã",
-                          RESERVADO_CAMPEAO:    "Reservado Campeão",
-                          RESERVADA_CAMPEA:     "Reservada Campeã",
-                          "3_LUGAR_CAMPEONATO": "3° Lugar no Campeonato",
-                          "1_LUGAR":            "1° Lugar na Categoria",
-                          "2_LUGAR":            "2° Lugar na Categoria",
-                          "3_LUGAR":            "3° Lugar na Categoria",
-                          MELHOR_DO_EVENTO:     "Melhor do Evento",
+                          GRANDE_CAMPEAO:            "Grande Campeão",
+                          GRANDE_CAMPEA:             "Grande Campeã",
+                          RESERVADO_GRANDE_CAMPEAO:  "Reservado Grande Campeão",
+                          RESERVADA_GRANDE_CAMPEA:   "Reservada Grande Campeã",
+                          CAMPEAO:                   "Campeão",
+                          CAMPEA:                    "Campeã",
+                          RESERVADO_CAMPEAO:         "Reservado Campeão",
+                          RESERVADA_CAMPEA:          "Reservada Campeã",
+                          "3_LUGAR_CAMPEONATO":      "3° Lugar no Campeonato",
+                          "1_LUGAR":                 "1° Lugar na Categoria",
+                          "2_LUGAR":                 "2° Lugar na Categoria",
+                          "3_LUGAR":                 "3° Lugar na Categoria",
+                          MELHOR_DO_EVENTO:          "Melhor do Evento",
                         };
                         const label = LABELS[p.tipo_premio] ?? p.tipo_premio.replace(/_/g, " ");
                         const isDestaque = p.tipo_premio.includes("CAMPEAO") || p.tipo_premio.includes("CAMPEA") || p.tipo_premio.includes("GRAND");

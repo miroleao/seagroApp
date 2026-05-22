@@ -1075,6 +1075,7 @@ export default async function MachoDetalhePage({
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300">
                   <option value="">Selecione…</option>
                   <option value="GRANDE_CAMPEAO">Grande Campeão</option>
+                  <option value="RESERVADO_GRANDE_CAMPEAO">Reservado Grande Campeão</option>
                   <option value="CAMPEAO">Campeão</option>
                   <option value="RESERVADO_CAMPEAO">Reservado Campeão</option>
                   <option value="3_LUGAR_CAMPEONATO">3° Lugar no Campeonato</option>
@@ -1128,14 +1129,15 @@ export default async function MachoDetalhePage({
                     <td className="px-4 py-3">
                       {(() => {
                         const LABELS: Record<string, string> = {
-                          GRANDE_CAMPEAO:       "Grande Campeão",
-                          CAMPEAO:              "Campeão",
-                          RESERVADO_CAMPEAO:    "Reservado Campeão",
-                          "3_LUGAR_CAMPEONATO": "3° Lugar no Campeonato",
-                          "1_LUGAR":            "1° Lugar na Categoria",
-                          "2_LUGAR":            "2° Lugar na Categoria",
-                          "3_LUGAR":            "3° Lugar na Categoria",
-                          MELHOR_DO_EVENTO:     "Melhor do Evento",
+                          GRANDE_CAMPEAO:           "Grande Campeão",
+                          RESERVADO_GRANDE_CAMPEAO: "Reservado Grande Campeão",
+                          CAMPEAO:                  "Campeão",
+                          RESERVADO_CAMPEAO:        "Reservado Campeão",
+                          "3_LUGAR_CAMPEONATO":     "3° Lugar no Campeonato",
+                          "1_LUGAR":                "1° Lugar na Categoria",
+                          "2_LUGAR":                "2° Lugar na Categoria",
+                          "3_LUGAR":                "3° Lugar na Categoria",
+                          MELHOR_DO_EVENTO:         "Melhor do Evento",
                         };
                         const label = LABELS[pr.tipo_premio] ?? pr.tipo_premio?.replace(/_/g, " ");
                         const isDestaque = pr.tipo_premio?.includes("CAMPEAO") || pr.tipo_premio?.includes("GRAND");

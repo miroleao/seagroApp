@@ -30,6 +30,8 @@ export function FormPremiacao({ animalId, exposicoes }: Props) {
             <option value="">Selecione…</option>
             <option value="GRANDE_CAMPEAO">Grande Campeão</option>
             <option value="GRANDE_CAMPEA">Grande Campeã</option>
+            <option value="RESERVADO_GRANDE_CAMPEAO">Reservado Grande Campeão</option>
+            <option value="RESERVADA_GRANDE_CAMPEA">Reservada Grande Campeã</option>
             <option value="CAMPEAO">Campeão</option>
             <option value="CAMPEA">Campeã</option>
             <option value="RESERVADO_CAMPEAO">Reservado Campeão</option>
