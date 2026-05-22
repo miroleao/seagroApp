@@ -939,17 +939,17 @@ export async function atualizarPercentualProprio(formData: FormData) {
   redirect(`/doadoras/${id}`);
 }
 
-export async function adicionarPremiacao(formData: FormData) {
+export async function adicionarPremiacao(formData: FormData): Promise<{ erro?: string } | void> {
   const animal_id     = formData.get("animal_id") as string;
-  const exhibition_id = formData.get("exhibition_id") as string || null;
-  const tipo_premio   = formData.get("tipo_premio") as string;
-  const grupo_nelore  = formData.get("grupo_nelore") as string || null;
-  const observacoes   = formData.get("observacoes") as string || null;
+  const exhibition_id = (formData.get("exhibition_id") as string)?.trim() || null;
+  const tipo_premio   = (formData.get("tipo_premio") as string)?.trim();
+  const grupo_nelore  = (formData.get("grupo_nelore") as string)?.trim() || null;
+  const observacoes   = (formData.get("observacoes") as string)?.trim() || null;
 
-  if (!animal_id || !tipo_premio) return;
+  if (!animal_id || !tipo_premio) return { erro: "Tipo de prêmio é obrigatório." };
 
   const supabase = await createClient();
-  await supabase.from("awards").insert({
+  const { error } = await supabase.from("awards").insert({
     farm_id: FARM_ID,
     animal_id,
     exhibition_id: exhibition_id || null,
@@ -957,6 +957,11 @@ export async function adicionarPremiacao(formData: FormData) {
     grupo_nelore,
     observacoes,
   });
+
+  if (error) {
+    console.error("Erro ao salvar premiação:", error);
+    return { erro: `Erro ao salvar: ${error.message}` };
+  }
 
   revalidatePath(`/doadoras/${animal_id}`);
   revalidatePath("/doadoras");

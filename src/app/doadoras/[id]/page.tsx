@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2, Gavel, Heart, ChevronRight } from "lucide-react";
 import { toggleParaPista, toggleNascidoSeAgro, toggleParaLeilao, salvarInfoLeilao, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio, atualizarValorParcela, corrigirPartos } from "./actions";
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
+import { FormPremiacao } from "./FormPremiacao";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
 import { EditReprodutivoInline } from "@/app/rebanho/EditReprodutivoInline";
@@ -1808,54 +1809,10 @@ export default async function DoadoraDetalhePage({
           </summary>
 
           {/* Form nova premiação */}
-          <form action={adicionarPremiacao} className="px-5 py-4 bg-gray-50 border-b border-gray-100">
-            <input type="hidden" name="animal_id" value={doadora.id} />
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Registrar prêmio</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Tipo de Prêmio *</label>
-                <select name="tipo_premio" required
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300">
-                  <option value="">Selecione…</option>
-                  <option value="GRANDE_CAMPEAO">Grande Campeão</option>
-                  <option value="GRANDE_CAMPEA">Grande Campeã</option>
-                  <option value="CAMPEAO">Campeão</option>
-                  <option value="CAMPEA">Campeã</option>
-                  <option value="RESERVADO_CAMPEAO">Reservado Campeão</option>
-                  <option value="RESERVADA_CAMPEA">Reservada Campeã</option>
-                  <option value="3_LUGAR_CAMPEONATO">3° Lugar no Campeonato</option>
-                  <option value="1_LUGAR">1° Lugar na Categoria</option>
-                  <option value="2_LUGAR">2° Lugar na Categoria</option>
-                  <option value="3_LUGAR">3° Lugar na Categoria</option>
-                  <option value="MELHOR_DO_EVENTO">Melhor do Evento</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Grupo ACNB</label>
-                <input name="grupo_nelore" placeholder="Ex: Vaca Jovem"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Exposição</label>
-                <select name="exhibition_id"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300">
-                  <option value="">— sem vínculo —</option>
-                  {(exposicoes ?? []).map((e: any) => (
-                    <option key={e.id} value={e.id}>{e.nome}{e.data_base ? ` (${e.data_base})` : ""}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Observações</label>
-                <input name="observacoes" placeholder="Opcional"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-              </div>
-            </div>
-            <button type="submit"
-              className="mt-3 inline-flex items-center gap-1.5 bg-yellow-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors">
-              <Plus className="w-4 h-4" /> Registrar Premiação
-            </button>
-          </form>
+          <FormPremiacao
+            animalId={doadora.id}
+            exposicoes={(exposicoes ?? []).map((e: any) => ({ id: e.id, nome: e.nome, data_base: e.data_base ?? null }))}
+          />
 
           {!premiacoes?.length ? (
             <div className="px-5 py-8 text-center text-gray-400 text-sm">Nenhuma premiação registrada.</div>
