@@ -462,7 +462,7 @@ export default async function DoadoraDetalhePage({
       session:opu_sessions ( data, tipo, responsavel, local )
     `)
     .eq("doadora_id", id)
-    .order("id", { ascending: false });
+    .order("session(data)", { ascending: true });
 
   // Histórico de pesagens
   const { data: pesagens } = await supabase
