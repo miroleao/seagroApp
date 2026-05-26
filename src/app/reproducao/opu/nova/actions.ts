@@ -220,10 +220,10 @@ export async function registrarOPUBatch(formData: FormData): Promise<{ error: st
 
         // Cria pregnancy_diagnoses para vincular doadora/touro à receptora no Rebanho
         if (transfer) {
-          // Previsão de parto: T.E. + 292 dias
+          // Previsão de parto: T.E. + 285 dias
           // Fallback: data OPU se data_te não informada
           const dataBase = data_te ?? data;
-          const previsao = calcParto(dataBase, 292);
+          const previsao = calcParto(dataBase, 285);
 
           const { error: dgErr } = await supabase.from("pregnancy_diagnoses").insert({
             farm_id:             FARM_ID,

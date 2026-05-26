@@ -58,11 +58,11 @@ function formatDate(d: string | null) {
   return `${day}/${m}/${y}`;
 }
 
-// Previsão de parto: T.E. + 292 dias (padrão único)
+// Previsão de parto: T.E. + 285 dias (padrão único)
 function calcPrevisao(dataTE: string | null): string | null {
   if (!dataTE) return null;
   const d = new Date(dataTE + "T12:00:00");
-  d.setDate(d.getDate() + 292);
+  d.setDate(d.getDate() + 285);
   return d.toISOString().split("T")[0];
 }
 
@@ -318,7 +318,7 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
             const teFormData  = teForm[emb.id];
             const isTeManual  = teFormData?.receptoraId === "__manual__";
 
-            // Previsão de parto: T.E. + 292 dias (recalcula sempre a partir da data_te do transfer)
+            // Previsão de parto: T.E. + 285 dias (recalcula sempre a partir da data_te do transfer)
             const dataTeTransfer = transfer?.data_te ?? null;
             const previsao = calcPrevisao(dataTeTransfer);
 
@@ -471,7 +471,7 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
                     )}
                   </td>
 
-                  {/* Prev. Parto — T.E. + 292 dias */}
+                  {/* Prev. Parto — T.E. + 285 dias */}
                   <td className="py-1.5 px-2 text-gray-500 whitespace-nowrap">
                     {previsao ? (
                       <span className={isEdit ? "text-violet-600 font-medium" : ""}>
@@ -721,7 +721,7 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
       {/* Legenda previsão de parto */}
       <div className="mt-2">
         <p className="text-[10px] text-gray-400">
-          Previsão de parto = data T.E. + 292 dias
+          Previsão de parto = data T.E. + 285 dias
         </p>
       </div>
     </div>

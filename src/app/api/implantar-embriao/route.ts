@@ -9,7 +9,7 @@ import { FARM_ID } from "@/lib/utils";
  * Implanta um embrião congelado (DT ou Vitrificado) em uma receptora via T.E.
  * - Atualiza embryo.status → IMPLANTADO
  * - Cria transfers (data_te, receptora_id / receptora_brinco)
- * - Cria pregnancy_diagnoses com data_previsao_parto = data_te + 286 dias
+ * - Cria pregnancy_diagnoses com data_previsao_parto = data_te + 285 dias
  * - Atualiza receptora.status_rebanho → PRENHA_EMBRIAO
  */
 export async function POST(req: NextRequest) {
@@ -22,10 +22,10 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
 
-    // ── 1. Previsão de parto = T.E. + 286 dias ─────────────────────────
+    // ── 1. Previsão de parto = T.E. + 285 dias ─────────────────────────
     const dataPrevisaoParto = (() => {
       const d = new Date(dataTE + "T12:00:00");
-      d.setDate(d.getDate() + 286);
+      d.setDate(d.getDate() + 285);
       return d.toISOString().split("T")[0];
     })();
 
