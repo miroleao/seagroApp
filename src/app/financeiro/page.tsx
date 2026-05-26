@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, FARM_ID } from "@/lib/utils";
 import { TrendingUp, TrendingDown, ChevronDown, Plus, Link2 } from "lucide-react";
 import { vincularDoadora } from "./actions";
+import { VincularDropdown } from "./VincularDropdown";
 import NovaTransacaoForm from "./NovaTransacaoForm";
 import BotaoExcluirTransacao from "./BotaoExcluirTransacao";
 import BotaoEditarTransacao from "./BotaoEditarTransacao";
@@ -404,28 +405,10 @@ export default async function FinanceiroPage({
                                         <Link2 className="w-3 h-3" /> {vinculada.nome.split(" ")[0]}
                                       </span>
                                     ) : (
-                                      <details className="relative">
-                                        <summary className="cursor-pointer list-none inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 border border-dashed border-gray-300 hover:border-brand-400 px-2 py-0.5 rounded-full transition-colors">
-                                          <Link2 className="w-3 h-3" /> vincular
-                                        </summary>
-                                        <div className="absolute right-0 z-10 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg p-3 min-w-[260px]">
-                                          <p className="text-xs text-gray-500 mb-2">Vincular ao ROI de qual doadora?</p>
-                                          <form action={vincularDoadora} className="flex gap-2">
-                                            <input type="hidden" name="tx_id" value={t.id} />
-                                            <select name="doadora_id" required
-                                              className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white">
-                                              <option value="">— selecione —</option>
-                                              {(doadoras ?? []).map((d: any) => (
-                                                <option key={d.id} value={d.id}>{d.nome}{d.rgn ? ` (${d.rgn})` : ""}</option>
-                                              ))}
-                                            </select>
-                                            <button type="submit"
-                                              className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
-                                              OK
-                                            </button>
-                                          </form>
-                                        </div>
-                                      </details>
+                                      <VincularDropdown
+                                        txId={t.id}
+                                        doadoras={(doadoras ?? []).map((d: any) => ({ id: d.id, nome: d.nome, rgn: d.rgn ?? null }))}
+                                      />
                                     )}
                                   </td>
                                   <td className="px-2 py-2.5 text-right">
