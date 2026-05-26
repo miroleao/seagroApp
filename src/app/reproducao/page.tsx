@@ -20,12 +20,13 @@ export default async function ReproducaoPage() {
 
   // Receptoras do rebanho para o formulário de T.E.
   // Inclui tipo RECEPTORA e DESCARTE (igual ao módulo /rebanho)
-  // Exclui apenas VENDIDA e MORTA — status NULL também é incluído
+  // Exclui VENDIDA, MORTA e receptoras externas (is_external = true)
   const { data: receptorasData } = await supabase
     .from("animals")
     .select("id, brinco, nome, status_rebanho")
     .eq("farm_id", FARM_ID)
     .in("tipo", ["RECEPTORA", "DESCARTE"])
+    .eq("is_external", false)
     .or("status_rebanho.not.in.(VENDIDA,MORTA),status_rebanho.is.null")
     .order("brinco", { ascending: true });
 
@@ -49,7 +50,7 @@ export default async function ReproducaoPage() {
           id, sexagem, status, numero_cdc_fiv, numero_adt_te, tipo_congelamento,
           transfers:transfers!transfers_embryo_id_fkey (
             id, receptora_brinco, data_te,
-            receptora:animals!transfers_receptora_id_fkey ( id, nome, brinco, rgn ),
+            receptora:animals!transfers_receptora_id_fkey ( id, nome, brinco, rgn, is_external, localizacao ),
             pregnancy_diagnoses ( resultado, data_previsao_parto, data_dg, data_desfecho, tipo_desfecho )
           )
         )

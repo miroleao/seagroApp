@@ -19,6 +19,8 @@ interface Receptora {
   nome: string;
   brinco: string | null;
   rgn: string | null;
+  is_external?: boolean;
+  localizacao?: string | null;
 }
 interface Transfer {
   id: string;
@@ -385,10 +387,22 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
                         )}
                       </div>
                     ) : receptora?.id ? (
-                      <Link href={`/rebanho/${receptora.id}`}
-                        className="font-mono text-brand-700 hover:underline font-semibold">
-                        {brinco ?? "—"}
-                      </Link>
+                      <div className="flex flex-col gap-0.5">
+                        {receptora.is_external ? (
+                          /* Externa: sem link para rebanho, mostra badge + localização */
+                          <span className="font-mono text-orange-700 font-semibold">{brinco ?? "—"}</span>
+                        ) : (
+                          <Link href={`/rebanho/${receptora.id}`}
+                            className="font-mono text-brand-700 hover:underline font-semibold">
+                            {brinco ?? "—"}
+                          </Link>
+                        )}
+                        {receptora.is_external && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 w-fit">
+                            🏡 Ext.{receptora.localizacao ? ` · ${receptora.localizacao}` : ""}
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <span className="font-mono text-gray-500">{brinco ?? "—"}</span>
                     )}

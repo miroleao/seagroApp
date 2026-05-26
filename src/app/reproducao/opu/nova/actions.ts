@@ -154,8 +154,10 @@ export async function registrarOPUBatch(formData: FormData): Promise<{ error: st
 
     // ── Criar embriões implantados + transfers ──────────────────────
     for (let j = 0; j < implantados; j++) {
-      const receptora_id     = (formData.get(`receptora_id_${i}_${j}`)     as string)?.trim() || null;
-      const receptora_brinco = (formData.get(`receptora_brinco_${i}_${j}`) as string)?.trim() || null;
+      const receptora_id      = (formData.get(`receptora_id_${i}_${j}`)      as string)?.trim() || null;
+      const receptora_brinco  = (formData.get(`receptora_brinco_${i}_${j}`)  as string)?.trim() || null;
+      const is_external_flag  = formData.get(`receptora_externa_${i}_${j}`) === "1";
+      const receptora_fazenda = (formData.get(`receptora_fazenda_${i}_${j}`) as string)?.trim() || null;
 
       let finalReceptoraId = receptora_id;
       if (!finalReceptoraId && receptora_brinco) {
@@ -169,6 +171,13 @@ export async function registrarOPUBatch(formData: FormData): Promise<{ error: st
 
         if (existente?.id) {
           finalReceptoraId = existente.id;
+          // Se marcada como externa, atualiza o registro existente
+          if (is_external_flag) {
+            await supabase
+              .from("animals")
+              .update({ is_external: true, localizacao: receptora_fazenda })
+              .eq("id", existente.id);
+          }
         } else {
           const { data: nova } = await supabase
             .from("animals")
@@ -179,6 +188,8 @@ export async function registrarOPUBatch(formData: FormData): Promise<{ error: st
               nome:           `Receptora ${receptora_brinco}`,
               brinco:         receptora_brinco,
               status_rebanho: "PRENHA_EMBRIAO",
+              is_external:    is_external_flag,
+              localizacao:    is_external_flag ? receptora_fazenda : null,
             })
             .select("id")
             .single();

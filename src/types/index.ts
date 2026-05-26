@@ -34,6 +34,7 @@ export interface Animal {
   bisavo_materna?: string;              // Bisavô Avó Mat. (pai da avó materna)
   bisavo?: string;                       // Bisavó Avó Mat. (mãe da avó materna)
   localizacao?: string;
+  is_external?: boolean;            // true = receptora em central/fazenda externa (não entra no rebanho)
   situacao?: string;
   status_reprodutivo?: string;
   percentual_proprio?: number;

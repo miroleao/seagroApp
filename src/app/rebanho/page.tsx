@@ -67,11 +67,13 @@ export default async function RebanhoPage({
   const supabase = await createClient();
 
   // Animais do rebanho (RECEPTORA + DESCARTE, inclui RECRIA via classificacao)
+  // Exclui receptoras externas (is_external = true) — essas ficam apenas nas aspirações/prenhezes
   const { data: animaisRaw } = await supabase
     .from("animals")
     .select("id, nome, brinco, classificacao, tipo, status_rebanho, situacao, localizacao, data_entrada, peso_atual, observacoes")
     .eq("farm_id", FARM_ID)
     .in("tipo", ["RECEPTORA", "DESCARTE"])
+    .eq("is_external", false)
     .order("brinco", { ascending: true });
 
   // Prenhezes ativas para exibir previsão de parto + doadora/touro/embrião

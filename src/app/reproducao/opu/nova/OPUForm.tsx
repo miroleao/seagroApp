@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, ChevronDown, ChevronRight, AlertCircle } from "lucide-react";
 import { registrarOPUBatch } from "./actions";
 
-type ReceptoraSlot = { uid: string; receptora_id: string; brinco: string };
+type ReceptoraSlot = {
+  uid:            string;
+  receptora_id:   string;
+  brinco:         string;
+  isExternal:     boolean;   // receptora em central / fazenda externa
+  fazendaExterna: string;    // ex: "Central Valença - MG"
+};
 
 type DoadoraRow = {
   uid: string;
@@ -32,7 +38,7 @@ function emptyRow(uid: string): DoadoraRow {
   };
 }
 function emptySlot(uid: string): ReceptoraSlot {
-  return { uid, receptora_id: "", brinco: "" };
+  return { uid, receptora_id: "", brinco: "", isExternal: false, fazendaExterna: "" };
 }
 
 const inputCls   = "w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white";
@@ -91,7 +97,7 @@ export default function OPUForm({
       return updated;
     }));
   }
-  function updateReceptora(rowUid: string, slotUid: string, field: keyof ReceptoraSlot, value: string) {
+  function updateReceptora(rowUid: string, slotUid: string, field: keyof ReceptoraSlot, value: string | boolean) {
     setRows(r => r.map(x => {
       if (x.uid !== rowUid) return x;
       return { ...x, receptoras: x.receptoras.map(s => s.uid === slotUid ? { ...s, [field]: value } : s) };
@@ -323,38 +329,92 @@ export default function OPUForm({
 
                     {/* Sub-linhas de receptoras */}
                     {row.showReceptoras && row.receptoras.map((slot, j) => (
-                      <tr key={slot.uid} className="bg-amber-50/30 border-t border-amber-100/40">
-                        <td className="px-3 py-1.5 text-xs text-amber-400 text-center">↳</td>
-                        <td colSpan={colsDoadoras + 3} className="px-3 py-1.5">
-                          <div className="flex items-center gap-2">
+                      <tr key={slot.uid} className={`border-t ${slot.isExternal ? "bg-orange-50/40 border-orange-100/60" : "bg-amber-50/30 border-amber-100/40"}`}>
+                        <td className={`px-3 py-2 text-xs text-center ${slot.isExternal ? "text-orange-400" : "text-amber-400"}`}>↳</td>
+                        <td colSpan={colsDoadoras + 3} className="px-3 py-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Label */}
                             <span className="text-xs text-gray-400 shrink-0 w-20">Receptora {j + 1}</span>
-                            <select
-                              name={`receptora_id_${i}_${j}`}
-                              value={slot.receptora_id}
-                              onChange={e => {
-                                const id = e.target.value;
-                                updateReceptora(row.uid, slot.uid, "receptora_id", id);
-                                const found = receptoras.find(r => r.id === id);
-                                if (found?.brinco) updateReceptora(row.uid, slot.uid, "brinco", found.brinco);
-                              }}
-                              className={`${inputXsCls} flex-1 max-w-xs`}
-                            >
-                              <option value="">— Vincular do rebanho —</option>
-                              {receptoras.map(r => (
-                                <option key={r.id} value={r.id}>
-                                  {r.brinco ? `#${r.brinco}` : "s/ brinco"}{r.nome ? ` — ${r.nome}` : ""}
-                                </option>
-                              ))}
-                            </select>
-                            <span className="text-xs text-gray-400 shrink-0">ou</span>
-                            <input
-                              name={`receptora_brinco_${i}_${j}`}
-                              type="text"
-                              placeholder="Nº brinco"
-                              value={slot.brinco}
-                              onChange={e => updateReceptora(row.uid, slot.uid, "brinco", e.target.value)}
-                              className={`${inputXsCls} w-28`}
-                            />
+
+                            {/* Toggle externa */}
+                            <label className="flex items-center gap-1.5 cursor-pointer shrink-0 select-none group">
+                              <input
+                                type="checkbox"
+                                name={`receptora_externa_${i}_${j}`}
+                                value="1"
+                                checked={slot.isExternal}
+                                onChange={e => {
+                                  updateReceptora(row.uid, slot.uid, "isExternal", e.target.checked);
+                                  // Limpa seleção do rebanho ao marcar como externa
+                                  if (e.target.checked) {
+                                    updateReceptora(row.uid, slot.uid, "receptora_id", "");
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                              />
+                              <span className={`text-xs font-medium ${slot.isExternal ? "text-orange-600" : "text-gray-400 group-hover:text-gray-600"}`}>
+                                Receptora externa
+                              </span>
+                            </label>
+
+                            {slot.isExternal ? (
+                              /* ── Receptora externa: só brinco + localização ── */
+                              <>
+                                {/* hidden para manter a posição no formData */}
+                                <input type="hidden" name={`receptora_id_${i}_${j}`} value="" />
+                                <input
+                                  name={`receptora_brinco_${i}_${j}`}
+                                  type="text"
+                                  placeholder="Nº brinco *"
+                                  value={slot.brinco}
+                                  onChange={e => updateReceptora(row.uid, slot.uid, "brinco", e.target.value)}
+                                  className={`${inputXsCls} w-28`}
+                                />
+                                <input
+                                  name={`receptora_fazenda_${i}_${j}`}
+                                  type="text"
+                                  placeholder="Localização / Fazenda (ex: Central Valença - MG)"
+                                  value={slot.fazendaExterna}
+                                  onChange={e => updateReceptora(row.uid, slot.uid, "fazendaExterna", e.target.value)}
+                                  className={`${inputXsCls} flex-1 min-w-[200px] border-orange-200 focus:ring-orange-300`}
+                                />
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-orange-600 bg-orange-100 border border-orange-200 rounded px-1.5 py-0.5 shrink-0">
+                                  🏡 Ext.
+                                </span>
+                              </>
+                            ) : (
+                              /* ── Receptora interna: dropdown + brinco livre ── */
+                              <>
+                                <input type="hidden" name={`receptora_fazenda_${i}_${j}`} value="" />
+                                <select
+                                  name={`receptora_id_${i}_${j}`}
+                                  value={slot.receptora_id}
+                                  onChange={e => {
+                                    const id = e.target.value;
+                                    updateReceptora(row.uid, slot.uid, "receptora_id", id);
+                                    const found = receptoras.find(r => r.id === id);
+                                    if (found?.brinco) updateReceptora(row.uid, slot.uid, "brinco", found.brinco);
+                                  }}
+                                  className={`${inputXsCls} flex-1 max-w-xs`}
+                                >
+                                  <option value="">— Vincular do rebanho —</option>
+                                  {receptoras.map(r => (
+                                    <option key={r.id} value={r.id}>
+                                      {r.brinco ? `#${r.brinco}` : "s/ brinco"}{r.nome ? ` — ${r.nome}` : ""}
+                                    </option>
+                                  ))}
+                                </select>
+                                <span className="text-xs text-gray-400 shrink-0">ou</span>
+                                <input
+                                  name={`receptora_brinco_${i}_${j}`}
+                                  type="text"
+                                  placeholder="Nº brinco"
+                                  value={slot.brinco}
+                                  onChange={e => updateReceptora(row.uid, slot.uid, "brinco", e.target.value)}
+                                  className={`${inputXsCls} w-28`}
+                                />
+                              </>
+                            )}
                           </div>
                         </td>
                         <td colSpan={6} />
