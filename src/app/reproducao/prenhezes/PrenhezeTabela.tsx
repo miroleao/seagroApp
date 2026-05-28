@@ -480,13 +480,18 @@ export default function PrenhezeTabela({
               <p className="text-xs text-gray-500 mt-0.5 truncate">× {r.touroNome}</p>
             )}
           </div>
-          {/* Direita: desfecho */}
-          <div className="shrink-0">
+          {/* Direita: desfecho + prev. parto (quando ativa) */}
+          <div className="shrink-0 flex flex-col items-end gap-1">
             {r.resultado ? (
               <ResultadoBadge resultado={r.resultado} dataResultado={r.dataResultado} />
             ) : (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
                 P+
+              </span>
+            )}
+            {!r.resultado && r.dataParto && (
+              <span className="text-[11px] text-gray-500 whitespace-nowrap">
+                Prev. {formatDate(r.dataParto)}
               </span>
             )}
           </div>
