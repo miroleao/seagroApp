@@ -13,7 +13,7 @@ import { EditPesoInline } from "./EditPesoInline";
 import { EditPrenheInline } from "./EditPrenheInline";
 import { DesfechoUnificadoInline } from "./DesfechoUnificadoInline";
 import { EditLocalizacaoRebanho } from "./EditLocalizacaoRebanho";
-import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
+import { ExportarPDF, type ColunaPDF, type GrupoPDF } from "@/components/ui/ExportarPDF";
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
 const CLASS_MAP: Record<string, { label: string; cls: string }> = {
@@ -361,6 +361,15 @@ export default async function RebanhoPage({
             subtitulo={`${animais.length} animais · ${prenhas.length} prenhes ativas`}
             orientacao="landscape"
             nomeArquivo="SE_Rebanho.pdf"
+            grupos={[
+              { key: "PRENHAS",      label: "Prenhas",      padrao: true },
+              { key: "PROTOCOLADAS", label: "Protocoladas", padrao: true },
+              { key: "INSEMINADAS",  label: "Inseminadas",  padrao: true },
+              { key: "PARIDAS",      label: "Paridas",      padrao: true },
+              { key: "VAZIAS",       label: "Vazias",       padrao: false },
+              { key: "DESCARTE",     label: "Descarte",     padrao: false },
+              { key: "OUTROS",       label: "Outros",       padrao: false },
+            ] satisfies GrupoPDF[]}
             colunas={[
               { key: "brinco",         label: "Brinco",         padrao: true,  largura: 1.0 },
               { key: "classificacao",  label: "Classificação",  padrao: false, largura: 1.1 },
@@ -387,7 +396,20 @@ export default async function RebanhoPage({
               const SEX_LABELS: Record<string, string> = {
                 NAO_SEXADO: "—", MACHO: "Macho", FEMEA: "Fêmea",
               };
+              // Define o grupo do registro a partir do status / classificação
+              const status = a.status_rebanho ?? "";
+              const cls = a.classificacao ?? "";
+              let grupo: string;
+              if (status === "PRENHA" || status === "PRENHA_EMBRIAO" || status === "IMPLANTADA") grupo = "PRENHAS";
+              else if (status === "PROTOCOLADA") grupo = "PROTOCOLADAS";
+              else if (status === "INSEMINADA") grupo = "INSEMINADAS";
+              else if (status === "PARIDA") grupo = "PARIDAS";
+              else if (status === "VAZIA") grupo = "VAZIAS";
+              else if (status === "DESCARTE" || cls === "DESCARTE" || a.tipo === "DESCARTE") grupo = "DESCARTE";
+              else grupo = "OUTROS";
+
               return {
+                grupo,
                 brinco:         a.brinco ?? a.nome ?? "—",
                 classificacao:  CLASS_LABELS_LOCAL[a.classificacao ?? ""] ?? (a.classificacao ?? "—"),
                 status_rebanho: STATUS_LABELS_LOCAL[a.status_rebanho ?? ""] ?? (a.status_rebanho ?? "—"),

@@ -14,6 +14,12 @@ export interface ColunaPDF {
   largura?: number; // largura relativa (pontos jsPDF)
 }
 
+export interface GrupoPDF {
+  key: string;       // valor que aparece em row[campoGrupo]
+  label: string;     // rótulo exibido no seletor
+  padrao?: boolean;  // true = marcado por padrão (default: true)
+}
+
 export interface ExportarPDFProps {
   titulo: string;
   subtitulo?: string;
@@ -21,6 +27,10 @@ export interface ExportarPDFProps {
   dados: Record<string, unknown>[];
   orientacao?: "portrait" | "landscape";
   nomeArquivo?: string;
+  /** Se informado, exibe um seletor para filtrar `dados` por grupo. */
+  grupos?: GrupoPDF[];
+  /** Nome do campo em `dados` que indica o grupo. Default: "grupo". */
+  campoGrupo?: string;
 }
 
 // ─── Labels de status ─────────────────────────────────────────────────────────
@@ -77,10 +87,15 @@ export function ExportarPDF({
   dados,
   orientacao = "landscape",
   nomeArquivo,
+  grupos,
+  campoGrupo = "grupo",
 }: ExportarPDFProps) {
   const [aberto, setAberto] = useState(false);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(
     () => new Set(colunas.filter((c) => c.padrao !== false).map((c) => c.key))
+  );
+  const [gruposSel, setGruposSel] = useState<Set<string>>(
+    () => new Set((grupos ?? []).filter((g) => g.padrao !== false).map((g) => g.key))
   );
 
   const toggleColuna = useCallback((key: string) => {
@@ -95,6 +110,15 @@ export function ExportarPDF({
     });
   }, []);
 
+  const toggleGrupo = useCallback((key: string) => {
+    setGruposSel((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
   const selecionarTodas = () =>
     setSelecionadas(new Set(colunas.map((c) => c.key)));
 
@@ -103,9 +127,24 @@ export function ExportarPDF({
     if (primeira) setSelecionadas(new Set([primeira]));
   };
 
+  const selecionarTodosGrupos = () =>
+    setGruposSel(new Set((grupos ?? []).map((g) => g.key)));
+
+  const limparGrupos = () => setGruposSel(new Set());
+
+  // Filtra dados pelos grupos selecionados (se houver seletor de grupos)
+  const dadosFiltrados =
+    grupos && grupos.length > 0
+      ? dados.filter((row) => {
+          const g = row[campoGrupo];
+          return typeof g === "string" && gruposSel.has(g);
+        })
+      : dados;
+
   const gerarPDF = useCallback(() => {
     const colsSel = colunas.filter((c) => selecionadas.has(c.key));
     if (colsSel.length === 0) return;
+    if (dadosFiltrados.length === 0) return;
 
     const doc = new jsPDF({ orientation: orientacao, unit: "mm", format: "a4" });
 
@@ -156,7 +195,7 @@ export function ExportarPDF({
 
     // ── Dados da tabela ───────────────────────────────────────────────────────
     const head = [colsSel.map((c) => c.label)];
-    const body = dados.map((row) =>
+    const body = dadosFiltrados.map((row) =>
       colsSel.map((c) => formatarCelula(row[c.key]))
     );
 
@@ -221,7 +260,7 @@ export function ExportarPDF({
     const arquivo = nomeArquivo ?? `${titulo.replace(/\s+/g, "_")}_${dataStr.replace(/\//g, "-")}.pdf`;
     doc.save(arquivo);
     setAberto(false);
-  }, [colunas, dados, orientacao, selecionadas, titulo, subtitulo, nomeArquivo]);
+  }, [colunas, dadosFiltrados, orientacao, selecionadas, titulo, subtitulo, nomeArquivo]);
 
   return (
     <>
@@ -255,6 +294,62 @@ export function ExportarPDF({
 
             {/* Corpo */}
             <div className="px-6 py-4">
+              {/* Seletor de grupos (opcional) */}
+              {grupos && grupos.length > 0 && (
+                <div className="mb-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Selecione os grupos ({gruposSel.size}/{grupos.length})
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={selecionarTodosGrupos}
+                        className="text-xs text-brand-600 hover:underline"
+                      >
+                        Todos
+                      </button>
+                      <button
+                        onClick={limparGrupos}
+                        className="text-xs text-gray-400 hover:underline"
+                      >
+                        Limpar
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {grupos.map((g) => {
+                      const ativa = gruposSel.has(g.key);
+                      const total = dados.filter((r) => r[campoGrupo] === g.key).length;
+                      return (
+                        <button
+                          key={g.key}
+                          onClick={() => toggleGrupo(g.key)}
+                          className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-xs text-left transition-colors border ${
+                            ativa
+                              ? "bg-brand-50 border-brand-200 text-brand-800 font-medium"
+                              : "bg-gray-50 border-gray-100 text-gray-500 hover:border-gray-200"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            {ativa ? (
+                              <CheckSquare className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                            ) : (
+                              <Square className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                            )}
+                            {g.label}
+                          </span>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                            ativa ? "bg-brand-100 text-brand-700" : "bg-gray-200 text-gray-500"
+                          }`}>
+                            {total}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Selecione as colunas ({selecionadas.size}/{colunas.length})
@@ -300,7 +395,11 @@ export function ExportarPDF({
               </div>
 
               <p className="text-[11px] text-gray-400 mt-3">
-                {dados.length} {dados.length === 1 ? "registro" : "registros"} · Formato A4{" "}
+                {dadosFiltrados.length} {dadosFiltrados.length === 1 ? "registro" : "registros"}
+                {grupos && grupos.length > 0 && dadosFiltrados.length !== dados.length && (
+                  <span className="text-gray-300"> de {dados.length}</span>
+                )}
+                {" "}· Formato A4{" "}
                 {orientacao === "landscape" ? "paisagem" : "retrato"}
               </p>
             </div>
@@ -315,7 +414,7 @@ export function ExportarPDF({
               </button>
               <button
                 onClick={gerarPDF}
-                disabled={selecionadas.size === 0}
+                disabled={selecionadas.size === 0 || dadosFiltrados.length === 0}
                 className="flex-1 inline-flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
               >
                 <FileDown className="w-4 h-4" />
