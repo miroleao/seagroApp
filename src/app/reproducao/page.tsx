@@ -102,7 +102,9 @@ export default async function ReproducaoPage() {
     mg.totalSessoes++;
     for (const asp of (s.aspirations ?? [])) {
       mg.totalOocitos   += asp.oocitos_viaveis ?? 0;
-      mg.totalEmbrioes  += asp.embryos_congelados ?? 0;
+      // Total de embriões produzidos = registros na tabela embryos (congelados + implantados)
+      // Fallback p/ embryos_congelados se a sessão ainda não tem embryos individualizados.
+      mg.totalEmbrioes  += (asp.embryos?.length ?? asp.embryos_congelados ?? 0);
       mg.totalPositivos += (asp.embryos ?? [])
         .flatMap((e: any) => (e.transfers ?? []).flatMap((t: any) => t.pregnancy_diagnoses ?? []))
         .filter((d: any) => d.resultado === "POSITIVO").length;

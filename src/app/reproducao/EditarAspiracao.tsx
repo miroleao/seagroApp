@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pencil, Check, X, AlertCircle, Syringe } from "lucide-react";
 
 interface ReceptoraOpt {
@@ -80,6 +80,18 @@ export function EditarAspiracao(props: Props) {
       return novo;
     });
   }
+
+  // Sincroniza automaticamente quando o painel abre ou quando `pendentes` muda
+  useEffect(() => {
+    if (!editando) return;
+    setRecRows(prev => {
+      if (prev.length === pendentes) return prev;
+      const novo = [...prev];
+      while (novo.length < pendentes) novo.push({ receptoraId: "", brinco: "" });
+      while (novo.length > pendentes) novo.pop();
+      return novo;
+    });
+  }, [editando, pendentes]);
 
   async function salvar() {
     setSalvando(true);

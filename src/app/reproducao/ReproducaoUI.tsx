@@ -188,8 +188,10 @@ function AspCard({ asp, session, receptoras }: { asp: any; session: any; recepto
   const dbId    = doadoraAnimal?.id ?? null;
   const embryos: any[] = asp.embryos ?? [];
 
-  const taxa = asp.oocitos_viaveis && asp.embryos_congelados
-    ? Math.round((asp.embryos_congelados / asp.oocitos_viaveis) * 100)
+  // Total de embriões produzidos = registros na tabela embryos (congelados + implantados)
+  const totalEmbrioes = embryos.length > 0 ? embryos.length : (asp.embryos_congelados ?? 0);
+  const taxa = asp.oocitos_viaveis && totalEmbrioes
+    ? Math.round((totalEmbrioes / asp.oocitos_viaveis) * 100)
     : null;
 
   const positivos = embryos
@@ -231,10 +233,10 @@ function AspCard({ asp, session, receptoras }: { asp: any; session: any; recepto
               <p className="text-xs font-semibold text-gray-700">{asp.oocitos_viaveis}</p>
             </div>
           )}
-          {asp.embryos_congelados != null && (
+          {(totalEmbrioes > 0 || asp.embryos_congelados != null) && (
             <div className="hidden sm:block text-center">
               <p className="text-[10px] text-gray-400">Embriões</p>
-              <p className="text-xs font-semibold text-gray-700">{asp.embryos_congelados}</p>
+              <p className="text-xs font-semibold text-gray-700">{totalEmbrioes}</p>
             </div>
           )}
           {taxa !== null && (
