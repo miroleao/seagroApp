@@ -8,7 +8,7 @@ import { FARM_ID } from "@/lib/utils";
  *
  * Registra implantações pendentes de uma aspiração: para cada receptora
  * informada cria embryo (status IMPLANTADO) + transfer + pregnancy_diagnoses
- * e atualiza status_rebanho da receptora para PRENHA_EMBRIAO.
+ * e atualiza status_rebanho da receptora para IMPLANTADA (vira PRENHA_EMBRIAO só após DG+).
  *
  * Body:
  *   aspId: string
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
               classificacao:  "RECEPTORA",
               nome:           `Receptora ${receptoraBrinco}`,
               brinco:         receptoraBrinco,
-              status_rebanho: "PRENHA_EMBRIAO",
+              status_rebanho: "IMPLANTADA",
             })
             .select("id")
             .single();
@@ -141,11 +141,11 @@ export async function POST(req: NextRequest) {
         data_previsao_parto: previsao,
       });
 
-      // Atualiza status da receptora
+      // Atualiza status da receptora → IMPLANTADA (vira PRENHA_EMBRIAO só após DG positivo)
       if (finalReceptoraId) {
         await supabase
           .from("animals")
-          .update({ status_rebanho: "PRENHA_EMBRIAO" })
+          .update({ status_rebanho: "IMPLANTADA" })
           .eq("id", finalReceptoraId);
       }
 

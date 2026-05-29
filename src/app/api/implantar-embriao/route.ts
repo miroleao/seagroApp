@@ -10,7 +10,7 @@ import { FARM_ID } from "@/lib/utils";
  * - Atualiza embryo.status → IMPLANTADO
  * - Cria transfers (data_te, receptora_id / receptora_brinco)
  * - Cria pregnancy_diagnoses com data_previsao_parto = data_te + 285 dias
- * - Atualiza receptora.status_rebanho → PRENHA_EMBRIAO
+ * - Atualiza receptora.status_rebanho → IMPLANTADA (vira PRENHA_EMBRIAO só após DG+)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
             classificacao:  "RECEPTORA",
             nome:           `Receptora ${receptoraBrinco.trim()}`,
             brinco:         receptoraBrinco.trim(),
-            status_rebanho: "PRENHA_EMBRIAO",
+            status_rebanho: "IMPLANTADA",
           })
           .select("id")
           .single();
@@ -96,11 +96,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── 6. Atualiza status da receptora → PRENHA_EMBRIAO ────────────────
+    // ── 6. Atualiza status da receptora → IMPLANTADA (vira PRENHA_EMBRIAO só após DG+)
     if (finalReceptoraId) {
       await supabase
         .from("animals")
-        .update({ status_rebanho: "PRENHA_EMBRIAO" })
+        .update({ status_rebanho: "IMPLANTADA" })
         .eq("id", finalReceptoraId);
     }
 
