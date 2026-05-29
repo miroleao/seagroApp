@@ -41,7 +41,7 @@ export default async function ReproducaoPage() {
     .from("opu_sessions")
     .select(`
       id, data, tipo, laboratorio, responsavel, local, observacoes,
-      data_fiv, data_dg, data_sexagem,
+      data_fiv, data_te, data_dg, data_sexagem,
       aspirations (
         id, doadora_id, doadora_nome, touro_nome, touro_rgn, observacoes,
         oocitos_viaveis, embryos_congelados, implantados, prenhezes_count, custo_total,

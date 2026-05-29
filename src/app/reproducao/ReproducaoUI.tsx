@@ -294,6 +294,9 @@ function AspCard({ asp, session, receptoras }: { asp: any; session: any; recepto
                 prenhezes_count={asp.prenhezes_count ?? null}
                 custo_total={asp.custo_total ?? null}
                 observacoes={asp.observacoes ?? null}
+                embryos={embryos.map((e: any) => ({ id: e.id, status: e.status, transfers: e.transfers }))}
+                receptoras={receptoras}
+                dataTeDefault={session.data_te ?? session.data ?? null}
               />
               <BotaoExcluirAsp aspId={asp.id} nomeDoadora={nome} />
             </div>
