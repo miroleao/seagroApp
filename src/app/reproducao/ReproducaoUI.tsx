@@ -34,6 +34,7 @@ export type MonthGroup = {
   days: DayGroup[];
   totalOocitos: number;
   totalEmbrioes: number;
+  totalCongelados: number;
   totalPositivos: number;
   totalSessoes: number;
 };
@@ -123,6 +124,12 @@ function MonthSection({ mg, receptoras }: { mg: MonthGroup; receptoras: Receptor
             <p className="text-[10px] text-gray-400 uppercase">Embriões</p>
             <p className="text-sm font-semibold text-gray-700">{mg.totalEmbrioes || "—"}</p>
           </div>
+          {mg.totalCongelados > 0 && (
+            <div className="hidden sm:block text-center">
+              <p className="text-[10px] text-gray-400 uppercase">Cong.</p>
+              <p className="text-sm font-semibold text-blue-600">{mg.totalCongelados}</p>
+            </div>
+          )}
           {taxa !== null && (
             <div className="hidden sm:block text-center">
               <p className="text-[10px] text-gray-400 uppercase">Taxa</p>

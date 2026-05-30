@@ -89,6 +89,7 @@ export default async function ReproducaoPage() {
         days: [],
         totalOocitos: 0,
         totalEmbrioes: 0,
+        totalCongelados: 0,
         totalPositivos: 0,
         totalSessoes: 0,
       });
@@ -105,6 +106,8 @@ export default async function ReproducaoPage() {
       // Total de embriões produzidos = registros na tabela embryos (congelados + implantados)
       // Fallback p/ embryos_congelados se a sessão ainda não tem embryos individualizados.
       mg.totalEmbrioes  += (asp.embryos?.length ?? asp.embryos_congelados ?? 0);
+      // Congelados = embriões com status DISPONIVEL (DT ou Vitrificados ainda no estoque)
+      mg.totalCongelados += (asp.embryos ?? []).filter((e: any) => e.status === "DISPONIVEL").length;
       mg.totalPositivos += (asp.embryos ?? [])
         .flatMap((e: any) => (e.transfers ?? []).flatMap((t: any) => t.pregnancy_diagnoses ?? []))
         .filter((d: any) => d.resultado === "POSITIVO").length;
