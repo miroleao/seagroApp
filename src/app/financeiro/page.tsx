@@ -308,7 +308,7 @@ export default async function FinanceiroPage({
                 <tbody className="divide-y divide-gray-50">
                   {txsOrdenadas.map((t: any) => {
                     const parcelas: any[] = t.installments ?? [];
-                    const nParcelas = t.n_parcelas ?? parcelas.length ?? 30;
+                    const nParcelas = t.n_parcelas ?? (parcelas.length > 0 ? parcelas.length : 1);
                     const valorParcela = parcelas[0]?.valor
                       ?? (t.valor_total != null ? t.valor_total / nParcelas : null);
                     const label = tipoLabel(t.tipo, t.animal_nome, t.categoria);
@@ -360,7 +360,7 @@ export default async function FinanceiroPage({
                           {nParcelas}×
                         </td>
                         <td className={`px-3 py-2.5 text-right font-bold whitespace-nowrap ${isCompra ? "text-red-600" : "text-green-700"}`}>
-                          {valorParcela != null ? formatCurrency(valorParcela * nParcelas) : (t.valor_total != null ? formatCurrency(t.valor_total) : "—")}
+                          {t.valor_total != null ? formatCurrency(t.valor_total) : (valorParcela != null ? formatCurrency(valorParcela * nParcelas) : "—")}
                         </td>
                         <td className="px-3 py-2.5">
                           <VinculoCell
@@ -461,14 +461,14 @@ export default async function FinanceiroPage({
                       <div className="md:hidden divide-y divide-gray-100">
                         {allTxs.map((t: any) => {
                           const parcelas: any[] = t.installments ?? [];
-                          const nParcelas = t.n_parcelas ?? parcelas.length ?? 30;
+                          const nParcelas = t.n_parcelas ?? (parcelas.length > 0 ? parcelas.length : 1);
                           const valorParcela = parcelas[0]?.valor
                             ?? (t.valor_total != null ? t.valor_total / nParcelas : null);
                           const isCompra = (t._tipo ?? t.tipo) === "COMPRA";
                           const catBadge = categoriaBadge(t.categoria);
-                          const totalTx = valorParcela != null
-                            ? valorParcela * nParcelas
-                            : (t.valor_total ?? null);
+                          const totalTx = t.valor_total != null
+                            ? t.valor_total
+                            : (valorParcela != null ? valorParcela * nParcelas : null);
 
                           return (
                             <div key={t.id} className="px-4 py-3">
@@ -518,7 +518,7 @@ export default async function FinanceiroPage({
                         <tbody className="divide-y divide-gray-50">
                           {allTxs.map((t: any) => {
                             const parcelas: any[] = t.installments ?? [];
-                            const nParcelas = t.n_parcelas ?? parcelas.length ?? 30;
+                            const nParcelas = t.n_parcelas ?? (parcelas.length > 0 ? parcelas.length : 1);
                             const valorParcela = parcelas[0]?.valor
                               ?? (t.valor_total != null ? t.valor_total / nParcelas : null);
                             const label = tipoLabel(t._tipo ?? t.tipo, t.animal_nome, t.categoria);
@@ -554,7 +554,7 @@ export default async function FinanceiroPage({
                                     {nParcelas}×
                                   </td>
                                   <td className="px-4 py-2.5 text-right font-bold text-gray-900">
-                                    {valorParcela != null ? formatCurrency(valorParcela * nParcelas) : (t.valor_total != null ? formatCurrency(t.valor_total) : "—")}
+                                    {t.valor_total != null ? formatCurrency(t.valor_total) : (valorParcela != null ? formatCurrency(valorParcela * nParcelas) : "—")}
                                   </td>
                                   <td className="px-4 py-2.5 text-right">
                                     <VinculoCell
