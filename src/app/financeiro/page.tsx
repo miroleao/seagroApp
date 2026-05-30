@@ -273,7 +273,14 @@ export default async function FinanceiroPage({
         )}
 
         {/* ── Modo Tabela: lista plana de todas as transações ─────── */}
-        {modoView === "tabela" && txs.length > 0 && (
+        {modoView === "tabela" && txs.length > 0 && (() => {
+          // Ordena por data efetiva (t.data || auction.data) desc para a tabela
+          const txsOrdenadas = [...txs].sort((a: any, b: any) => {
+            const da = a.data ?? (a.auction as any)?.data ?? "";
+            const db = b.data ?? (b.auction as any)?.data ?? "";
+            return db.localeCompare(da);
+          });
+          return (
           <div className="card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -293,7 +300,7 @@ export default async function FinanceiroPage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {txs.map((t: any) => {
+                  {txsOrdenadas.map((t: any) => {
                     const parcelas: any[] = t.installments ?? [];
                     const nParcelas = t.n_parcelas ?? parcelas.length ?? 30;
                     const valorParcela = parcelas[0]?.valor
@@ -302,8 +309,10 @@ export default async function FinanceiroPage({
                     const isCompra = t.tipo === "COMPRA";
                     const catBadge = categoriaBadge(t.categoria);
                     const auc = t.auction as any;
-                    const dataFormatada = t.data
-                      ? new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")
+                    // Data: usa t.data, com fallback para auction.data (mesma lógica dos cards)
+                    const dataRef = t.data ?? auc?.data ?? null;
+                    const dataFormatada = dataRef
+                      ? new Date(dataRef + "T12:00:00").toLocaleDateString("pt-BR")
                       : "—";
 
                     return (
@@ -382,7 +391,8 @@ export default async function FinanceiroPage({
               </table>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {modoView === "cards" && meses.map((mes) => (
           <details key={mes.chave} className="card overflow-hidden group" open={meses.indexOf(mes) === 0}>
