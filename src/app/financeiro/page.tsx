@@ -231,7 +231,7 @@ export default async function FinanceiroPage({
           ) : (
             <span className="badge bg-gray-100 text-gray-600">{meses.length} meses</span>
           )}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2 shrink-0">
             <Suspense fallback={null}>
               <ViewToggle active={modoView} />
             </Suspense>

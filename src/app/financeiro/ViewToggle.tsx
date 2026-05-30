@@ -20,12 +20,12 @@ export function ViewToggle({ active }: Props) {
     return qs ? `${pathname}?${qs}` : pathname;
   }
 
-  const base = "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors";
+  const base = "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap";
   const on   = "bg-violet-600 text-white";
   const off  = "bg-white text-gray-600 hover:bg-gray-50";
 
   return (
-    <div className="inline-flex rounded-md border border-gray-200 overflow-hidden">
+    <div className="inline-flex shrink-0 rounded-md border border-gray-200 overflow-hidden">
       <Link href={buildHref("cards")}  className={`${base} ${active === "cards"  ? on : off} border-r border-gray-200`}>
         <LayoutGrid className="w-3.5 h-3.5" />
         Cards
