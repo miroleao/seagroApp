@@ -24,6 +24,7 @@ const CATEGORIAS = [
   { value: "RECEPTORA", label: "Receptora" },
   { value: "TOURO",     label: "Touro" },
   { value: "EMBRIAO",   label: "Embrião" },
+  { value: "ASPIRACAO", label: "Aspiração" },
   { value: "PRENHEZ",   label: "Prenhez" },
   { value: "LEILAO",    label: "Leilão" },
   { value: "OUTRO",     label: "Outro" },
