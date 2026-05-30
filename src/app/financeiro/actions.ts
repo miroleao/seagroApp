@@ -208,3 +208,63 @@ export async function vincularDoadora(formData: FormData) {
   revalidatePath("/financeiro");
   revalidatePath("/doadoras");
 }
+
+/**
+ * Vincula uma transação a múltiplos animais (substitui todos os vínculos existentes).
+ * - `transactions.doadora_id` recebe o PRIMEIRO animal selecionado (compat).
+ * - `transactions.animal_nome` recebe os nomes concatenados.
+ * - `transaction_animals` é regravada por completo.
+ */
+export async function vincularAnimaisMultiplos(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
+  const tx_id     = (formData.get("tx_id") as string)?.trim();
+  const idsRaw    = formData.getAll("animal_ids").map(v => String(v).trim()).filter(Boolean);
+  if (!tx_id) return { ok: false, erro: "tx_id inválido" };
+
+  const supabase = await createClient();
+
+  // Limpa vínculos atuais
+  const { error: delErr } = await supabase
+    .from("transaction_animals")
+    .delete()
+    .eq("transaction_id", tx_id);
+  if (delErr) return { ok: false, erro: delErr.message };
+
+  let principalId: string | null = null;
+  let nomeAgregado: string | null = null;
+
+  if (idsRaw.length > 0) {
+    // Insere os novos vínculos
+    const rows = idsRaw.map(id => ({ transaction_id: tx_id, animal_id: id }));
+    const { error: insErr } = await supabase.from("transaction_animals").insert(rows);
+    if (insErr) return { ok: false, erro: insErr.message };
+
+    // Busca nomes para compor o animal_nome e definir o principal
+    const { data: animais } = await supabase
+      .from("animals")
+      .select("id, nome")
+      .in("id", idsRaw)
+      .eq("farm_id", FARM_ID);
+
+    if (animais && animais.length > 0) {
+      // Preserva a ordem que veio do formulário
+      const byId = new Map(animais.map((a: any) => [a.id as string, a.nome as string]));
+      const nomesOrdenados = idsRaw.map(id => byId.get(id)).filter(Boolean) as string[];
+      principalId  = idsRaw[0];
+      nomeAgregado = nomesOrdenados.join(" + ");
+    }
+  }
+
+  // Atualiza a transação (mantém compatibilidade com doadora_id)
+  await supabase
+    .from("transactions")
+    .update({
+      doadora_id:  principalId,
+      animal_nome: nomeAgregado,
+    })
+    .eq("id", tx_id)
+    .eq("farm_id", FARM_ID);
+
+  revalidatePath("/financeiro");
+  revalidatePath("/doadoras");
+  return { ok: true };
+}

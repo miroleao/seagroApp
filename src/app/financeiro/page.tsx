@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, FARM_ID } from "@/lib/utils";
-import { TrendingUp, TrendingDown, ChevronDown, Plus, Link2 } from "lucide-react";
+import { TrendingUp, TrendingDown, ChevronDown, Plus } from "lucide-react";
 import { vincularDoadora } from "./actions";
 import { VincularDropdown } from "./VincularDropdown";
+import { VinculoCell } from "./VinculoCell";
 import NovaTransacaoForm from "./NovaTransacaoForm";
 import BotaoExcluirTransacao from "./BotaoExcluirTransacao";
 import BotaoEditarTransacao from "./BotaoEditarTransacao";
@@ -98,10 +99,26 @@ export default async function FinanceiroPage({
     .select(`
       id, tipo, categoria, animal_nome, doadora_id, contraparte, valor_total, n_parcelas, observacoes, data,
       auction:auctions ( id, nome, data, local ),
-      installments ( numero, vencimento, valor, status )
+      installments ( numero, vencimento, valor, status ),
+      transaction_animals ( animal_id, animal:animals ( id, nome, rgn ) )
     `)
     .eq("farm_id", FARM_ID)
     .order("data", { ascending: false });
+
+  // Helper: extrai os animais vinculados de uma transação
+  function animaisDaTx(t: any): { id: string; nome: string; rgn: string | null }[] {
+    const arr = (t.transaction_animals ?? []) as any[];
+    const fromLink = arr
+      .map((l: any) => l.animal)
+      .filter(Boolean)
+      .map((a: any) => ({ id: a.id, nome: a.nome ?? "—", rgn: a.rgn ?? null }));
+    // Fallback: se nada na junction mas tem doadora_id, usa
+    if (fromLink.length === 0 && t.doadora_id) {
+      const d = (doadoras ?? []).find((x: any) => x.id === t.doadora_id);
+      if (d) return [{ id: d.id, nome: d.nome ?? "—", rgn: d.rgn ?? null }];
+    }
+    return fromLink;
+  }
 
   const txsAll = transactions ?? [];
 
@@ -275,7 +292,6 @@ export default async function FinanceiroPage({
                       ?? (t.valor_total != null ? t.valor_total / nParcelas : null);
                     const label = tipoLabel(t.tipo, t.animal_nome, t.categoria);
                     const isCompra = t.tipo === "COMPRA";
-                    const vinculada = doadoras?.find((d: any) => d.id === t.doadora_id);
                     const catBadge = categoriaBadge(t.categoria);
                     const auc = t.auction as any;
                     const dataFormatada = t.data
@@ -324,16 +340,11 @@ export default async function FinanceiroPage({
                           {valorParcela != null ? formatCurrency(valorParcela * nParcelas) : (t.valor_total != null ? formatCurrency(t.valor_total) : "—")}
                         </td>
                         <td className="px-3 py-2.5">
-                          {vinculada ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                              <Link2 className="w-3 h-3" /> {vinculada.nome.split(" ")[0]}
-                            </span>
-                          ) : (
-                            <VincularDropdown
-                              txId={t.id}
-                              doadoras={(doadoras ?? []).map((d: any) => ({ id: d.id, nome: d.nome, rgn: d.rgn ?? null }))}
-                            />
-                          )}
+                          <VinculoCell
+                            txId={t.id}
+                            animais={animaisDaTx(t)}
+                            doadoras={(doadoras ?? []).map((d: any) => ({ id: d.id, nome: d.nome, rgn: d.rgn ?? null }))}
+                          />
                         </td>
                         <td className="px-2 py-2.5 text-right">
                           <div className="inline-flex items-center gap-1">
@@ -486,7 +497,6 @@ export default async function FinanceiroPage({
                               ?? (t.valor_total != null ? t.valor_total / nParcelas : null);
                             const label = tipoLabel(t._tipo ?? t.tipo, t.animal_nome, t.categoria);
                             const isCompra = (t._tipo ?? t.tipo) === "COMPRA";
-                            const vinculada = doadoras?.find((d: any) => d.id === t.doadora_id);
                             const catBadge = categoriaBadge(t.categoria);
 
                             return (
@@ -521,16 +531,11 @@ export default async function FinanceiroPage({
                                     {valorParcela != null ? formatCurrency(valorParcela * nParcelas) : (t.valor_total != null ? formatCurrency(t.valor_total) : "—")}
                                   </td>
                                   <td className="px-4 py-2.5 text-right">
-                                    {vinculada ? (
-                                      <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                                        <Link2 className="w-3 h-3" /> {vinculada.nome.split(" ")[0]}
-                                      </span>
-                                    ) : (
-                                      <VincularDropdown
-                                        txId={t.id}
-                                        doadoras={(doadoras ?? []).map((d: any) => ({ id: d.id, nome: d.nome, rgn: d.rgn ?? null }))}
-                                      />
-                                    )}
+                                    <VinculoCell
+                                      txId={t.id}
+                                      animais={animaisDaTx(t)}
+                                      doadoras={(doadoras ?? []).map((d: any) => ({ id: d.id, nome: d.nome, rgn: d.rgn ?? null }))}
+                                    />
                                   </td>
                                   <td className="px-2 py-2.5 text-right">
                                     <div className="inline-flex items-center gap-1">
