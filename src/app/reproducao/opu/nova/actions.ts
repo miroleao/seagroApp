@@ -187,7 +187,7 @@ export async function registrarOPUBatch(formData: FormData): Promise<{ error: st
               classificacao:  "RECEPTORA",
               nome:           `Receptora ${receptora_brinco}`,
               brinco:         receptora_brinco,
-              status_rebanho: "PRENHA_EMBRIAO",
+              status_rebanho: "IMPLANTADA",
               is_external:    is_external_flag,
               localizacao:    is_external_flag ? receptora_fazenda : null,
             })
@@ -225,19 +225,21 @@ export async function registrarOPUBatch(formData: FormData): Promise<{ error: st
           const dataBase = data_te ?? data;
           const previsao = calcParto(dataBase, 285);
 
+          // DG inicia AGUARDANDO — usuário marca POSITIVO/NEGATIVO depois do diagnóstico real
           const { error: dgErr } = await supabase.from("pregnancy_diagnoses").insert({
             farm_id:             FARM_ID,
             transfer_id:         transfer.id,
-            resultado:           "POSITIVO",
+            resultado:           "AGUARDANDO",
             data_dg:             data_dg ?? data_te ?? data,   // NOT NULL
             data_previsao_parto: previsao,
           });
           if (dgErr) console.error("⚠️ pregnancy_diagnoses insert error:", dgErr.message);
         }
 
+        // Receptora fica IMPLANTADA até DG confirmar prenhez
         await supabase
           .from("animals")
-          .update({ status_rebanho: "PRENHA_EMBRIAO" })
+          .update({ status_rebanho: "IMPLANTADA" })
           .eq("id", finalReceptoraId);
       }
     }
