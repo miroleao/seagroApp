@@ -424,7 +424,7 @@ export default async function FinanceiroPage({
                               txId={t.id}
                               animalNome={nomeLimpo(t.animal_nome)}
                               contraparte={t.contraparte ?? ""}
-                              valorTotal={t.valor_total ?? 0}
+                              valorParcela={valorParcela ?? (t.valor_total != null ? t.valor_total / nParcelas : 0)}
                               nParcelas={nParcelas}
                               data={t.data ?? ""}
                               observacoes={t.observacoes ?? ""}
@@ -618,7 +618,7 @@ export default async function FinanceiroPage({
                                         txId={t.id}
                                         animalNome={nomeLimpo(t.animal_nome)}
                                         contraparte={t.contraparte ?? ""}
-                                        valorTotal={t.valor_total ?? 0}
+                                        valorParcela={valorParcela ?? (t.valor_total != null ? t.valor_total / nParcelas : 0)}
                                         nParcelas={nParcelas}
                                         data={t.data ?? ""}
                                         observacoes={t.observacoes ?? ""}

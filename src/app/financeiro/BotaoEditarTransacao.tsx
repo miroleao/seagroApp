@@ -8,7 +8,7 @@ interface Props {
   txId: string;
   animalNome: string;
   contraparte: string;
-  valorTotal: number;
+  valorParcela: number;
   nParcelas: number;
   data: string;
   observacoes: string;
@@ -32,11 +32,15 @@ const CATEGORIAS = [
   { value: "OUTRO",     label: "Outro" },
 ];
 
+function fmtBRL(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export default function BotaoEditarTransacao({
   txId,
   animalNome,
   contraparte,
-  valorTotal,
+  valorParcela,
   nParcelas,
   data,
   observacoes,
@@ -49,6 +53,10 @@ export default function BotaoEditarTransacao({
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [auctionSel, setAuctionSel] = useState<string>(auctionId ?? "");
+  const [parcela, setParcela] = useState<number>(valorParcela);
+  const [qtdParcelas, setQtdParcelas] = useState<number>(nParcelas);
+
+  const totalCalculado = parcela * qtdParcelas;
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -135,16 +143,18 @@ export default function BotaoEditarTransacao({
                 />
               </div>
 
+              {/* Valor da Parcela + Nº Parcelas → Total calculado */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Valor Total (R$)</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Valor da Parcela (R$)</label>
                   <input
-                    name="valor_total"
+                    name="valor_parcela"
                     type="number"
                     step="0.01"
                     min="0.01"
                     required
-                    defaultValue={valorTotal}
+                    value={parcela}
+                    onChange={e => setParcela(parseFloat(e.target.value) || 0)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
                   />
                 </div>
@@ -155,10 +165,19 @@ export default function BotaoEditarTransacao({
                     type="number"
                     min="1"
                     required
-                    defaultValue={nParcelas}
+                    value={qtdParcelas}
+                    onChange={e => setQtdParcelas(parseInt(e.target.value) || 1)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
                   />
                 </div>
+              </div>
+
+              {/* Total calculado automaticamente */}
+              <div className="bg-gray-50 rounded-lg px-4 py-2.5 flex items-center justify-between">
+                <span className="text-xs text-gray-500">Valor Total</span>
+                <span className="text-sm font-bold text-gray-900">
+                  {fmtBRL(totalCalculado)}
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

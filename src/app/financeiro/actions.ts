@@ -115,19 +115,24 @@ export async function criarTransacao(formData: FormData) {
 
 /** Edita os dados de uma transação existente */
 export async function editarTransacao(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
-  const tx_id       = (formData.get("tx_id")       as string)?.trim();
-  const animal_nome = (formData.get("animal_nome") as string)?.trim() || null;
-  const contraparte = (formData.get("contraparte") as string)?.trim() || null;
-  const valor_total = parseFloat(formData.get("valor_total") as string);
-  const n_parcelas  = parseInt(formData.get("n_parcelas") as string) || 30;
-  const data        = (formData.get("data")        as string)?.trim() || null;
-  const observacoes = (formData.get("observacoes") as string)?.trim() || null;
-  const tipoRaw     = (formData.get("tipo")        as string | null)?.trim() ?? "";
-  const categoriaRaw= (formData.get("categoria")   as string | null) ?? null;
-  const auctionRaw  = (formData.get("auction_id")  as string | null) ?? null;
-  const novoLeilao  = (formData.get("novo_leilao_nome") as string | null)?.trim() ?? "";
+  const tx_id        = (formData.get("tx_id")       as string)?.trim();
+  const animal_nome  = (formData.get("animal_nome") as string)?.trim() || null;
+  const contraparte  = (formData.get("contraparte") as string)?.trim() || null;
+  const valor_parcela = parseFloat(formData.get("valor_parcela") as string);
+  const n_parcelas   = parseInt(formData.get("n_parcelas") as string) || 1;
+  const data         = (formData.get("data")        as string)?.trim() || null;
+  const observacoes  = (formData.get("observacoes") as string)?.trim() || null;
+  const tipoRaw      = (formData.get("tipo")        as string | null)?.trim() ?? "";
+  const categoriaRaw = (formData.get("categoria")   as string | null) ?? null;
+  const auctionRaw   = (formData.get("auction_id")  as string | null) ?? null;
+  const novoLeilao   = (formData.get("novo_leilao_nome") as string | null)?.trim() ?? "";
 
-  if (!tx_id || isNaN(valor_total) || valor_total <= 0) return { ok: false, erro: "Dados inválidos" };
+  // valor_total é sempre parcela × qtd
+  const valor_total = parseFloat((valor_parcela * n_parcelas).toFixed(2));
+
+  if (!tx_id || isNaN(valor_parcela) || valor_parcela <= 0 || n_parcelas < 1) {
+    return { ok: false, erro: "Dados inválidos" };
+  }
 
   const updates: Record<string, unknown> = {
     animal_nome, contraparte, valor_total, n_parcelas, data, observacoes,
@@ -176,6 +181,25 @@ export async function editarTransacao(formData: FormData): Promise<{ ok: boolean
     .eq("farm_id", FARM_ID);
 
   if (error) return { ok: false, erro: error.message };
+
+  // Regenera parcelas com os novos valores
+  await supabase.from("installments").delete().eq("transaction_id", tx_id);
+  const dataBase = data ? new Date(data + "T12:00:00") : new Date();
+  const novasParcelas = Array.from({ length: n_parcelas }, (_, i) => {
+    const venc = new Date(dataBase);
+    venc.setMonth(venc.getMonth() + i + 1);
+    return {
+      farm_id: FARM_ID,
+      transaction_id: tx_id,
+      numero: i + 1,
+      vencimento: venc.toISOString().split("T")[0],
+      valor: parseFloat(valor_parcela.toFixed(2)),
+      status: "PENDENTE" as const,
+    };
+  });
+  if (novasParcelas.length > 0) {
+    await supabase.from("installments").insert(novasParcelas);
+  }
 
   revalidatePath("/financeiro");
   return { ok: true };
