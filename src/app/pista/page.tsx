@@ -7,6 +7,7 @@ import { ResultadoCell } from "./ResultadoCell";
 import {
   idadeExata, pesoMinimo, pesoMaximo, statusPeso, StatusPeso,
 } from "@/lib/acnb";
+import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 
 // ─── Grupos ABCZ (Regulamento ExpZebu 2025/2026 — Art. 29°) ─────────────────
 const GRUPOS_NELORE = [
@@ -150,11 +151,45 @@ export default async function PistaPage() {
 
   return (
     <div className="p-6 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Pista / Exposições</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {expos.length} exposições · {premios.length} premiações · {animais.length} selecionados para pista
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Pista / Exposições</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {expos.length} exposições · {premios.length} premiações · {animais.length} selecionados para pista
+          </p>
+        </div>
+        <ExportarPDF
+          titulo="Pista / Exposições"
+          subtitulo={`${animaisEnriquecidos.length} animais selecionados · SE Agropecuária Nelore de Elite`}
+          orientacao="landscape"
+          nomeArquivo="SE_Pista.pdf"
+          colunas={[
+            { key: "nome",       label: "Nome",        padrao: true,  largura: 2.2 },
+            { key: "rgn",        label: "RGN",         padrao: true,  largura: 1.2 },
+            { key: "rgd",        label: "RGD",         padrao: false, largura: 1.2 },
+            { key: "nascimento", label: "Nascimento",  padrao: true,  largura: 1.0 },
+            { key: "idade",      label: "Idade",       padrao: true,  largura: 0.7 },
+            { key: "sexo",       label: "Sexo",        padrao: true,  largura: 0.6 },
+            { key: "grupo",      label: "Grupo ABCZ",  padrao: true,  largura: 1.4 },
+            { key: "peso",       label: "Peso (kg)",   padrao: true,  largura: 0.8 },
+            { key: "st_peso",    label: "Status Peso", padrao: true,  largura: 1.0 },
+            { key: "localizacao",label: "Localização", padrao: false, largura: 1.0 },
+            { key: "premios",    label: "Premiações",  padrao: false, largura: 2.0 },
+          ] satisfies ColunaPDF[]}
+          dados={animaisEnriquecidos.map((a: any) => ({
+            nome:        a.nome ?? "—",
+            rgn:         a.rgn ?? "—",
+            rgd:         a.rgd ?? "—",
+            nascimento:  a.nascimento ? formatDate(a.nascimento) : "—",
+            idade:       a.meses != null ? `${a.meses}m` : "—",
+            sexo:        a.sexo === "M" ? "Macho" : "Fêmea",
+            grupo:       a.grupo?.nome ?? "Fora de faixa",
+            peso:        a.peso_atual != null ? String(a.peso_atual) : "—",
+            st_peso:     ({ IDEAL: "Ideal", ABAIXO: "Abaixo", ACIMA: "Acima", SEM_DADOS: "—" })[a.stPeso as string] ?? "—",
+            localizacao: a.localizacao ?? "—",
+            premios:     (premiosPorAnimal[a.id] ?? []).map((p: any) => p.tipo_premio?.replace(/_/g, " ")).join(", ") || "—",
+          }))}
+        />
       </div>
 
       {/* ── Cards de resumo ─────────────────────────────── */}

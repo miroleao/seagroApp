@@ -4,6 +4,7 @@ import { FlaskConical, Baby, Plus, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { registrarOPU, alternarTipoSessao } from "./actions";
 import { DoadoraCardWrapper } from "./DoadoraCardWrapper";
+import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 type AspItem = {
@@ -140,11 +141,43 @@ export default async function AspiracoesPage() {
 
   return (
     <div className="p-6 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Aspirações</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {sessoesOPU.length} eventos OPU · {doadoraCards.length} doadoras
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Aspirações</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {sessoesOPU.length} eventos OPU · {doadoraCards.length} doadoras
+          </p>
+        </div>
+        <ExportarPDF
+          titulo="Aspirações OPU-FIV"
+          subtitulo={`${aspItems.length} aspirações · SE Agropecuária Nelore de Elite`}
+          orientacao="landscape"
+          nomeArquivo="SE_Aspiracoes.pdf"
+          colunas={[
+            { key: "doadora",     label: "Doadora",       padrao: true,  largura: 2.0 },
+            { key: "touro",       label: "Touro",         padrao: true,  largura: 2.0 },
+            { key: "data",        label: "Data",          padrao: true,  largura: 1.0 },
+            { key: "tipo",        label: "Tipo",          padrao: true,  largura: 0.9 },
+            { key: "local",       label: "Local",         padrao: false, largura: 1.5 },
+            { key: "responsavel", label: "Responsável",   padrao: false, largura: 1.5 },
+            { key: "oocitos",     label: "Oócitos",       padrao: true,  largura: 0.8 },
+            { key: "embrioes",    label: "Embriões Cong.",padrao: true,  largura: 0.9 },
+            { key: "custo",       label: "Custo",         padrao: false, largura: 1.0 },
+            { key: "observacoes", label: "Observações",   padrao: false, largura: 2.0 },
+          ] satisfies ColunaPDF[]}
+          dados={aspItems.map((a) => ({
+            doadora:     a.doadora_nome_raw,
+            touro:       a.touro,
+            data:        a.sessao_data ? formatDate(a.sessao_data) : "—",
+            tipo:        a.sessao_tipo === "REALIZADA" ? "OPU" : "Adquirida",
+            local:       a.sessao_local ?? "—",
+            responsavel: a.sessao_responsavel ?? "—",
+            oocitos:     a.oocitos != null ? String(a.oocitos) : "—",
+            embrioes:    a.embryos_congelados != null ? String(a.embryos_congelados) : "—",
+            custo:       a.custo_total != null ? `R$ ${a.custo_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—",
+            observacoes: a.observacoes ?? "—",
+          }))}
+        />
       </div>
 
       {error && (

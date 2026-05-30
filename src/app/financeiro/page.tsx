@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, FARM_ID } from "@/lib/utils";
 import { TrendingUp, TrendingDown, ChevronDown, Plus } from "lucide-react";
+import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 import { vincularDoadora } from "./actions";
 import { VincularDropdown } from "./VincularDropdown";
 import { VinculoCell } from "./VinculoCell";
@@ -197,11 +198,59 @@ export default async function FinanceiroPage({
 
   return (
     <div className="p-6 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Financeiro</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {txs.length} transações · {txs.filter(t => t.tipo === "COMPRA").length} compras · {txs.filter(t => t.tipo === "VENDA").length} vendas
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Financeiro</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {txs.length} transações · {txs.filter(t => t.tipo === "COMPRA").length} compras · {txs.filter(t => t.tipo === "VENDA").length} vendas
+          </p>
+        </div>
+        <ExportarPDF
+          titulo="Financeiro"
+          subtitulo={`${txs.length} transações · SE Agropecuária Nelore de Elite`}
+          orientacao="landscape"
+          nomeArquivo="SE_Financeiro.pdf"
+          colunas={[
+            { key: "data",          label: "Data",              padrao: true,  largura: 1.0 },
+            { key: "leilao",        label: "Leilão",            padrao: true,  largura: 1.8 },
+            { key: "animal",        label: "Animal",            padrao: true,  largura: 2.0 },
+            { key: "categoria",     label: "Categoria",         padrao: true,  largura: 1.0 },
+            { key: "tipo",          label: "Tipo",              padrao: true,  largura: 1.0 },
+            { key: "contraparte",   label: "Comprador/Vendedor",padrao: true,  largura: 1.8 },
+            { key: "valor_parcela", label: "Valor Parcela",     padrao: true,  largura: 1.0 },
+            { key: "n_parcelas",    label: "Parcelas",          padrao: true,  largura: 0.7 },
+            { key: "valor_total",   label: "Valor Total",       padrao: true,  largura: 1.1 },
+            { key: "observacoes",   label: "Observações",       padrao: false, largura: 2.0 },
+          ] satisfies ColunaPDF[]}
+          dados={[...txs].sort((a: any, b: any) => {
+            const da = a.data ?? (a.auction as any)?.data ?? "";
+            const db = b.data ?? (b.auction as any)?.data ?? "";
+            return db.localeCompare(da);
+          }).map((t: any) => {
+            const parcelas: any[] = t.installments ?? [];
+            const nParcelas = t.n_parcelas ?? (parcelas.length > 0 ? parcelas.length : 1);
+            const valorParcela = parcelas[0]?.valor ?? (t.valor_total != null ? t.valor_total / nParcelas : null);
+            const auc = t.auction as any;
+            const dataRef = t.data ?? auc?.data ?? null;
+            const catMap: Record<string, string> = {
+              ANIMAL: "Animal", DOADORA: "Doadora", RECEPTORA: "Receptora", TOURO: "Touro",
+              EMBRIAO: "Embrião", ASPIRACAO: "Aspiração", PRENHEZ: "Prenhez", SEMEN: "Sêmen",
+              LEILAO: "Leilão", OUTRO: "Outro",
+            };
+            return {
+              data:          dataRef ? new Date(dataRef + "T12:00:00").toLocaleDateString("pt-BR") : "—",
+              leilao:        auc?.nome ?? "Avulsa",
+              animal:        nomeLimpo(t.animal_nome),
+              categoria:     catMap[t.categoria] ?? t.categoria ?? "—",
+              tipo:          t.tipo === "COMPRA" ? "Compra" : "Venda",
+              contraparte:   t.contraparte ?? "—",
+              valor_parcela: valorParcela != null ? formatCurrency(valorParcela) : "—",
+              n_parcelas:    `${nParcelas}×`,
+              valor_total:   t.valor_total != null ? formatCurrency(t.valor_total) : "—",
+              observacoes:   t.observacoes ?? "—",
+            };
+          })}
+        />
       </div>
 
       {error && (
