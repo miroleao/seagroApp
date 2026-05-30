@@ -8,6 +8,7 @@ import BotaoExcluirTransacao from "./BotaoExcluirTransacao";
 import BotaoEditarTransacao from "./BotaoEditarTransacao";
 import { Suspense } from "react";
 import BuscaFinanceiro from "./BuscaFinanceiro";
+import { ViewToggle } from "./ViewToggle";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -78,9 +79,10 @@ export const revalidate = 0;
 export default async function FinanceiroPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; view?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, view } = await searchParams;
+  const modoView: "cards" | "tabela" = view === "tabela" ? "tabela" : "cards";
   const query  = (q ?? "").toLowerCase().trim();
   const supabase = await createClient();
 
@@ -229,7 +231,10 @@ export default async function FinanceiroPage({
           ) : (
             <span className="badge bg-gray-100 text-gray-600">{meses.length} meses</span>
           )}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <Suspense fallback={null}>
+              <ViewToggle active={modoView} />
+            </Suspense>
             <Suspense fallback={null}>
               <BuscaFinanceiro />
             </Suspense>
@@ -242,7 +247,121 @@ export default async function FinanceiroPage({
           </div>
         )}
 
-        {meses.map((mes) => (
+        {/* ── Modo Tabela: lista plana de todas as transações ─────── */}
+        {modoView === "tabela" && txs.length > 0 && (
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-left">
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Data</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Leilão</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Animal</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Categoria</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Tipo</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Comprador / Vendedor</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Valor Parcela</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Parcelas</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Valor Total</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Vínculo</th>
+                    <th className="px-3 py-2.5 w-20"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {txs.map((t: any) => {
+                    const parcelas: any[] = t.installments ?? [];
+                    const nParcelas = t.n_parcelas ?? parcelas.length ?? 30;
+                    const valorParcela = parcelas[0]?.valor
+                      ?? (t.valor_total != null ? t.valor_total / nParcelas : null);
+                    const label = tipoLabel(t.tipo, t.animal_nome, t.categoria);
+                    const isCompra = t.tipo === "COMPRA";
+                    const vinculada = doadoras?.find((d: any) => d.id === t.doadora_id);
+                    const catBadge = categoriaBadge(t.categoria);
+                    const auc = t.auction as any;
+                    const dataFormatada = t.data
+                      ? new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")
+                      : "—";
+
+                    return (
+                      <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap font-mono">{dataFormatada}</td>
+                        <td className="px-3 py-2.5 text-gray-700">
+                          {auc?.nome ? (
+                            <span title={auc.local ?? ""}>{auc.nome}</span>
+                          ) : (
+                            <span className="text-gray-400 italic">Avulsa</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 font-medium text-gray-900">
+                          {nomeLimpo(t.animal_nome)}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {catBadge.label ? (
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${catBadge.cls}`}>
+                              {catBadge.label}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className={`badge ${isCompra ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"}`}>
+                            {label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-gray-500">
+                          {t.contraparte
+                            ? <span><span className="text-gray-400 mr-1">{isCompra ? "Vend.:" : "Comp.:"}</span>{t.contraparte}</span>
+                            : <span className="text-gray-300">—</span>}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-gray-800 whitespace-nowrap">
+                          {valorParcela != null ? formatCurrency(valorParcela) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 font-medium whitespace-nowrap">
+                          {nParcelas}×
+                        </td>
+                        <td className={`px-3 py-2.5 text-right font-bold whitespace-nowrap ${isCompra ? "text-red-600" : "text-green-700"}`}>
+                          {valorParcela != null ? formatCurrency(valorParcela * nParcelas) : (t.valor_total != null ? formatCurrency(t.valor_total) : "—")}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {vinculada ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                              <Link2 className="w-3 h-3" /> {vinculada.nome.split(" ")[0]}
+                            </span>
+                          ) : (
+                            <VincularDropdown
+                              txId={t.id}
+                              doadoras={(doadoras ?? []).map((d: any) => ({ id: d.id, nome: d.nome, rgn: d.rgn ?? null }))}
+                            />
+                          )}
+                        </td>
+                        <td className="px-2 py-2.5 text-right">
+                          <div className="inline-flex items-center gap-1">
+                            <BotaoEditarTransacao
+                              txId={t.id}
+                              animalNome={nomeLimpo(t.animal_nome)}
+                              contraparte={t.contraparte ?? ""}
+                              valorTotal={t.valor_total ?? 0}
+                              nParcelas={nParcelas}
+                              data={t.data ?? ""}
+                              observacoes={t.observacoes ?? ""}
+                            />
+                            <BotaoExcluirTransacao
+                              txId={t.id}
+                              label={`${tipoLabel(t.tipo, t.animal_nome, t.categoria)} — ${nomeLimpo(t.animal_nome)}`}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {modoView === "cards" && meses.map((mes) => (
           <details key={mes.chave} className="card overflow-hidden group" open={meses.indexOf(mes) === 0}>
             {/* ── Header do mês ─────────────────────────────────── */}
             <summary className="px-5 py-4 cursor-pointer select-none list-none hover:bg-gray-50 transition-colors">
