@@ -124,6 +124,8 @@ export async function editarTransacao(formData: FormData): Promise<{ ok: boolean
   const observacoes = (formData.get("observacoes") as string)?.trim() || null;
   const tipoRaw     = (formData.get("tipo")        as string | null)?.trim() ?? "";
   const categoriaRaw= (formData.get("categoria")   as string | null) ?? null;
+  const auctionRaw  = (formData.get("auction_id")  as string | null) ?? null;
+  const novoLeilao  = (formData.get("novo_leilao_nome") as string | null)?.trim() ?? "";
 
   if (!tx_id || isNaN(valor_total) || valor_total <= 0) return { ok: false, erro: "Dados inválidos" };
 
@@ -148,6 +150,24 @@ export async function editarTransacao(formData: FormData): Promise<{ ok: boolean
   }
 
   const supabase = await createClient();
+
+  // Leilão: se veio um id existente OU um nome novo para criar
+  if (auctionRaw !== null) {
+    const auctionId = auctionRaw.trim();
+    if (auctionId === "__novo__" && novoLeilao) {
+      const { data: novo, error: novoErr } = await supabase
+        .from("auctions")
+        .insert({ farm_id: FARM_ID, nome: novoLeilao, data })
+        .select("id")
+        .single();
+      if (novoErr) return { ok: false, erro: `Erro ao criar leilão: ${novoErr.message}` };
+      updates.auction_id = novo?.id ?? null;
+    } else if (auctionId === "") {
+      updates.auction_id = null;
+    } else if (auctionId !== "__novo__") {
+      updates.auction_id = auctionId;
+    }
+  }
 
   const { error } = await supabase
     .from("transactions")

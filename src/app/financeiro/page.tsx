@@ -94,6 +94,14 @@ export default async function FinanceiroPage({
     .eq("tipo", "DOADORA")
     .order("nome");
 
+  // Leilões cadastrados (para o dropdown do modal de edição)
+  const { data: leiloesRaw } = await supabase
+    .from("auctions")
+    .select("id, nome, data")
+    .eq("farm_id", FARM_ID)
+    .order("data", { ascending: false });
+  const leiloesOpt = (leiloesRaw ?? []).map((l: any) => ({ id: l.id as string, nome: l.nome as string }));
+
   const { data: transactions, error } = await supabase
     .from("transactions")
     .select(`
@@ -358,6 +366,8 @@ export default async function FinanceiroPage({
                               observacoes={t.observacoes ?? ""}
                               tipo={t.tipo}
                               categoria={t.categoria ?? null}
+                              auctionId={(t.auction as any)?.id ?? null}
+                              leiloes={leiloesOpt}
                             />
                             <BotaoExcluirTransacao
                               txId={t.id}
@@ -549,6 +559,8 @@ export default async function FinanceiroPage({
                                         observacoes={t.observacoes ?? ""}
                                         tipo={t._tipo ?? t.tipo}
                                         categoria={t.categoria ?? null}
+                                        auctionId={(t.auction as any)?.id ?? null}
+                                        leiloes={leiloesOpt}
                                       />
                                       <BotaoExcluirTransacao
                                         txId={t.id}

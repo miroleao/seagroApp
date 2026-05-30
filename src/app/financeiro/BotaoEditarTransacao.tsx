@@ -14,6 +14,8 @@ interface Props {
   observacoes: string;
   tipo?: "COMPRA" | "VENDA";
   categoria?: string | null;
+  auctionId?: string | null;
+  leiloes?: { id: string; nome: string }[];
 }
 
 const CATEGORIAS = [
@@ -37,10 +39,13 @@ export default function BotaoEditarTransacao({
   observacoes,
   tipo = "COMPRA",
   categoria = null,
+  auctionId = null,
+  leiloes = [],
 }: Props) {
   const [open, setOpen] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [auctionSel, setAuctionSel] = useState<string>(auctionId ?? "");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -153,15 +158,44 @@ export default function BotaoEditarTransacao({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Data</label>
-                <input
-                  name="data"
-                  type="date"
-                  defaultValue={data}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Data</label>
+                  <input
+                    name="data"
+                    type="date"
+                    defaultValue={data}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Leilão</label>
+                  <select
+                    name="auction_id"
+                    value={auctionSel}
+                    onChange={e => setAuctionSel(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
+                  >
+                    <option value="">— Avulsa / Sem leilão —</option>
+                    {leiloes.map(l => (
+                      <option key={l.id} value={l.id}>{l.nome}</option>
+                    ))}
+                    <option value="__novo__">✏ Criar novo leilão…</option>
+                  </select>
+                </div>
               </div>
+
+              {auctionSel === "__novo__" && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Nome do novo leilão</label>
+                  <input
+                    name="novo_leilao_nome"
+                    placeholder="Ex: 8º Leilão Virtual Canaã"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+                    autoFocus
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Observações</label>
