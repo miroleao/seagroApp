@@ -177,20 +177,27 @@ export default async function RebanhoPage({
     });
   }
 
-  // ── Fallback: PRENHA_EMBRIAO/PRENHA sem DG — busca direto em transfers ────────
-  // Acontece quando a prenhez foi registrada sem data de parto (sem pregnancy_diagnoses)
+  // ── Fallback: IMPLANTADA/PRENHA_EMBRIAO/PRENHA sem DG — busca direto em transfers ────
+  // Acontece quando a prenhez/implante foi registrada sem pregnancy_diagnoses associado
   const idsSemdg = (animaisRaw ?? [])
     .filter(a =>
-      (a.status_rebanho === "PRENHA_EMBRIAO" || a.status_rebanho === "PRENHA") &&
+      (a.status_rebanho === "IMPLANTADA" ||
+       a.status_rebanho === "PRENHA_EMBRIAO" ||
+       a.status_rebanho === "PRENHA") &&
       !prenhezesMapa.has(a.id)
     )
     .map(a => a.id);
 
   if (idsSemdg.length > 0) {
+    // Brincos das receptoras que ainda não foram resolvidas (fallback por brinco)
+    const brincosSemdg = (animaisRaw ?? [])
+      .filter(a => idsSemdg.includes(a.id) && a.brinco)
+      .map(a => a.brinco as string);
+
     const { data: tfSemDg } = await supabase
       .from("transfers")
       .select(`
-        id, receptora_id, data_te,
+        id, receptora_id, receptora_brinco, data_te,
         embryo:embryos (
           id, aspiration_id, numero_cdc_fiv, numero_adt_te, sexagem,
           aspiration:aspirations ( doadora_id, doadora_nome, touro_nome,
@@ -199,14 +206,21 @@ export default async function RebanhoPage({
         )
       `)
       .eq("farm_id", FARM_ID)
-      .in("receptora_id", idsSemdg)
+      .or(
+        `receptora_id.in.(${idsSemdg.join(",")})` +
+        (brincosSemdg.length > 0 ? `,receptora_brinco.in.(${brincosSemdg.map(b => `"${b}"`).join(",")})` : "")
+      )
       .order("data_te", { ascending: false });
 
     for (const t of tfSemDg ?? []) {
-      if (!(t as any).receptora_id || prenhezesMapa.has((t as any).receptora_id)) continue;
-      const emb = (t as any).embryo;
+      // Resolve receptora_id direto ou via brinco
+      const tt: any = t;
+      const receptoraId: string | undefined =
+        tt.receptora_id ?? (tt.receptora_brinco ? brincoToId.get(tt.receptora_brinco) : undefined);
+      if (!receptoraId || prenhezesMapa.has(receptoraId)) continue;
+      const emb = tt.embryo;
       const asp = emb?.aspiration;
-      prenhezesMapa.set((t as any).receptora_id, {
+      prenhezesMapa.set(receptoraId, {
         transferId:   t.id,
         previsao:     null,
         dataTe:       t.data_te ?? null,
