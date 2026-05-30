@@ -12,7 +12,20 @@ interface Props {
   nParcelas: number;
   data: string;
   observacoes: string;
+  tipo?: "COMPRA" | "VENDA";
+  categoria?: string | null;
 }
+
+const CATEGORIAS = [
+  { value: "",          label: "— Sem categoria —" },
+  { value: "DOADORA",   label: "Doadora" },
+  { value: "RECEPTORA", label: "Receptora" },
+  { value: "TOURO",     label: "Touro" },
+  { value: "EMBRIAO",   label: "Embrião" },
+  { value: "PRENHEZ",   label: "Prenhez" },
+  { value: "LEILAO",    label: "Leilão" },
+  { value: "OUTRO",     label: "Outro" },
+];
 
 export default function BotaoEditarTransacao({
   txId,
@@ -22,6 +35,8 @@ export default function BotaoEditarTransacao({
   nParcelas,
   data,
   observacoes,
+  tipo = "COMPRA",
+  categoria = null,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -75,6 +90,32 @@ export default function BotaoEditarTransacao({
                   defaultValue={animalNome}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+                  <select
+                    name="tipo"
+                    defaultValue={tipo}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
+                  >
+                    <option value="COMPRA">Compra</option>
+                    <option value="VENDA">Venda</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
+                  <select
+                    name="categoria"
+                    defaultValue={categoria ?? ""}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
+                  >
+                    {CATEGORIAS.map(c => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>

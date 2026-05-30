@@ -345,6 +345,8 @@ export default async function FinanceiroPage({
                               nParcelas={nParcelas}
                               data={t.data ?? ""}
                               observacoes={t.observacoes ?? ""}
+                              tipo={t.tipo}
+                              categoria={t.categoria ?? null}
                             />
                             <BotaoExcluirTransacao
                               txId={t.id}
@@ -540,6 +542,8 @@ export default async function FinanceiroPage({
                                         nParcelas={nParcelas}
                                         data={t.data ?? ""}
                                         observacoes={t.observacoes ?? ""}
+                                        tipo={t._tipo ?? t.tipo}
+                                        categoria={t.categoria ?? null}
                                       />
                                       <BotaoExcluirTransacao
                                         txId={t.id}

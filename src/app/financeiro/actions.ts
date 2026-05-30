@@ -122,14 +122,36 @@ export async function editarTransacao(formData: FormData): Promise<{ ok: boolean
   const n_parcelas  = parseInt(formData.get("n_parcelas") as string) || 30;
   const data        = (formData.get("data")        as string)?.trim() || null;
   const observacoes = (formData.get("observacoes") as string)?.trim() || null;
+  const tipoRaw     = (formData.get("tipo")        as string | null)?.trim() ?? "";
+  const categoriaRaw= (formData.get("categoria")   as string | null) ?? null;
 
   if (!tx_id || isNaN(valor_total) || valor_total <= 0) return { ok: false, erro: "Dados inválidos" };
+
+  const updates: Record<string, unknown> = {
+    animal_nome, contraparte, valor_total, n_parcelas, data, observacoes,
+  };
+
+  if (tipoRaw) {
+    if (!["COMPRA", "VENDA"].includes(tipoRaw)) return { ok: false, erro: "Tipo inválido" };
+    updates.tipo = tipoRaw;
+  }
+  if (categoriaRaw !== null) {
+    const cat = categoriaRaw.trim();
+    const validas = ["DOADORA", "RECEPTORA", "TOURO", "EMBRIAO", "PRENHEZ", "LEILAO", "OUTRO"];
+    if (cat === "") {
+      updates.categoria = null;
+    } else if (validas.includes(cat)) {
+      updates.categoria = cat;
+    } else {
+      return { ok: false, erro: "Categoria inválida" };
+    }
+  }
 
   const supabase = await createClient();
 
   const { error } = await supabase
     .from("transactions")
-    .update({ animal_nome, contraparte, valor_total, n_parcelas, data, observacoes })
+    .update(updates)
     .eq("id", tx_id)
     .eq("farm_id", FARM_ID);
 
