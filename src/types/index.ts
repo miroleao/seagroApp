@@ -121,6 +121,22 @@ export interface WeightRecord {
   peso_kg: number;
 }
 
+export type SemenTipo = "CONVENCIONAL" | "SEXADO_FEMEA";
+
+export interface SemenStock {
+  id: string;
+  farm_id: string;
+  touro_id?: string;
+  touro_nome: string;
+  touro_rgn?: string;
+  doses: number;
+  tipo: SemenTipo;
+  local_armazenamento?: string;
+  valor_por_dose?: number;
+  observacoes?: string;
+  criado_em: string;
+}
+
 export interface Auction {
   id: string;
   farm_id: string;

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Heart, FlaskConical,
-  DollarSign, Trophy, Beef, ChevronRight, ChevronDown, Menu, X, Dna, Baby, Sparkles, Star,
+  DollarSign, Trophy, Beef, ChevronRight, ChevronDown, Menu, X, Dna, Baby, Sparkles, Star, Droplet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +68,7 @@ const navItems: NavItem[] = [
     children: [
       { href: "/reproducao/prenhezes", label: "Prenhezes",     icon: Baby },
       { href: "/reproducao",           label: "Aspirações OPU", icon: FlaskConical },
+      { href: "/semen",                label: "Sêmen",          icon: Droplet },
     ],
   },
   { href: "/pista",      label: "Pista / Exposições", icon: Trophy },
@@ -84,7 +85,7 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
       {navItems.map((item) => {
         // ── Group item (Reprodução) ──────────────────────────────────────
         if (item.children) {
-          const isGroupActive = pathname.startsWith("/reproducao");
+          const isGroupActive = pathname.startsWith("/reproducao") || pathname.startsWith("/semen");
           return (
             <div key={item.label}>
               {/* Group toggle button */}
