@@ -30,14 +30,16 @@ function tipoLabel(tipo: string, animalNome: string | null, categoria?: string |
   // Usa categoria se disponível
   if (categoria) {
     const mapCat: Record<string, string> = {
+      ANIMAL:    "Animal",
       DOADORA:   "Doadora",
       RECEPTORA: "Receptora",
       TOURO:     "Touro",
       EMBRIAO:   "Embrião",
       ASPIRACAO: "Aspiração",
       PRENHEZ:   "Prenhez",
+      SEMEN:     "Sêmen",
       LEILAO:    "Leilão",
-      OUTRO:     "Animal",
+      OUTRO:     "Outro",
     };
     return `${base} ${mapCat[categoria] ?? categoria}`;
   }
@@ -52,12 +54,14 @@ function tipoLabel(tipo: string, animalNome: string | null, categoria?: string |
 /** Cor do badge de categoria */
 function categoriaBadge(categoria: string | null): { label: string; cls: string } {
   const map: Record<string, { label: string; cls: string }> = {
+    ANIMAL:    { label: "Animal",    cls: "bg-indigo-100 text-indigo-700" },
     DOADORA:   { label: "Doadora",   cls: "bg-purple-100 text-purple-700" },
     RECEPTORA: { label: "Receptora", cls: "bg-green-100 text-green-700"   },
     TOURO:     { label: "Touro",     cls: "bg-blue-100 text-blue-700"     },
     EMBRIAO:   { label: "Embrião",   cls: "bg-yellow-100 text-yellow-700" },
     ASPIRACAO: { label: "Aspiração", cls: "bg-pink-100 text-pink-700"     },
     PRENHEZ:   { label: "Prenhez",   cls: "bg-orange-100 text-orange-700" },
+    SEMEN:     { label: "Sêmen",     cls: "bg-teal-100 text-teal-700"     },
     LEILAO:    { label: "Leilão",    cls: "bg-gray-100 text-gray-600"     },
     OUTRO:     { label: "Outro",     cls: "bg-gray-100 text-gray-500"     },
   };

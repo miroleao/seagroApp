@@ -139,7 +139,7 @@ export async function editarTransacao(formData: FormData): Promise<{ ok: boolean
   }
   if (categoriaRaw !== null) {
     const cat = categoriaRaw.trim();
-    const validas = ["DOADORA", "RECEPTORA", "TOURO", "EMBRIAO", "ASPIRACAO", "PRENHEZ", "LEILAO", "OUTRO"];
+    const validas = ["ANIMAL", "DOADORA", "RECEPTORA", "TOURO", "EMBRIAO", "ASPIRACAO", "PRENHEZ", "SEMEN", "LEILAO", "OUTRO"];
     if (cat === "") {
       updates.categoria = null;
     } else if (validas.includes(cat)) {
