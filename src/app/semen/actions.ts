@@ -105,3 +105,105 @@ export async function excluirSemen(formData: FormData): Promise<{ ok: boolean; e
   revalidatePath("/semen");
   return { ok: true };
 }
+
+// ── Saídas de Sêmen (uso em FIV/IATF) ────────────────────────────────────────
+
+export async function registrarUsoSemen(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
+  const semen_stock_id = (formData.get("semen_stock_id") as string)?.trim();
+  const data_saida     = (formData.get("data_saida")     as string)?.trim();
+  const doses_raw      = (formData.get("doses_usadas")   as string)?.trim();
+  const tipo_uso       = (formData.get("tipo_uso")       as string)?.trim();
+  const doadora_id     = (formData.get("doadora_id")     as string)?.trim() || null;
+  const doadora_nome   = (formData.get("doadora_nome")   as string)?.trim() || null;
+  const veterinario    = (formData.get("veterinario")    as string)?.trim() || null;
+  const usuario_nome   = (formData.get("usuario_nome")   as string)?.trim() || null;
+  const observacoes    = (formData.get("observacoes")    as string)?.trim() || null;
+
+  if (!semen_stock_id) return { ok: false, erro: "Lote de sêmen inválido" };
+  if (!data_saida)     return { ok: false, erro: "Informe a data de saída" };
+  if (!["FIV", "IATF"].includes(tipo_uso)) return { ok: false, erro: "Tipo de uso inválido" };
+
+  const doses_usadas = doses_raw ? parseInt(doses_raw, 10) : 0;
+  if (isNaN(doses_usadas) || doses_usadas <= 0) {
+    return { ok: false, erro: "Quantidade de doses inválida" };
+  }
+
+  const supabase = await createClient();
+
+  // Confere estoque disponível
+  const { data: lote, error: loteErr } = await supabase
+    .from("semen_stock")
+    .select("id, doses, touro_nome")
+    .eq("id", semen_stock_id)
+    .eq("farm_id", FARM_ID)
+    .single();
+  if (loteErr || !lote) return { ok: false, erro: "Lote não encontrado" };
+  if ((lote.doses ?? 0) < doses_usadas) {
+    return { ok: false, erro: `Estoque insuficiente — disponível: ${lote.doses ?? 0} doses` };
+  }
+
+  // Cria o registro de uso
+  const { error: useErr } = await supabase.from("semen_uses").insert({
+    farm_id:        FARM_ID,
+    semen_stock_id,
+    data_saida,
+    doses_usadas,
+    tipo_uso,
+    doadora_id,
+    doadora_nome,
+    veterinario,
+    usuario_nome,
+    observacoes,
+  });
+  if (useErr) return { ok: false, erro: useErr.message };
+
+  // Decrementa estoque
+  const { error: updErr } = await supabase
+    .from("semen_stock")
+    .update({ doses: (lote.doses ?? 0) - doses_usadas })
+    .eq("id", semen_stock_id)
+    .eq("farm_id", FARM_ID);
+  if (updErr) return { ok: false, erro: `Uso registrado mas erro ao atualizar estoque: ${updErr.message}` };
+
+  revalidatePath("/semen");
+  return { ok: true };
+}
+
+export async function excluirUsoSemen(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
+  const id = (formData.get("id") as string)?.trim();
+  if (!id) return { ok: false, erro: "ID inválido" };
+
+  const supabase = await createClient();
+
+  // Busca o uso para saber quanto restituir
+  const { data: uso, error: usoErr } = await supabase
+    .from("semen_uses")
+    .select("id, semen_stock_id, doses_usadas")
+    .eq("id", id)
+    .eq("farm_id", FARM_ID)
+    .single();
+  if (usoErr || !uso) return { ok: false, erro: "Uso não encontrado" };
+
+  // Devolve doses ao estoque
+  const { data: lote } = await supabase
+    .from("semen_stock")
+    .select("doses")
+    .eq("id", uso.semen_stock_id)
+    .single();
+  const dosesAtual = (lote?.doses ?? 0);
+
+  const { error: delErr } = await supabase
+    .from("semen_uses")
+    .delete()
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+  if (delErr) return { ok: false, erro: delErr.message };
+
+  await supabase
+    .from("semen_stock")
+    .update({ doses: dosesAtual + (uso.doses_usadas ?? 0) })
+    .eq("id", uso.semen_stock_id);
+
+  revalidatePath("/semen");
+  return { ok: true };
+}

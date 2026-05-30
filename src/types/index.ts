@@ -137,6 +137,23 @@ export interface SemenStock {
   criado_em: string;
 }
 
+export type SemenUsoTipo = "FIV" | "IATF";
+
+export interface SemenUse {
+  id: string;
+  farm_id: string;
+  semen_stock_id: string;
+  data_saida: string;
+  doses_usadas: number;
+  tipo_uso: SemenUsoTipo;
+  doadora_id?: string;
+  doadora_nome?: string;
+  veterinario?: string;
+  usuario_nome?: string;
+  observacoes?: string;
+  criado_em: string;
+}
+
 export interface Auction {
   id: string;
   farm_id: string;
