@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, FARM_ID } from "@/lib/utils";
-import { TrendingUp, TrendingDown, ChevronDown, Plus } from "lucide-react";
+import { TrendingUp, TrendingDown, ChevronDown, Plus, BarChart3 } from "lucide-react";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 import { vincularDoadora } from "./actions";
 import { VincularDropdown } from "./VincularDropdown";
@@ -96,7 +96,7 @@ export default async function FinanceiroPage({
 
   const { data: doadoras } = await supabase
     .from("animals")
-    .select("id, nome, rgn")
+    .select("id, nome, rgn, percentual_proprio")
     .eq("farm_id", FARM_ID)
     .eq("tipo", "DOADORA")
     .order("nome");
@@ -169,6 +169,34 @@ export default async function FinanceiroPage({
   const totalCompras = txs.filter(t => t.tipo === "COMPRA").reduce((s, t) => s + (t.valor_total ?? 0), 0);
   const totalVendas  = txs.filter(t => t.tipo === "VENDA").reduce((s, t) => s + (t.valor_total ?? 0), 0);
   const saldo        = totalVendas - totalCompras;
+
+  // ── Parcelas mensais (saída/entrada por mês) ─────────────────────────────
+  function getParcelaMensal(t: any): number {
+    const parcelas: any[] = t.installments ?? [];
+    const nParcelas = t.n_parcelas ?? (parcelas.length > 0 ? parcelas.length : 1);
+    return parcelas[0]?.valor ?? (t.valor_total != null ? t.valor_total / nParcelas : 0);
+  }
+  const parcelaMensalCompras = txs.filter(t => t.tipo === "COMPRA").reduce((s, t) => s + getParcelaMensal(t), 0);
+  const parcelaMensalVendas  = txs.filter(t => t.tipo === "VENDA").reduce((s, t) => s + getParcelaMensal(t), 0);
+  const saldoMensal          = parcelaMensalVendas - parcelaMensalCompras;
+
+  // ── Valorização do plantel a 100% ────────────────────────────────────────
+  // Para cada compra de doadora: extrapola para 100% dividindo pelo percentual_proprio
+  const doadorasPercMap = new Map(
+    (doadoras ?? []).map((d: any) => [d.id as string, (d.percentual_proprio as number | null)])
+  );
+  const valorizacaoPlantel = txsAll
+    .filter((t: any) => t.tipo === "COMPRA" && (t.categoria === "DOADORA" || t.categoria === "ANIMAL"))
+    .reduce((s, t: any) => {
+      const txAnimals = (t.transaction_animals ?? []) as any[];
+      const linkedId  = txAnimals.find((ta: any) => ta.animal)?.animal?.id ?? t.doadora_id ?? null;
+      const perc      = (linkedId ? doadorasPercMap.get(linkedId) : null) ?? 1;
+      const safePerc  = (perc > 0) ? perc : 1;
+      return s + (t.valor_total ?? 0) / safePerc;
+    }, 0);
+  const qtdDoadoras = txsAll.filter((t: any) =>
+    t.tipo === "COMPRA" && (t.categoria === "DOADORA" || t.categoria === "ANIMAL")
+  ).length;
 
   // ── Agrupar por leilão ────────────────────────────────────────────────────
   type LeilaoGrp = { auction: any; compras: any[]; vendas: any[]; dataRef: string };
@@ -275,30 +303,63 @@ export default async function FinanceiroPage({
       )}
 
       {/* ── Cards resumo ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+
+        {/* Saída mensal */}
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-1.5">
             <TrendingDown className="w-4 h-4 text-red-400 shrink-0" />
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Total Investido</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Saída / Mês</p>
           </div>
-          <p className="text-2xl font-bold text-red-600 truncate">{formatCurrency(totalCompras)}</p>
-          <p className="text-xs text-gray-400 mt-1">{txs.filter(t => t.tipo === "COMPRA").length} compras</p>
+          <p className="text-2xl font-bold text-red-600 truncate">{formatCurrency(parcelaMensalCompras)}</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {txs.filter(t => t.tipo === "COMPRA").length} compras
+            <span className="mx-1.5 text-gray-200">·</span>
+            <span className="text-gray-300">total {formatCurrency(totalCompras)}</span>
+          </p>
         </div>
+
+        {/* Entrada mensal */}
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-1.5">
             <TrendingUp className="w-4 h-4 text-green-500 shrink-0" />
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Total Recebido</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Entrada / Mês</p>
           </div>
-          <p className="text-2xl font-bold text-green-600 truncate">{formatCurrency(totalVendas)}</p>
-          <p className="text-xs text-gray-400 mt-1">{txs.filter(t => t.tipo === "VENDA").length} vendas</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Saldo</p>
-          <p className={`text-2xl font-bold truncate ${saldo >= 0 ? "text-green-600" : "text-red-600"}`}>
-            {saldo >= 0 ? "+" : ""}{formatCurrency(saldo)}
+          <p className="text-2xl font-bold text-green-600 truncate">{formatCurrency(parcelaMensalVendas)}</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {txs.filter(t => t.tipo === "VENDA").length} vendas
+            <span className="mx-1.5 text-gray-200">·</span>
+            <span className="text-gray-300">total {formatCurrency(totalVendas)}</span>
           </p>
-          <p className="text-xs text-gray-400 mt-1">recebido − investido</p>
         </div>
+
+        {/* Saldo mensal */}
+        <div className="card p-4">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Saldo / Mês</p>
+          <p className={`text-2xl font-bold truncate ${saldoMensal >= 0 ? "text-green-600" : "text-red-600"}`}>
+            {saldoMensal >= 0 ? "+" : ""}{formatCurrency(saldoMensal)}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            entrada − saída
+            <span className="mx-1.5 text-gray-200">·</span>
+            <span className="text-gray-300">total {saldo >= 0 ? "+" : ""}{formatCurrency(saldo)}</span>
+          </p>
+        </div>
+
+        {/* Valorização do plantel */}
+        <div className="card p-4 border-l-4 border-l-brand-500">
+          <div className="flex items-center gap-2 mb-1.5">
+            <BarChart3 className="w-4 h-4 text-brand-500 shrink-0" />
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Plantel a 100%</p>
+          </div>
+          <p className="text-2xl font-bold text-brand-700 truncate">{formatCurrency(valorizacaoPlantel)}</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {qtdDoadoras} doadoras compradas
+            <span className="mx-1.5 text-gray-200">·</span>
+            <span className="text-gray-300">valor extrapolado a 100%</span>
+          </p>
+        </div>
+
       </div>
 
       {/* ── Nova Transação ─────────────────────────────────────────── */}
