@@ -64,32 +64,34 @@ export function StatusReceptorasSection({
       {expandido && (
         <div className="overflow-x-auto">
           {tipo === "vendidas" ? (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-4 py-2 text-xs font-medium text-gray-500 w-32">Brinco</th>
-                  <th className="px-4 py-2 text-xs font-medium text-gray-500 w-32">Data Saída</th>
-                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Comprador</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {animais.map(a => (
-                  <tr key={a.id} className="table-row-hover">
-                    <td className="px-4 py-2.5 font-mono font-semibold">
-                      <Link href={`/rebanho/${a.id}`} className="text-brand-700 hover:underline text-xs">
-                        {a.brinco ?? a.nome}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600">
-                      {a.dataSaida ? formatDate(a.dataSaida) : <span className="text-gray-300">—</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-700">
-                      {a.comprador ?? <span className="text-gray-300">—</span>}
-                    </td>
+            <div className="p-4">
+              <table className="text-sm border border-gray-100 rounded-lg overflow-hidden" style={{ width: "auto", minWidth: "400px" }}>
+                <thead>
+                  <tr className="bg-gray-50 text-left">
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500 w-28">Brinco</th>
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500 w-32">Data Saída</th>
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500 w-52">Comprador</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {animais.map(a => (
+                    <tr key={a.id} className="table-row-hover">
+                      <td className="px-4 py-2 font-mono font-semibold">
+                        <Link href={`/rebanho/${a.id}`} className="text-brand-700 hover:underline text-xs">
+                          {a.brinco ?? a.nome}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-2 text-xs text-gray-600">
+                        {a.dataSaida ? formatDate(a.dataSaida) : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-4 py-2 text-xs text-gray-700">
+                        {a.comprador ?? <span className="text-gray-300">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
