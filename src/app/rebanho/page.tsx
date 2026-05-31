@@ -71,7 +71,7 @@ export default async function RebanhoPage({
   // Exclui receptoras externas (is_external = true) — essas ficam apenas nas aspirações/prenhezes
   const { data: animaisRaw } = await supabase
     .from("animals")
-    .select("id, nome, brinco, rgn, classificacao, tipo, status_rebanho, situacao, localizacao, data_entrada, peso_atual, observacoes")
+    .select("id, nome, brinco, rgn, classificacao, tipo, status_rebanho, situacao, localizacao, data_entrada, data_saida, peso_atual, observacoes")
     .eq("farm_id", FARM_ID)
     .in("tipo", ["RECEPTORA", "DESCARTE"])
     .eq("is_external", false)
@@ -239,16 +239,18 @@ export default async function RebanhoPage({
   }
 
   const animais = animaisRaw ?? [];
+  // Apenas animais ainda no rebanho (exclui saídas)
+  const animaisAtivos = animais.filter(a => a.status_rebanho !== "VENDIDA" && a.status_rebanho !== "MORTA");
 
-  // Contagens por classificação (mantido para filtros)
-  const counts = animais.reduce((acc, a) => {
+  // Contagens por classificação (mantido para filtros) — usa apenas ativos
+  const counts = animaisAtivos.reduce((acc, a) => {
     const k = a.classificacao ?? (a.tipo === "DESCARTE" ? "DESCARTE" : "OUTRO");
     acc[k] = (acc[k] ?? 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  // Contagens por status reprodutivo (para os novos cards)
-  const countStatus = animais.reduce((acc, a) => {
+  // Contagens por status reprodutivo (para os novos cards) — usa apenas ativos
+  const countStatus = animaisAtivos.reduce((acc, a) => {
     const k = a.status_rebanho ?? "VAZIA";
     acc[k] = (acc[k] ?? 0) + 1;
     return acc;
@@ -359,6 +361,20 @@ export default async function RebanhoPage({
       };
     });
 
+  // Vendidas — ordenadas da mais recente para a mais antiga
+  const vendidasSection: StatusItem[] = animais
+    .filter(a => a.status_rebanho === "VENDIDA")
+    .sort((a, b) => {
+      const da = (a as any).data_saida ?? "";
+      const db = (b as any).data_saida ?? "";
+      return db.localeCompare(da);
+    })
+    .map(a => ({
+      ...toStatusItem(a),
+      rgn:       (a as any).rgn       ?? null,
+      dataSaida: (a as any).data_saida ?? null,
+    }));
+
   return (
     <div className="p-6 space-y-6">
 
@@ -367,7 +383,7 @@ export default async function RebanhoPage({
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Rebanho</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {animais.length} animais · {prenhas.length} prenhes
+            {animaisAtivos.length} animais · {prenhas.length} prenhes
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -456,7 +472,7 @@ export default async function RebanhoPage({
           href={`?${q ? `q=${q}` : ""}${st ? `&st=${st}` : ""}`}
           className={`card p-4 text-center transition-colors hover:shadow-md ${!cls && !st ? "ring-2 ring-brand-400" : ""}`}
         >
-          <p className="text-3xl font-bold text-brand-600">{animais.length}</p>
+          <p className="text-3xl font-bold text-brand-600">{animaisAtivos.length}</p>
           <p className="text-xs text-gray-600 mt-1 font-medium">Rebanho Total</p>
           <p className="text-[11px] text-gray-400 mt-0.5">Gado PO e Receptoras</p>
         </Link>
@@ -535,6 +551,18 @@ export default async function RebanhoPage({
         badgeCls="bg-teal-100 text-teal-700"
         dotCls="text-teal-600"
         icono={<span className="text-base">🐄</span>}
+      />
+
+      {/* Vendidas — relatório de saídas */}
+      <StatusReceptorasSection
+        titulo="Vendidas / Saídas"
+        animais={vendidasSection}
+        tipo="vendidas"
+        headerBg="bg-blue-50 border-blue-100"
+        tituloCls="text-blue-800"
+        badgeCls="bg-blue-100 text-blue-700"
+        dotCls="text-blue-600"
+        icono={<span className="text-base">🏷️</span>}
       />
 
       {/* Filtros + Tabela principal */}

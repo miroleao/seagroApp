@@ -597,9 +597,10 @@ export async function registrarDesfechoAnimal(formData: FormData) {
   const novoStatus = tipo === "OBITO" ? "MORTA" : "VENDIDA";
 
   // Atualiza o animal
+  const dataEvento = data_evento ?? new Date().toISOString().split("T")[0];
   await supabase
     .from("animals")
-    .update({ status_rebanho: novoStatus })
+    .update({ status_rebanho: novoStatus, data_saida: dataEvento })
     .eq("id", animal_id)
     .eq("farm_id", FARM_ID);
 
@@ -618,7 +619,7 @@ export async function registrarDesfechoAnimal(formData: FormData) {
       observacoes: observacoes ?? "Venda de receptora",
       valor_total: valor ?? null,
       n_parcelas:  1,
-      data:        data_evento ?? new Date().toISOString().split("T")[0],
+      data:        dataEvento,
     });
   }
 

@@ -17,12 +17,15 @@ export type StatusItem = {
   doadoraId?: string | null;
   touroNome?: string | null;
   dataDesfecho?: string | null;
+  // Vendidas — campos extras
+  rgn?: string | null;
+  dataSaida?: string | null;
 };
 
 interface Props {
   titulo: string;
   animais: StatusItem[];
-  tipo: "simples" | "paridas";
+  tipo: "simples" | "paridas" | "vendidas";
   // Estilo
   headerBg:  string; // ex: "bg-purple-50 border-purple-100"
   tituloCls: string; // ex: "text-purple-800"
@@ -60,12 +63,20 @@ export function StatusReceptorasSection({
             <thead>
               <tr className="bg-gray-50 text-left">
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Brinco</th>
+                {tipo === "vendidas" && (
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500"># ABCZ</th>
+                )}
                 {tipo === "paridas" && <>
                   <th className="px-4 py-2 text-xs font-medium text-gray-500">Doadora</th>
                   <th className="px-4 py-2 text-xs font-medium text-gray-500">Touro</th>
                   <th className="px-4 py-2 text-xs font-medium text-gray-500">Data Parto</th>
                 </>}
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Peso</th>
+                {tipo === "vendidas" && (
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Data Saída</th>
+                )}
+                {tipo !== "vendidas" && (
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Peso</th>
+                )}
                 <th className="px-4 py-2 text-xs font-medium text-gray-500 text-center">Partos</th>
                 <th className="px-4 py-2 text-xs font-medium text-gray-500">Localização</th>
                 <th className="px-4 py-2 text-xs font-medium text-gray-500"></th>
@@ -79,6 +90,12 @@ export function StatusReceptorasSection({
                       {a.brinco ?? a.nome}
                     </Link>
                   </td>
+
+                  {tipo === "vendidas" && (
+                    <td className="px-4 py-2.5 text-xs font-mono text-gray-500">
+                      {a.rgn ?? <span className="text-gray-300">—</span>}
+                    </td>
+                  )}
 
                   {tipo === "paridas" && <>
                     <td className="px-4 py-2.5 text-xs">
@@ -98,9 +115,17 @@ export function StatusReceptorasSection({
                     </td>
                   </>}
 
-                  <td className="px-4 py-2.5 text-xs text-gray-600">
-                    {a.peso_atual != null ? `${a.peso_atual} kg` : <span className="text-gray-300">—</span>}
-                  </td>
+                  {tipo === "vendidas" && (
+                    <td className="px-4 py-2.5 text-xs font-semibold text-blue-700">
+                      {a.dataSaida ? formatDate(a.dataSaida) : <span className="text-gray-300">—</span>}
+                    </td>
+                  )}
+
+                  {tipo !== "vendidas" && (
+                    <td className="px-4 py-2.5 text-xs text-gray-600">
+                      {a.peso_atual != null ? `${a.peso_atual} kg` : <span className="text-gray-300">—</span>}
+                    </td>
+                  )}
                   <td className="px-4 py-2.5 text-center">
                     {a.numeroPartos > 0 ? (
                       <span className="text-xs font-bold text-gray-700 bg-gray-100 rounded-full px-2 py-0.5">
