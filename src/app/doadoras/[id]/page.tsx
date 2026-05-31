@@ -295,24 +295,28 @@ function parseObsKey(obs: string | null | undefined, key: string): string | null
 
 // ── ROI Section ───────────────────────────────────────────────────────────────
 function ROISection({
-  valorParcela,
-  somaParcelasVenda,
+  totalVendas,
+  totalCompras,
+  parcelaMensalVendas,
+  parcelaMensalCusto,
+  valorParcelaManual,
   parcelaCompra,
   numParcelasCompra,
   leilaoCompra,
   animalId,
 }: {
-  valorParcela: number;
-  somaParcelasVenda: number;
+  totalVendas: number;
+  totalCompras: number;
+  parcelaMensalVendas: number;
+  parcelaMensalCusto: number;
+  valorParcelaManual: number;
   parcelaCompra?: number;
   numParcelasCompra?: number;
   leilaoCompra?: string | null;
   animalId: string;
 }) {
-  const totalCompra  = (parcelaCompra ?? 0) * (numParcelasCompra ?? 0);
-  const totalReceita = somaParcelasVenda * 30;
-  const totalCusto   = valorParcela * 30;
-  const saldo        = totalReceita - totalCusto - totalCompra;
+  const totalPrenhez = (parcelaCompra ?? 0) * (numParcelasCompra ?? 0);
+  const saldo        = totalVendas - totalCompras - totalPrenhez;
   const positivo     = saldo >= 0;
 
   return (
@@ -325,57 +329,71 @@ function ROISection({
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
 
-        {/* Parcela de vendas */}
+        {/* Receita (vendas) */}
         <div>
-          {somaParcelasVenda > 0 ? (
+          {totalVendas > 0 ? (
             <>
-              <p className="text-xl font-bold text-green-600">{formatCurrency(somaParcelasVenda)}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Parcela de vendas</p>
-              <p className="text-xs text-green-400 mt-0.5">×30 = {formatCurrency(totalReceita)}</p>
+              <p className="text-xl font-bold text-green-600">{formatCurrency(totalVendas)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Total recebido</p>
+              {parcelaMensalVendas > 0 && (
+                <p className="text-xs text-green-400 mt-0.5">{formatCurrency(parcelaMensalVendas)}/mês</p>
+              )}
             </>
           ) : (
             <>
               <p className="text-xl font-bold text-gray-300">—</p>
-              <p className="text-xs text-gray-400 mt-0.5">Parcela de vendas</p>
+              <p className="text-xs text-gray-400 mt-0.5">Total recebido</p>
               <p className="text-xs text-gray-300 mt-0.5 italic">sem vendas registradas</p>
             </>
           )}
         </div>
 
-        {/* Parcela mensal (custo) — editável inline */}
+        {/* Custo (compras) — editável inline como fallback */}
         <div>
-          <details className="group">
-            <summary className="list-none cursor-pointer">
-              {valorParcela > 0 ? (
-                <p className="text-xl font-bold text-red-500 group-hover:opacity-80 transition-opacity">
-                  {formatCurrency(valorParcela)}
-                  <Edit2 className="inline w-3 h-3 text-gray-300 group-hover:text-gray-500 ml-1 transition-colors" />
-                </p>
-              ) : (
-                <p className="text-xl font-bold text-gray-300 group-hover:opacity-80 transition-opacity">
-                  — <Edit2 className="inline w-3 h-3 text-gray-300 group-hover:text-gray-500 ml-1 transition-colors" />
-                </p>
+          {totalCompras > 0 ? (
+            <>
+              <p className="text-xl font-bold text-red-500">{formatCurrency(totalCompras)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Total investido</p>
+              {parcelaMensalCusto > 0 && (
+                <p className="text-xs text-red-300 mt-0.5">{formatCurrency(parcelaMensalCusto)}/mês</p>
               )}
-            </summary>
-            <form action={atualizarValorParcela} className="mt-2 flex items-center justify-center gap-2">
-              <input type="hidden" name="id" value={animalId} />
-              <input
-                name="valor_parcela"
-                type="number"
-                step="0.01"
-                min="0"
-                defaultValue={valorParcela > 0 ? valorParcela : ""}
-                placeholder="0,00"
-                className="w-28 border border-brand-400 bg-white rounded px-2 py-1 text-sm outline-none ring-1 ring-brand-200 text-center"
-              />
-              <button type="submit"
-                className="text-xs bg-brand-600 text-white px-2 py-1 rounded hover:bg-brand-700 transition-colors">
-                OK
-              </button>
-            </form>
-          </details>
-          <p className="text-xs text-gray-400 mt-0.5">Parcela mensal</p>
-          <p className="text-xs text-red-300 mt-0.5">×30 = {formatCurrency(totalCusto)}</p>
+            </>
+          ) : (
+            <details className="group">
+              <summary className="list-none cursor-pointer">
+                {valorParcelaManual > 0 ? (
+                  <>
+                    <p className="text-xl font-bold text-red-400 group-hover:opacity-80 transition-opacity">
+                      {formatCurrency(valorParcelaManual)}/mês
+                      <Edit2 className="inline w-3 h-3 text-gray-300 group-hover:text-gray-500 ml-1 transition-colors" />
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">Parcela mensal (manual)</p>
+                  </>
+                ) : (
+                  <p className="text-xl font-bold text-gray-300 group-hover:opacity-80 transition-opacity">
+                    — <Edit2 className="inline w-3 h-3 text-gray-300 group-hover:text-gray-500 ml-1 transition-colors" />
+                  </p>
+                )}
+              </summary>
+              <form action={atualizarValorParcela} className="mt-2 flex items-center justify-center gap-2">
+                <input type="hidden" name="id" value={animalId} />
+                <input
+                  name="valor_parcela"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  defaultValue={valorParcelaManual > 0 ? valorParcelaManual : ""}
+                  placeholder="0,00"
+                  className="w-28 border border-brand-400 bg-white rounded px-2 py-1 text-sm outline-none ring-1 ring-brand-200 text-center"
+                />
+                <button type="submit"
+                  className="text-xs bg-brand-600 text-white px-2 py-1 rounded hover:bg-brand-700 transition-colors">
+                  OK
+                </button>
+              </form>
+              {!valorParcelaManual && <p className="text-xs text-gray-400 mt-0.5">Parcela mensal</p>}
+            </details>
+          )}
         </div>
 
         {/* Saldo ROI */}
@@ -386,9 +404,9 @@ function ROISection({
           <p className={`text-xs mt-0.5 ${positivo ? "text-green-500" : "text-red-400"}`}>
             Saldo (ROI)
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {formatCurrency(totalReceita)} − {formatCurrency(totalCusto)}
-            {totalCompra > 0 ? ` − ${formatCurrency(totalCompra)}` : ""}
+          <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+            {formatCurrency(totalVendas)} receita<br />
+            − {formatCurrency(totalCompras + totalPrenhez)} custo
           </p>
         </div>
 
@@ -409,7 +427,7 @@ function ROISection({
               <span className="font-bold text-orange-600">{formatCurrency(parcelaCompra!)}/parcela</span>
               {(numParcelasCompra ?? 0) > 0 && (
                 <span className="text-orange-400 text-xs">
-                  × {numParcelasCompra} = <span className="font-semibold text-orange-600">{formatCurrency(totalCompra)}</span>
+                  × {numParcelasCompra} = <span className="font-semibold text-orange-600">{formatCurrency(totalPrenhez)}</span>
                 </span>
               )}
             </div>
@@ -583,29 +601,59 @@ export default async function DoadoraDetalhePage({
   const embGruposList = Object.values(embGrupos)
     .sort((a, b) => (b.data ?? "").localeCompare(a.data ?? ""));
 
-  // Transações de venda vinculadas ao ROI:
-  // Prioridade 1 — doadora_id (link por UUID, robusto)
-  // Prioridade 2 — ilike no animal_nome (fallback para registros legados sem doadora_id)
+  // Transações vinculadas ao ROI (COMPRA + VENDA):
+  // Prioridade 1 — transaction_animals (junction moderna)
+  // Prioridade 2 — doadora_id (link direto)
+  // Prioridade 3 — ilike no animal_nome (legado)
   const nomeDoadora = doadora?.nome ?? "";
-  const { data: txPorId } = await supabase
-    .from("transactions")
-    .select("tipo, valor_total, n_parcelas, animal_nome")
-    .eq("farm_id", FARM_ID)
-    .eq("tipo", "VENDA")
-    .eq("doadora_id", id)
-    .order("valor_total", { ascending: false });
 
-  const { data: txPorNome } = await supabase
-    .from("transactions")
-    .select("tipo, valor_total, n_parcelas, animal_nome")
-    .eq("farm_id", FARM_ID)
-    .eq("tipo", "VENDA")
-    .is("doadora_id", null)
-    .ilike("animal_nome", `%${nomeDoadora}%`)
-    .order("valor_total", { ascending: false });
+  // 1. IDs via junction table
+  const { data: taRows } = await supabase
+    .from("transaction_animals")
+    .select("transaction_id")
+    .eq("animal_id", id);
+  const junctionIds = (taRows ?? []).map((r: any) => r.transaction_id as string);
 
-  // Une as duas listas (por ID + legados por nome)
-  const transacoes = [...(txPorId ?? []), ...(txPorNome ?? [])];
+  // 2. Transações via junction (com installments)
+  const txSelectFields = "id, tipo, valor_total, n_parcelas, categoria, animal_nome, installments(numero, valor)";
+  const { data: txsViaJunction } = junctionIds.length > 0
+    ? await supabase
+        .from("transactions")
+        .select(txSelectFields)
+        .eq("farm_id", FARM_ID)
+        .in("id", junctionIds)
+    : { data: [] as any[] };
+
+  // 3. Transações via doadora_id (não presentes na junction)
+  const { data: txsViaId } = await supabase
+    .from("transactions")
+    .select(txSelectFields)
+    .eq("farm_id", FARM_ID)
+    .eq("doadora_id", id);
+
+  // 4. Legado: via animal_nome sem doadora_id
+  const { data: txsViaName } = nomeDoadora
+    ? await supabase
+        .from("transactions")
+        .select(txSelectFields)
+        .eq("farm_id", FARM_ID)
+        .is("doadora_id", null)
+        .ilike("animal_nome", `%${nomeDoadora}%`)
+    : { data: [] as any[] };
+
+  // Deduplica por id
+  const seenTxIds = new Set<string>();
+  const todasTxs: any[] = [];
+  for (const tx of [
+    ...(txsViaJunction ?? []),
+    ...(txsViaId ?? []),
+    ...(txsViaName ?? []),
+  ]) {
+    if (tx?.id && !seenTxIds.has(tx.id)) {
+      seenTxIds.add(tx.id);
+      todasTxs.push(tx);
+    }
+  }
 
   // Prenhez de origem — se este animal nasceu de uma prenhez comprada
   const { data: prenhez } = await supabase
@@ -637,10 +685,20 @@ export default async function DoadoraDetalhePage({
   const filhoteUltimoParto = ultimaParida ? (ultimaParida.animal_nascido as any) : null;
 
   // ── Cálculo ROI ──────────────────────────────────────────────────
-  // valor_total = parcela mensal de cada venda; somaParcelasVenda × 30 = receita total
-  const somaParcelasVenda = (transacoes ?? [])
-    .reduce((s, t) => s + (t.valor_total ?? 0), 0);
-  const valorParcela = doadora.valor_parcela ?? 0;
+  function getParcelaMensalTx(tx: any): number {
+    const inst: any[] = [...(tx.installments ?? [])].sort((a: any, b: any) => a.numero - b.numero);
+    const n = tx.n_parcelas ?? (inst.length > 0 ? inst.length : 1);
+    return inst[0]?.valor ?? (tx.valor_total != null ? tx.valor_total / n : 0);
+  }
+
+  const vendasTxs  = todasTxs.filter(t => t.tipo === "VENDA");
+  const comprasTxs = todasTxs.filter(t => t.tipo === "COMPRA");
+
+  const totalVendas         = vendasTxs.reduce((s, t) => s + (t.valor_total ?? 0), 0);
+  const totalCompras        = comprasTxs.reduce((s, t) => s + (t.valor_total ?? 0), 0);
+  const parcelaMensalVendas = vendasTxs.reduce((s, t) => s + getParcelaMensalTx(t), 0);
+  const parcelaMensalCusto  = comprasTxs.reduce((s, t) => s + getParcelaMensalTx(t), 0);
+  const valorParcela        = doadora.valor_parcela ?? 0;
 
   const totalEmbrioes    = embrioes.length;
   const totalDisponiveis = embrioes.filter(e => e.status === "DISPONIVEL").length;
@@ -1206,8 +1264,11 @@ export default async function DoadoraDetalhePage({
 
       {/* ── ROI ─────────────────────────────────────────────── */}
       <ROISection
-        valorParcela={valorParcela}
-        somaParcelasVenda={somaParcelasVenda}
+        totalVendas={totalVendas}
+        totalCompras={totalCompras}
+        parcelaMensalVendas={parcelaMensalVendas}
+        parcelaMensalCusto={parcelaMensalCusto}
+        valorParcelaManual={valorParcela}
         parcelaCompra={parcelaCompra}
         numParcelasCompra={numParcelasCompra}
         leilaoCompra={leilaoCompra}
