@@ -23,6 +23,15 @@ export async function atualizarStatusRebanho(formData: FormData): Promise<{ ok: 
 
   if (error) return { ok: false, erro: error.message };
 
+  // ── Registra no log de movimentação ──────────────────────────────────────────
+  await supabase.from("animal_status_log").insert({
+    farm_id:     FARM_ID,
+    animal_id,
+    status,
+    observacoes,
+    data_evento: new Date().toISOString().split("T")[0],
+  });
+
   // ── Se PARIDA com data, registra o desfecho no pregnancy_diagnoses mais recente ──
   let aviso: string | undefined;
 
@@ -194,6 +203,15 @@ export async function registrarNascimento(formData: FormData) {
       .update({ status_rebanho: "VAZIA" })
       .eq("id", receptora_id)
       .eq("farm_id", FARM_ID);
+
+    // Log da movimentação: parição → VAZIA
+    await supabase.from("animal_status_log").insert({
+      farm_id:     FARM_ID,
+      animal_id:   receptora_id,
+      status:      "VAZIA",
+      observacoes: `Parição em ${data_nascimento}`,
+      data_evento: data_nascimento,
+    });
   }
 
   revalidatePath(`/rebanho/${receptora_id}`);

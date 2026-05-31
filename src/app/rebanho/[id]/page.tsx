@@ -192,6 +192,21 @@ export default async function FichaRebanhoPage({
     .in("tipo", ["DOADORA", "TOURO", "NASCIDO"])
     .order("nome");
 
+  // ── Log de movimentação reprodutiva ─────────────────────────────────────────
+  let statusLog: { id: string; status: string; observacoes: string | null; data_evento: string }[] = [];
+  try {
+    const { data: logData } = await supabase
+      .from("animal_status_log")
+      .select("id, status, observacoes, data_evento")
+      .eq("animal_id", id)
+      .eq("farm_id", FARM_ID)
+      .order("data_evento", { ascending: false })
+      .order("criado_em", { ascending: false });
+    statusLog = logData ?? [];
+  } catch {
+    // migration ainda não rodada — ignora silenciosamente
+  }
+
   // ── Transações da receptora (vendas) ─────────────────────────────────────────
   const { data: transacoes } = await supabase
     .from("transactions")
@@ -446,6 +461,38 @@ export default async function FichaRebanhoPage({
           )}
         </section>
       </div>
+
+      {/* ── Movimentação Reprodutiva (log de status) ────────────────────── */}
+      {statusLog.length > 0 && (
+        <section className="card overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 text-purple-500" />
+            <h2 className="font-semibold text-gray-900">Movimentação Reprodutiva</h2>
+            <span className="badge bg-purple-100 text-purple-700 ml-auto">{statusLog.length}</span>
+          </div>
+          <div className="px-5 py-4 space-y-0">
+            {statusLog.map((entry, idx) => {
+              const isLast = idx === statusLog.length - 1;
+              const sm = STATUS_MAP[entry.status] ?? { label: entry.status, cls: "bg-gray-100 text-gray-500" };
+              return (
+                <div key={entry.id} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="w-2 h-2 rounded-full bg-purple-400 ring-2 ring-purple-100 mt-1.5 shrink-0" />
+                    {!isLast && <div className="w-px flex-1 bg-gray-200 my-1" />}
+                  </div>
+                  <div className={`pb-3 flex-1 flex items-start gap-2 flex-wrap`}>
+                    <span className={`badge text-xs ${sm.cls}`}>{sm.label}</span>
+                    <span className="text-xs text-gray-400">{formatDate(entry.data_evento)}</span>
+                    {entry.observacoes && (
+                      <span className="text-xs text-gray-500 italic w-full">{entry.observacoes}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ── Histórico Reprodutivo (timeline) — sempre visível ─────────────── */}
       <section className="card overflow-hidden">
