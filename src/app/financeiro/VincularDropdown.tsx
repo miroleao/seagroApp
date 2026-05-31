@@ -123,7 +123,7 @@ export function VincularDropdown({ txId, doadoras, selecionadas = [], buttonLabe
 
           <div className="flex-1 overflow-y-auto border border-gray-100 rounded-md">
             {filtradas.length === 0 ? (
-              <p className="text-[11px] text-gray-400 italic p-3 text-center">Nenhuma doadora encontrada.</p>
+              <p className="text-[11px] text-gray-400 italic p-3 text-center">Nenhum animal encontrado.</p>
             ) : (
               filtradas.map(d => {
                 const checked = ids.includes(d.id);

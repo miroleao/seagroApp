@@ -101,6 +101,21 @@ export default async function FinanceiroPage({
     .eq("tipo", "DOADORA")
     .order("nome");
 
+  const { data: touros } = await supabase
+    .from("animals")
+    .select("id, nome, rgn")
+    .eq("farm_id", FARM_ID)
+    .eq("tipo", "TOURO")
+    .order("nome");
+
+  // Lista combinada para o picker de vínculo (doadoras + touros, ordenados por nome)
+  const animaisVincularLista = [
+    ...(doadoras ?? []),
+    ...(touros ?? []),
+  ]
+    .map((a: any) => ({ id: a.id as string, nome: a.nome as string, rgn: (a.rgn ?? null) as string | null }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
   // Leilões cadastrados (para o dropdown do modal de edição)
   const { data: leiloesRaw } = await supabase
     .from("auctions")
@@ -415,7 +430,7 @@ export default async function FinanceiroPage({
                           <VinculoCell
                             txId={t.id}
                             animais={animaisDaTx(t)}
-                            doadoras={(doadoras ?? []).map((d: any) => ({ id: d.id, nome: d.nome, rgn: d.rgn ?? null }))}
+                            doadoras={animaisVincularLista}
                           />
                         </td>
                         <td className="px-2 py-2.5 text-right">
@@ -609,7 +624,7 @@ export default async function FinanceiroPage({
                                     <VinculoCell
                                       txId={t.id}
                                       animais={animaisDaTx(t)}
-                                      doadoras={(doadoras ?? []).map((d: any) => ({ id: d.id, nome: d.nome, rgn: d.rgn ?? null }))}
+                                      doadoras={animaisVincularLista}
                                     />
                                   </td>
                                   <td className="px-2 py-2.5 text-right">
