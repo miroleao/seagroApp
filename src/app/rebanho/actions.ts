@@ -555,6 +555,20 @@ export async function registrarDesfechoUnificado(formData: FormData) {
 }
 
 // ─── Editar localização de receptora ─────────────────────────────────────────
+// ─── Atualizar RGN (# ABCZ) de receptora ────────────────────────────────────
+export async function atualizarRgnReceptora(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
+  const animal_id = (formData.get("animal_id") as string)?.trim();
+  const rgn       = (formData.get("rgn")       as string)?.trim() || null;
+  if (!animal_id) return { ok: false, erro: "ID inválido" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("animals")
+    .update({ rgn })
+    .eq("id", animal_id).eq("farm_id", FARM_ID);
+  if (error) return { ok: false, erro: error.message };
+  revalidatePath("/rebanho");
+  return { ok: true };
+}
+
 export async function editarLocalizacaoRebanho(formData: FormData) {
   const animal_id   = (formData.get("animal_id")   as string)?.trim();
   const localizacao = (formData.get("localizacao")  as string)?.trim() || null;

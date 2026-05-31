@@ -13,6 +13,7 @@ import { EditPesoInline } from "./EditPesoInline";
 import { EditPrenheInline } from "./EditPrenheInline";
 import { DesfechoUnificadoInline } from "./DesfechoUnificadoInline";
 import { EditLocalizacaoRebanho } from "./EditLocalizacaoRebanho";
+import { EditRgnInline } from "./EditRgnInline";
 import { ExportarPDF, type ColunaPDF, type GrupoPDF } from "@/components/ui/ExportarPDF";
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
@@ -614,10 +615,7 @@ export default async function RebanhoPage({
                       </Link>
                     </td>
                     <td className="px-3 py-3">
-                      {(a as any).rgn
-                        ? <span className="font-mono text-[11px] text-gray-600">{(a as any).rgn}</span>
-                        : <span className="text-gray-300 text-[11px]">—</span>
-                      }
+                      <EditRgnInline animalId={a.id} rgnAtual={(a as any).rgn ?? null} />
                     </td>
                     <td className="px-2 py-3"><ClassBadge cls={a.classificacao} /></td>
                     <td className="px-3 py-3">
