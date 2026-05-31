@@ -370,31 +370,41 @@ export default async function RebanhoPage({
   // Vendidas — busca comprador via transactions (contraparte da venda de receptora)
   const vendidasAnimais = animais.filter(a => a.status_rebanho === "VENDIDA");
   const vendidaBrincos  = vendidasAnimais.map(a => a.brinco).filter(Boolean) as string[];
-  let compradorMap = new Map<string, string>(); // brinco → comprador
+  // brinco → { comprador, data }
+  const compradorMap = new Map<string, { comprador: string | null; data: string | null }>();
   if (vendidaBrincos.length > 0) {
     const { data: txVendas } = await supabase
       .from("transactions")
-      .select("animal_nome, contraparte")
+      .select("animal_nome, contraparte, data")
       .eq("farm_id", FARM_ID)
       .eq("tipo", "VENDA")
       .eq("categoria", "RECEPTORA")
       .in("animal_nome", vendidaBrincos);
     for (const tx of txVendas ?? []) {
-      if (tx.animal_nome && tx.contraparte) compradorMap.set(tx.animal_nome, tx.contraparte);
+      if (tx.animal_nome) {
+        compradorMap.set(tx.animal_nome, {
+          comprador: tx.contraparte ?? null,
+          data:      tx.data       ?? null,
+        });
+      }
     }
   }
 
   const vendidasSection: StatusItem[] = vendidasAnimais
-    .sort((a, b) => {
-      const da = (a as any).data_saida ?? "";
-      const db = (b as any).data_saida ?? "";
-      return db.localeCompare(da);
+    .map(a => {
+      const info = a.brinco ? compradorMap.get(a.brinco) : null;
+      return {
+        ...toStatusItem(a),
+        // Prioridade: data_saida (coluna nova) → data da transação (existente)
+        dataSaida: (a as any).data_saida ?? info?.data ?? null,
+        comprador: info?.comprador ?? null,
+      };
     })
-    .map(a => ({
-      ...toStatusItem(a),
-      dataSaida: (a as any).data_saida ?? null,
-      comprador: (a.brinco ? compradorMap.get(a.brinco) : null) ?? null,
-    }));
+    .sort((a, b) => {
+      const da = a.dataSaida ?? "";
+      const db = b.dataSaida ?? "";
+      return db.localeCompare(da);
+    });
 
   return (
     <div className="p-6 space-y-6">
