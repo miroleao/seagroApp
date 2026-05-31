@@ -70,7 +70,7 @@ export default async function RebanhoPage({
   // Exclui receptoras externas (is_external = true) — essas ficam apenas nas aspirações/prenhezes
   const { data: animaisRaw } = await supabase
     .from("animals")
-    .select("id, nome, brinco, classificacao, tipo, status_rebanho, situacao, localizacao, data_entrada, peso_atual, observacoes")
+    .select("id, nome, brinco, rgn, classificacao, tipo, status_rebanho, situacao, localizacao, data_entrada, peso_atual, observacoes")
     .eq("farm_id", FARM_ID)
     .in("tipo", ["RECEPTORA", "DESCARTE"])
     .eq("is_external", false)
@@ -570,6 +570,7 @@ export default async function RebanhoPage({
             <thead>
               <tr className="bg-gray-50 text-left">
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">Brinco</th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-28"># ABCZ</th>
                 <th className="px-2 py-3 text-xs font-medium text-gray-500 w-28">
                   <span>Classificação</span>
                   <FiltroClassificacao q={q} cls={cls} st={st} />
@@ -588,7 +589,7 @@ export default async function RebanhoPage({
             <tbody className="divide-y divide-gray-50">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-10 text-center text-gray-400 text-sm">
+                  <td colSpan={12} className="px-4 py-10 text-center text-gray-400 text-sm">
                     Nenhum animal encontrado{q ? ` para "${q}"` : ""}.
                   </td>
                 </tr>
@@ -611,6 +612,12 @@ export default async function RebanhoPage({
                         className="font-mono font-semibold text-brand-700 hover:underline text-xs">
                         {a.brinco ?? a.nome}
                       </Link>
+                    </td>
+                    <td className="px-3 py-3">
+                      {(a as any).rgn
+                        ? <span className="font-mono text-[11px] text-gray-600">{(a as any).rgn}</span>
+                        : <span className="text-gray-300 text-[11px]">—</span>
+                      }
                     </td>
                     <td className="px-2 py-3"><ClassBadge cls={a.classificacao} /></td>
                     <td className="px-3 py-3">
