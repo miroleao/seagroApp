@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { EditReprodutivoInline } from "./EditReprodutivoInline";
 
 export type StatusItem = {
   id: string;
@@ -12,6 +13,7 @@ export type StatusItem = {
   localizacao: string | null;
   peso_atual: number | null;
   numeroPartos: number;
+  statusRebanho?: string | null;
   // Paridas — campos extras
   doadoraNome?: string | null;
   doadoraId?: string | null;
@@ -26,16 +28,18 @@ interface Props {
   titulo: string;
   animais: StatusItem[];
   tipo: "simples" | "paridas" | "vendidas";
+  mostrarReproductivo?: boolean;
   // Estilo
-  headerBg:  string; // ex: "bg-purple-50 border-purple-100"
-  tituloCls: string; // ex: "text-purple-800"
-  badgeCls:  string; // ex: "bg-purple-100 text-purple-700"
-  dotCls:    string; // ex: "text-purple-600"
+  headerBg:  string;
+  tituloCls: string;
+  badgeCls:  string;
+  dotCls:    string;
   icono:     ReactNode;
 }
 
 export function StatusReceptorasSection({
   titulo, animais, tipo,
+  mostrarReproductivo = false,
   headerBg, tituloCls, badgeCls, dotCls, icono,
 }: Props) {
   const [expandido, setExpandido] = useState(false);
@@ -91,6 +95,9 @@ export function StatusReceptorasSection({
               <thead>
                 <tr className="bg-gray-50 text-left">
                   <th className="px-4 py-2 text-xs font-medium text-gray-500">Brinco</th>
+                  {mostrarReproductivo && (
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500 w-44">Reprodutivo</th>
+                  )}
                   {tipo === "paridas" && <>
                     <th className="px-4 py-2 text-xs font-medium text-gray-500">Doadora</th>
                     <th className="px-4 py-2 text-xs font-medium text-gray-500">Touro</th>
@@ -110,6 +117,11 @@ export function StatusReceptorasSection({
                         {a.brinco ?? a.nome}
                       </Link>
                     </td>
+                    {mostrarReproductivo && (
+                      <td className="px-4 py-2.5">
+                        <EditReprodutivoInline animalId={a.id} statusAtual={a.statusRebanho ?? null} />
+                      </td>
+                    )}
                     {tipo === "paridas" && <>
                       <td className="px-4 py-2.5 text-xs">
                         {a.doadoraId ? (

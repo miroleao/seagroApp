@@ -258,6 +258,7 @@ export default async function RebanhoPage({
   const countPrenhas      = (countStatus["PRENHA"] ?? 0) + (countStatus["PRENHA_EMBRIAO"] ?? 0);
   const countProtocoladas = countStatus["PROTOCOLADA"] ?? 0;
   const countInseminadas  = countStatus["INSEMINADA"] ?? 0;
+  const countImplantadas  = countStatus["IMPLANTADA"] ?? 0;
   const countParidas      = countStatus["PARIDA"] ?? 0;
 
   // Filtro
@@ -326,12 +327,13 @@ export default async function RebanhoPage({
   // ── Arrays para as seções colapsíveis ────────────────────────────────────────
   function toStatusItem(a: (typeof animais)[number]): StatusItem {
     return {
-      id:           a.id,
-      brinco:       a.brinco ?? null,
-      nome:         a.nome   ?? null,
-      localizacao:  a.localizacao ?? null,
-      peso_atual:   a.peso_atual  ?? null,
-      numeroPartos: partosMap.get(a.id) ?? 0,
+      id:            a.id,
+      brinco:        a.brinco ?? null,
+      nome:          a.nome   ?? null,
+      localizacao:   a.localizacao ?? null,
+      peso_atual:    a.peso_atual  ?? null,
+      numeroPartos:  partosMap.get(a.id) ?? 0,
+      statusRebanho: a.status_rebanho ?? null,
     };
   }
 
@@ -341,6 +343,10 @@ export default async function RebanhoPage({
 
   const inseminadasSection: StatusItem[] = animais
     .filter(a => a.status_rebanho === "INSEMINADA")
+    .map(toStatusItem);
+
+  const implantadasSection: StatusItem[] = animais
+    .filter(a => a.status_rebanho === "IMPLANTADA")
     .map(toStatusItem);
 
   const paridasSection: StatusItem[] = animais
@@ -481,7 +487,7 @@ export default async function RebanhoPage({
       </div>
 
       {/* Cards rápidos por status */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {/* Rebanho Total */}
         <Link
           href={`?${q ? `q=${q}` : ""}${st ? `&st=${st}` : ""}`}
@@ -519,6 +525,15 @@ export default async function RebanhoPage({
           <p className="text-xs text-gray-500 mt-1">Inseminadas</p>
         </Link>
 
+        {/* Implantadas c/ embrião */}
+        <Link
+          href={`?st=IMPLANTADA${q ? `&q=${q}` : ""}`}
+          className={`card p-4 text-center transition-colors hover:shadow-md ${st === "IMPLANTADA" ? "ring-2 ring-amber-400" : ""}`}
+        >
+          <p className="text-3xl font-bold text-amber-600">{countImplantadas}</p>
+          <p className="text-xs text-gray-500 mt-1">Implantadas</p>
+        </Link>
+
         {/* Receptoras Paridas */}
         <Link
           href={`?st=PARIDA${q ? `&q=${q}` : ""}`}
@@ -537,6 +552,7 @@ export default async function RebanhoPage({
         titulo="Protocoladas"
         animais={protocoladasSection}
         tipo="simples"
+        mostrarReproductivo
         headerBg="bg-purple-50 border-purple-100"
         tituloCls="text-purple-800"
         badgeCls="bg-purple-100 text-purple-700"
@@ -554,6 +570,19 @@ export default async function RebanhoPage({
         badgeCls="bg-blue-100 text-blue-700"
         dotCls="text-blue-600"
         icono={<span className="text-base">🔬</span>}
+      />
+
+      {/* Implantadas c/ embrião — colapsível */}
+      <StatusReceptorasSection
+        titulo="Implantadas c/ Embrião"
+        animais={implantadasSection}
+        tipo="simples"
+        mostrarReproductivo
+        headerBg="bg-amber-50 border-amber-100"
+        tituloCls="text-amber-800"
+        badgeCls="bg-amber-100 text-amber-700"
+        dotCls="text-amber-600"
+        icono={<span className="text-base">🥚</span>}
       />
 
       {/* Paridas — colapsível */}
