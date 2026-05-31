@@ -18,8 +18,8 @@ export type StatusItem = {
   touroNome?: string | null;
   dataDesfecho?: string | null;
   // Vendidas — campos extras
-  rgn?: string | null;
   dataSaida?: string | null;
+  comprador?: string | null;
 };
 
 interface Props {
@@ -59,92 +59,97 @@ export function StatusReceptorasSection({
 
       {expandido && (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Brinco</th>
-                {tipo === "vendidas" && (
-                  <th className="px-4 py-2 text-xs font-medium text-gray-500"># ABCZ</th>
-                )}
-                {tipo === "paridas" && <>
-                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Doadora</th>
-                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Touro</th>
-                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Data Parto</th>
-                </>}
-                {tipo === "vendidas" && (
-                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Data Saída</th>
-                )}
-                {tipo !== "vendidas" && (
-                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Peso</th>
-                )}
-                <th className="px-4 py-2 text-xs font-medium text-gray-500 text-center">Partos</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500">Localização</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-500"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {animais.map(a => (
-                <tr key={a.id} className="table-row-hover">
-                  <td className="px-4 py-2.5 font-mono font-semibold">
-                    <Link href={`/rebanho/${a.id}`} className="text-brand-700 hover:underline text-xs">
-                      {a.brinco ?? a.nome}
-                    </Link>
-                  </td>
-
-                  {tipo === "vendidas" && (
-                    <td className="px-4 py-2.5 text-xs font-mono text-gray-500">
-                      {a.rgn ?? <span className="text-gray-300">—</span>}
+          {tipo === "vendidas" ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left">
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500 w-32">Brinco</th>
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500 w-32">Data Saída</th>
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Comprador</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {animais.map(a => (
+                  <tr key={a.id} className="table-row-hover">
+                    <td className="px-4 py-2.5 font-mono font-semibold">
+                      <Link href={`/rebanho/${a.id}`} className="text-brand-700 hover:underline text-xs">
+                        {a.brinco ?? a.nome}
+                      </Link>
                     </td>
-                  )}
-
-                  {tipo === "paridas" && <>
-                    <td className="px-4 py-2.5 text-xs">
-                      {a.doadoraId ? (
-                        <Link href={`/doadoras/${a.doadoraId}`} className="text-brand-600 hover:underline font-medium">
-                          {a.doadoraNome}
-                        </Link>
-                      ) : a.doadoraNome ? (
-                        <span className="text-gray-700 font-medium">{a.doadoraNome}</span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600">{a.touroNome ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-xs font-semibold text-green-700">
-                      {formatDate(a.dataDesfecho ?? null)}
-                    </td>
-                  </>}
-
-                  {tipo === "vendidas" && (
-                    <td className="px-4 py-2.5 text-xs font-semibold text-blue-700">
+                    <td className="px-4 py-2.5 text-xs text-gray-600">
                       {a.dataSaida ? formatDate(a.dataSaida) : <span className="text-gray-300">—</span>}
                     </td>
-                  )}
-
-                  {tipo !== "vendidas" && (
+                    <td className="px-4 py-2.5 text-xs text-gray-700">
+                      {a.comprador ?? <span className="text-gray-300">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left">
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Brinco</th>
+                  {tipo === "paridas" && <>
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500">Doadora</th>
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500">Touro</th>
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500">Data Parto</th>
+                  </>}
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Peso</th>
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500 text-center">Partos</th>
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500">Localização</th>
+                  <th className="px-4 py-2 text-xs font-medium text-gray-500"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {animais.map(a => (
+                  <tr key={a.id} className="table-row-hover">
+                    <td className="px-4 py-2.5 font-mono font-semibold">
+                      <Link href={`/rebanho/${a.id}`} className="text-brand-700 hover:underline text-xs">
+                        {a.brinco ?? a.nome}
+                      </Link>
+                    </td>
+                    {tipo === "paridas" && <>
+                      <td className="px-4 py-2.5 text-xs">
+                        {a.doadoraId ? (
+                          <Link href={`/doadoras/${a.doadoraId}`} className="text-brand-600 hover:underline font-medium">
+                            {a.doadoraNome}
+                          </Link>
+                        ) : a.doadoraNome ? (
+                          <span className="text-gray-700 font-medium">{a.doadoraNome}</span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-gray-600">{a.touroNome ?? "—"}</td>
+                      <td className="px-4 py-2.5 text-xs font-semibold text-green-700">
+                        {formatDate(a.dataDesfecho ?? null)}
+                      </td>
+                    </>}
                     <td className="px-4 py-2.5 text-xs text-gray-600">
                       {a.peso_atual != null ? `${a.peso_atual} kg` : <span className="text-gray-300">—</span>}
                     </td>
-                  )}
-                  <td className="px-4 py-2.5 text-center">
-                    {a.numeroPartos > 0 ? (
-                      <span className="text-xs font-bold text-gray-700 bg-gray-100 rounded-full px-2 py-0.5">
-                        {a.numeroPartos}
-                      </span>
-                    ) : (
-                      <span className="text-gray-300 text-xs">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500">{a.localizacao ?? "—"}</td>
-                  <td className="px-4 py-2.5">
-                    <Link href={`/rebanho/${a.id}`} className="text-xs text-brand-600 hover:underline font-medium">
-                      Ficha →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <td className="px-4 py-2.5 text-center">
+                      {a.numeroPartos > 0 ? (
+                        <span className="text-xs font-bold text-gray-700 bg-gray-100 rounded-full px-2 py-0.5">
+                          {a.numeroPartos}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-gray-500">{a.localizacao ?? "—"}</td>
+                    <td className="px-4 py-2.5">
+                      <Link href={`/rebanho/${a.id}`} className="text-xs text-brand-600 hover:underline font-medium">
+                        Ficha →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </section>

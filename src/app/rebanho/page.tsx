@@ -361,9 +361,24 @@ export default async function RebanhoPage({
       };
     });
 
-  // Vendidas — ordenadas da mais recente para a mais antiga
-  const vendidasSection: StatusItem[] = animais
-    .filter(a => a.status_rebanho === "VENDIDA")
+  // Vendidas — busca comprador via transactions (contraparte da venda de receptora)
+  const vendidasAnimais = animais.filter(a => a.status_rebanho === "VENDIDA");
+  const vendidaBrincos  = vendidasAnimais.map(a => a.brinco).filter(Boolean) as string[];
+  let compradorMap = new Map<string, string>(); // brinco → comprador
+  if (vendidaBrincos.length > 0) {
+    const { data: txVendas } = await supabase
+      .from("transactions")
+      .select("animal_nome, contraparte")
+      .eq("farm_id", FARM_ID)
+      .eq("tipo", "VENDA")
+      .eq("categoria", "RECEPTORA")
+      .in("animal_nome", vendidaBrincos);
+    for (const tx of txVendas ?? []) {
+      if (tx.animal_nome && tx.contraparte) compradorMap.set(tx.animal_nome, tx.contraparte);
+    }
+  }
+
+  const vendidasSection: StatusItem[] = vendidasAnimais
     .sort((a, b) => {
       const da = (a as any).data_saida ?? "";
       const db = (b as any).data_saida ?? "";
@@ -371,8 +386,8 @@ export default async function RebanhoPage({
     })
     .map(a => ({
       ...toStatusItem(a),
-      rgn:       (a as any).rgn       ?? null,
       dataSaida: (a as any).data_saida ?? null,
+      comprador: (a.brinco ? compradorMap.get(a.brinco) : null) ?? null,
     }));
 
   return (
