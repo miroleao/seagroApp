@@ -69,7 +69,7 @@ export type StatusItem = {
 interface Props {
   titulo: string;
   animais: StatusItem[];
-  tipo: "simples" | "paridas" | "vendidas";
+  tipo: "simples" | "implantadas" | "paridas" | "vendidas";
   mostrarReproductivo?: boolean;
   // Estilo
   headerBg:  string;
@@ -134,6 +134,9 @@ export function StatusReceptorasSection({
                   {mostrarReproductivo && (
                     <th className="px-4 py-2 text-xs font-medium text-gray-500 w-44">Reprodutivo</th>
                   )}
+                  {tipo === "implantadas" && (
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500">Doadora × Touro</th>
+                  )}
                   {tipo === "paridas" && <>
                     <th className="px-4 py-2 text-xs font-medium text-gray-500">Doadora</th>
                     <th className="px-4 py-2 text-xs font-medium text-gray-500">Touro</th>
@@ -156,6 +159,26 @@ export function StatusReceptorasSection({
                     {mostrarReproductivo && (
                       <td className="px-4 py-2.5">
                         <EditReprodutivoInline animalId={a.id} statusAtual={a.statusRebanho ?? null} />
+                      </td>
+                    )}
+                    {tipo === "implantadas" && (
+                      <td className="px-4 py-2.5 text-xs">
+                        {a.doadoraNome ? (
+                          <span>
+                            {a.doadoraId ? (
+                              <Link href={`/doadoras/${a.doadoraId}`} className="text-brand-600 hover:underline font-medium">
+                                {a.doadoraNome}
+                              </Link>
+                            ) : (
+                              <span className="text-gray-700 font-medium">{a.doadoraNome}</span>
+                            )}
+                            {a.touroNome && (
+                              <span className="text-gray-400"> × {a.touroNome}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
                       </td>
                     )}
                     {tipo === "paridas" && <>

@@ -347,7 +347,15 @@ export default async function RebanhoPage({
 
   const implantadasSection: StatusItem[] = animais
     .filter(a => a.status_rebanho === "IMPLANTADA")
-    .map(toStatusItem);
+    .map(a => {
+      const p = prenhezesMapa.get(a.id);
+      return {
+        ...toStatusItem(a),
+        doadoraNome: p?.doadoraNome ?? null,
+        doadoraId:   p?.doadoraId   ?? null,
+        touroNome:   p?.touroNome   ?? null,
+      };
+    });
 
   const paridasSection: StatusItem[] = animais
     .filter(a => a.status_rebanho === "PARIDA")
@@ -586,7 +594,7 @@ export default async function RebanhoPage({
       <StatusReceptorasSection
         titulo="Implantadas c/ Embrião"
         animais={implantadasSection}
-        tipo="simples"
+        tipo="implantadas"
         mostrarReproductivo
         headerBg="bg-amber-50 border-amber-100"
         tituloCls="text-amber-800"
