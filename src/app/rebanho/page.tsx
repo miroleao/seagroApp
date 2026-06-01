@@ -309,6 +309,7 @@ export default async function RebanhoPage({
       id:             a.id,
       brinco:         a.brinco ?? null,
       nome:           a.nome ?? null,
+      rgn:            (a as any).rgn ?? null,
       status_rebanho: a.status_rebanho ?? null,
       localizacao:    a.localizacao ?? null,
       prenheInfo: p ? {

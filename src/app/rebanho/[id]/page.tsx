@@ -39,7 +39,7 @@ export default async function FichaRebanhoPage({
   // ── Animal ──────────────────────────────────────────────────────────────────
   const { data: animal } = await supabase
     .from("animals")
-    .select("id, nome, brinco, tipo, classificacao, status_rebanho, situacao, localizacao, data_entrada, forma_entrada, peso_atual, observacoes, nascimento")
+    .select("id, nome, brinco, rgn, tipo, classificacao, status_rebanho, situacao, localizacao, data_entrada, forma_entrada, peso_atual, observacoes, nascimento")
     .eq("id", id)
     .eq("farm_id", FARM_ID)
     .single();
@@ -261,6 +261,9 @@ export default async function FichaRebanhoPage({
           <div>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold text-gray-900">{animal.brinco ?? animal.nome}</h1>
+              {(animal as any).rgn && (
+                <span className="text-sm font-mono text-gray-400">#{(animal as any).rgn}</span>
+              )}
               <span className={`badge ${classBadge.cls}`}>{classBadge.label}</span>
               <span className={`badge ${statusBadge.cls}`}>{statusBadge.label}</span>
             </div>

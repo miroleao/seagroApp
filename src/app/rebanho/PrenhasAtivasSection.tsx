@@ -40,6 +40,7 @@ export type PrenhaAnimal = {
   id: string;
   brinco: string | null;
   nome: string | null;
+  rgn: string | null;
   status_rebanho: string | null;
   localizacao: string | null;
   prenheInfo: {
@@ -110,6 +111,11 @@ export function PrenhasAtivasSection({ prenhas }: Props) {
                       >
                         {a.brinco ?? a.nome}
                       </Link>
+                      {a.rgn && (
+                        <span className="block text-[10px] font-normal text-gray-400 font-mono mt-0.5">
+                          #{a.rgn}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5">
                       <StatusBadge st={a.status_rebanho} />
