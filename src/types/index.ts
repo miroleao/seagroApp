@@ -1,5 +1,16 @@
 // ─── Tipos principais do banco de dados ──────────────────────────────────────
 
+export type AnimalDocTipo = "RGN" | "DNA" | "OUTRO";
+
+export interface AnimalDocument {
+  tipo: AnimalDocTipo;
+  label: string;
+  path: string;   // caminho no bucket animal-documents
+  mime: string;
+  criado_em: string;  // ISO timestamp
+}
+
+
 export type AnimalTipo = "DOADORA" | "TOURO" | "RECEPTORA" | "NASCIDO" | "DESCARTE";
 export type EmbryoStatus = "DISPONIVEL" | "IMPLANTADO" | "DESCARTADO";
 export type DGResultado = "POSITIVO" | "VAZIO" | "ABSORVEU" | "ABORTOU";
@@ -40,6 +51,9 @@ export interface Animal {
   percentual_proprio?: number;
   valor_parcela?: number;
   observacoes?: string;
+  // Mídia
+  photo_url?: string;
+  documents?: AnimalDocument[];
   // Reprodução — touros (machos)
   exame_andrologico?: "APTO" | "INAPTO";
   data_exame_andrologico?: string;

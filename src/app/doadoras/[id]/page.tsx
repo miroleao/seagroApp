@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2, Gavel, Heart, ChevronRight } from "lucide-react";
 import { toggleParaPista, toggleNascidoSeAgro, toggleParaLeilao, salvarInfoLeilao, atualizarPeso, adicionarPremiacao, registrarPesagem, toggleEmbrioCdc, toggleEmbrioAdt, toggleEmbrioDna, atualizarLocalizacao, atualizarStatusReprodutivo, atualizarTouroPrenhez, adicionarSocio, removerSocio, criarESocio, atualizarGenealogia, atualizarRgn, atualizarPercentualProprio, atualizarValorParcela, corrigirPartos } from "./actions";
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
+import AnimalFotoUpload from "@/components/AnimalFotoUpload";
+import AnimalDocumentosUpload from "@/components/AnimalDocumentosUpload";
 import { FormPremiacao } from "./FormPremiacao";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
@@ -712,6 +714,17 @@ export default async function DoadoraDetalhePage({
 
       {/* Cabeçalho */}
       <div className="card p-6">
+        <div className="flex items-start gap-6 flex-wrap">
+          {/* Foto do animal */}
+          <div className="shrink-0">
+            <AnimalFotoUpload
+              animalId={doadora.id}
+              fotoAtual={(doadora as any).photo_url ?? null}
+              nomeAnimal={doadora.nome}
+            />
+          </div>
+
+          <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{doadora.nome}</h1>
@@ -1231,6 +1244,8 @@ export default async function DoadoraDetalhePage({
             </details>
           </div>
         </div>
+          </div>{/* fim flex-1 */}
+        </div>{/* fim flex gap-6 */}
       </div>
 
       {/* ── Genealogia ─────────────────────────────────────── */}
@@ -1287,6 +1302,27 @@ export default async function DoadoraDetalhePage({
           <RegistrarVendaForm doadoraId={id} />
         </div>
       </details>
+
+      {/* ── Documentos ─────────────────────────────────────── */}
+      <div className="card overflow-hidden">
+        <details>
+          <summary className="px-5 py-4 border-b border-gray-100 flex items-center gap-2 cursor-pointer list-none">
+            <span className="text-base">📄</span>
+            <h2 className="font-semibold text-gray-900">Documentos</h2>
+            <span className="badge bg-gray-100 text-gray-600 ml-auto">
+              {((doadora as any).documents ?? []).length} arquivo{((doadora as any).documents ?? []).length !== 1 ? "s" : ""}
+            </span>
+            <span className="text-gray-400 text-xs ml-2">▼</span>
+          </summary>
+          <div className="px-5 py-5">
+            <p className="text-xs text-gray-400 mb-4">RGN, teste de DNA e outros documentos oficiais do animal.</p>
+            <AnimalDocumentosUpload
+              animalId={doadora.id}
+              documentos={(doadora as any).documents ?? []}
+            />
+          </div>
+        </details>
+      </div>
 
       {/* ── Histórico Reprodutivo (prenhezes naturais) ──────────── */}
       {(prenhezes_historico ?? []).length > 0 && (

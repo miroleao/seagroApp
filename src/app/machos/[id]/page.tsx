@@ -22,6 +22,8 @@ import {
   atualizarValorParcelaMacho,
 } from "./actions";
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
+import AnimalFotoUpload from "@/components/AnimalFotoUpload";
+import AnimalDocumentosUpload from "@/components/AnimalDocumentosUpload";
 
 // ── Tabela ABCZ de circunferência escrotal mínima por idade ──────────────────
 const CE_TABLE = [
@@ -331,6 +333,17 @@ export default async function MachoDetalhePage({
 
       {/* ── Cabeçalho ──────────────────────────────────────── */}
       <div className="card p-6">
+        <div className="flex items-start gap-6 flex-wrap">
+          {/* Foto do animal */}
+          <div className="shrink-0">
+            <AnimalFotoUpload
+              animalId={macho.id}
+              fotoAtual={(macho as any).photo_url ?? null}
+              nomeAnimal={macho.nome}
+            />
+          </div>
+
+          <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{macho.nome}</h1>
@@ -518,6 +531,8 @@ export default async function MachoDetalhePage({
             </form>
           </div>
         </div>
+          </div>{/* fim flex-1 */}
+        </div>{/* fim flex gap-6 */}
       </div>
 
       {/* ── Reprodução: Exame Andrológico + CE ─────────────── */}
@@ -1052,6 +1067,27 @@ export default async function MachoDetalhePage({
               </tbody>
             </table>
           )}
+        </details>
+      </div>
+
+      {/* ── Documentos ──────────────────────────────────────── */}
+      <div className="card overflow-hidden">
+        <details>
+          <summary className="px-5 py-4 border-b border-gray-100 flex items-center gap-2 cursor-pointer list-none">
+            <span className="text-base">📄</span>
+            <h2 className="font-semibold text-gray-900">Documentos</h2>
+            <span className="badge bg-gray-100 text-gray-600 ml-auto">
+              {((macho as any).documents ?? []).length} arquivo{((macho as any).documents ?? []).length !== 1 ? "s" : ""}
+            </span>
+            <span className="text-gray-400 text-xs ml-2">▼</span>
+          </summary>
+          <div className="px-5 py-5">
+            <p className="text-xs text-gray-400 mb-4">RGN, teste de DNA e outros documentos oficiais do animal.</p>
+            <AnimalDocumentosUpload
+              animalId={macho.id}
+              documentos={(macho as any).documents ?? []}
+            />
+          </div>
         </details>
       </div>
 

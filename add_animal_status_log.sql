@@ -4,7 +4,7 @@
 -- ══════════════════════════════════════════════════════════════════════════════
 CREATE TABLE IF NOT EXISTS animal_status_log (
   id           UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
-  farm_id      UUID        NOT NULL REFERENCES animals(farm_id) ON DELETE CASCADE,
+  farm_id      UUID        NOT NULL,
   animal_id    UUID        NOT NULL REFERENCES animals(id)      ON DELETE CASCADE,
   status       VARCHAR(40) NOT NULL,
   observacoes  TEXT,
