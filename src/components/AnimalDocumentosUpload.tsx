@@ -1,25 +1,25 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import React, { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Upload, Trash2, ExternalLink, FileScan, Dna, FileQuestion, Plus, X } from "lucide-react";
 import type { AnimalDocument, AnimalDocTipo } from "@/types";
 
 // ── Configuração por tipo de documento ─────────────────────────────────────
-const DOC_CONFIG: Record<AnimalDocTipo, { label: string; icon: React.ReactNode; cls: string }> = {
+const DOC_CONFIG: Record<AnimalDocTipo, { label: string; icon: () => React.ReactElement; cls: string }> = {
   RGN: {
     label: "Registro Genealógico (RGN)",
-    icon:  <FileScan className="w-3.5 h-3.5" />,
+    icon:  () => <FileScan className="w-3.5 h-3.5" />,
     cls:   "bg-blue-50 text-blue-700 border-blue-200",
   },
   DNA: {
     label: "Teste de DNA",
-    icon:  <Dna className="w-3.5 h-3.5" />,
+    icon:  () => <Dna className="w-3.5 h-3.5" />,
     cls:   "bg-purple-50 text-purple-700 border-purple-200",
   },
   OUTRO: {
     label: "Outro Documento",
-    icon:  <FileQuestion className="w-3.5 h-3.5" />,
+    icon:  () => <FileQuestion className="w-3.5 h-3.5" />,
     cls:   "bg-gray-50 text-gray-600 border-gray-200",
   },
 };
@@ -132,7 +132,7 @@ export default function AnimalDocumentosUpload({ animalId, documentos: docsInit 
               >
                 {/* Ícone + info */}
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="shrink-0">{cfg.icon}</span>
+                  <span className="shrink-0">{cfg.icon()}</span>
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate leading-tight">{doc.label}</p>
                     <p className="text-[10px] opacity-60 mt-0.5">
@@ -220,7 +220,7 @@ export default function AnimalDocumentosUpload({ animalId, documentos: docsInit 
                       : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
                   }`}
                 >
-                  {DOC_CONFIG[t].icon}
+                  {DOC_CONFIG[t].icon()}
                   {t}
                 </button>
               ))}
