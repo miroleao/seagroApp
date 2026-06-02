@@ -171,9 +171,32 @@ export async function registrarPesagem(formData: FormData) {
   if (!animal_id || !data || isNaN(peso_kg)) return;
 
   const supabase = await createClient();
-  await supabase.from("weight_records").insert({ animal_id, data, peso_kg });
+
+  const { error } = await supabase
+    .from("weight_records")
+    .insert({ animal_id, farm_id: FARM_ID, data, peso_kg });
+
+  if (error) throw new Error(`Erro ao registrar pesagem: ${error.message}`);
+
+  // Atualiza peso_atual se a data registrada for a mais recente
+  const { data: ultima } = await supabase
+    .from("weight_records")
+    .select("data")
+    .eq("animal_id", animal_id)
+    .order("data", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!ultima || data >= ultima.data) {
+    await supabase
+      .from("animals")
+      .update({ peso_atual: peso_kg })
+      .eq("id", animal_id)
+      .eq("farm_id", FARM_ID);
+  }
 
   revalidatePath(`/doadoras/${animal_id}`);
+  revalidatePath("/pista");
   redirect(`/doadoras/${animal_id}`);
 }
 

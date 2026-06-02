@@ -70,11 +70,11 @@ export default function AnimalFotoUpload({ animalId, fotoAtual, nomeAnimal }: Pr
   }
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-3">
       {/* Foto ou placeholder */}
       <div
         onClick={() => !isPending && fileRef.current?.click()}
-        className={`relative group w-28 h-28 md:w-36 md:h-36 rounded-xl overflow-hidden border-2 cursor-pointer transition-all
+        className={`relative group w-36 h-36 rounded-xl overflow-hidden border-2 cursor-pointer transition-all
           ${preview
             ? "border-brand-200 hover:border-brand-400"
             : "border-dashed border-gray-200 hover:border-brand-300 bg-gray-50"

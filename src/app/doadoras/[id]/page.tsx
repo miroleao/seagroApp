@@ -714,9 +714,9 @@ export default async function DoadoraDetalhePage({
 
       {/* Cabeçalho */}
       <div className="card p-6">
-        <div className="flex flex-col md:flex-row items-start gap-5">
+        <div className="flex items-start gap-6 flex-wrap">
           {/* Foto do animal */}
-          <div className="shrink-0 self-center md:self-start">
+          <div className="shrink-0">
             <AnimalFotoUpload
               animalId={doadora.id}
               fotoAtual={(doadora as any).photo_url ?? null}
@@ -724,7 +724,7 @@ export default async function DoadoraDetalhePage({
             />
           </div>
 
-          <div className="flex-1 min-w-0 w-full">
+          <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{doadora.nome}</h1>
