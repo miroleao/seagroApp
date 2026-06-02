@@ -333,9 +333,9 @@ export default async function MachoDetalhePage({
 
       {/* ── Cabeçalho ──────────────────────────────────────── */}
       <div className="card p-6">
-        <div className="flex items-start gap-6 flex-wrap">
+        <div className="flex flex-col md:flex-row items-start gap-5">
           {/* Foto do animal */}
-          <div className="shrink-0">
+          <div className="shrink-0 self-center md:self-start">
             <AnimalFotoUpload
               animalId={macho.id}
               fotoAtual={(macho as any).photo_url ?? null}
@@ -343,7 +343,7 @@ export default async function MachoDetalhePage({
             />
           </div>
 
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 w-full">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{macho.nome}</h1>
