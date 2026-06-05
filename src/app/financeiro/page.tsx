@@ -226,11 +226,13 @@ export default async function FinanceiroPage({
 
   // Totais agregados para os cards principais
   const parcelaMensalCompras = parcelaMensalDe(comprasAll);
-  const parcelaMensalVendas  = parcelaMensalDe(vendasAll);
-  const saldoMensal          = parcelaMensalVendas - parcelaMensalCompras;
-  const totalCompras         = totalDe(comprasAll);
-  const totalVendas          = totalDe(vendasAll);
-  const saldo                = totalVendas - totalCompras;
+  // Vendas de parcelas: exclui rebanho (receptoras) — valores pontuais, não recorrentes
+  const vendasSemRebanho        = vendasAll.filter(t => !isRebanho(t));
+  const parcelaMensalVendas     = parcelaMensalDe(vendasSemRebanho);
+  const saldoMensal             = parcelaMensalVendas - parcelaMensalCompras;
+  const totalCompras            = totalDe(comprasAll);
+  const totalVendas             = totalDe(vendasAll);
+  const saldo                   = totalVendas - totalCompras;
 
   // Valorização do plantel a 100%
   const doadorasPercMap = new Map(
@@ -356,7 +358,7 @@ export default async function FinanceiroPage({
       {/* ── Cards principais ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
 
-        {/* Saída mensal */}
+        {/* Saída / Mês */}
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-1.5">
             <TrendingDown className="w-4 h-4 text-red-400 shrink-0" />
@@ -370,7 +372,7 @@ export default async function FinanceiroPage({
           </p>
         </div>
 
-        {/* Entrada mensal */}
+        {/* Entrada / Mês (sem rebanho) */}
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-1.5">
             <TrendingUp className="w-4 h-4 text-green-500 shrink-0" />
@@ -378,13 +380,13 @@ export default async function FinanceiroPage({
           </div>
           <p className="text-2xl font-bold text-green-600 truncate">{formatCurrency(parcelaMensalVendas)}</p>
           <p className="text-xs text-gray-400 mt-1">
-            {vendasAll.length} vendas
+            animal · prenhez · aspiração
             <span className="mx-1.5 text-gray-200">·</span>
-            <span className="text-gray-300">total {formatCurrency(totalVendas)}</span>
+            <span className="text-gray-300">total {formatCurrency(totalDe(vendasSemRebanho))}</span>
           </p>
         </div>
 
-        {/* Saldo mensal */}
+        {/* Saldo / Mês */}
         <div className="card p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Saldo / Mês</p>
           <p className={`text-2xl font-bold truncate ${saldoMensal >= 0 ? "text-green-600" : "text-red-600"}`}>
