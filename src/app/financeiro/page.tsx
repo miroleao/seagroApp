@@ -424,7 +424,36 @@ export default async function FinanceiroPage({
             <TrendingDown className="w-3.5 h-3.5 text-red-400" />
             <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Compras por Categoria</h3>
           </div>
-          <table className="w-full text-xs">
+
+          {/* Mobile */}
+          <div className="md:hidden divide-y divide-gray-50">
+            {[
+              { label: "Animal",    list: comprasAnimal,    cls: "bg-indigo-100 text-indigo-700" },
+              { label: "Prenhez",   list: comprasPrenhez,   cls: "bg-orange-100 text-orange-700" },
+              { label: "Aspiração", list: comprasAspiracao, cls: "bg-pink-100 text-pink-700"     },
+            ].map(({ label, list, cls }) => list.length > 0 && (
+              <div key={label} className="px-4 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${cls}`}>{label}</span>
+                  <span className="text-xs text-gray-400">{list.length}×</span>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-sm font-bold text-red-600">{formatCurrency(parcelaMensalDe(list))}<span className="text-[10px] font-normal text-gray-400">/mês</span></div>
+                  <div className="text-[10px] text-gray-400">total {formatCurrency(totalDe(list))}</div>
+                </div>
+              </div>
+            ))}
+            <div className="px-4 py-3 flex items-center justify-between bg-red-50">
+              <span className="text-xs font-bold text-gray-700">Total Compras · {comprasAll.length}</span>
+              <div className="text-right">
+                <div className="text-sm font-bold text-red-600">{formatCurrency(parcelaMensalCompras)}<span className="text-[10px] font-normal text-red-400">/mês</span></div>
+                <div className="text-[10px] text-red-400">total {formatCurrency(totalCompras)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop */}
+          <table className="w-full text-xs hidden md:table">
             <thead>
               <tr className="bg-gray-50 text-left">
                 <th className="px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase">Categoria</th>
@@ -440,16 +469,10 @@ export default async function FinanceiroPage({
                 { label: "Aspiração", list: comprasAspiracao, cls: "bg-pink-100 text-pink-700"     },
               ].map(({ label, list, cls }) => list.length > 0 && (
                 <tr key={label} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5">
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cls}`}>{label}</span>
-                  </td>
+                  <td className="px-4 py-2.5"><span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cls}`}>{label}</span></td>
                   <td className="px-4 py-2.5 text-right text-gray-500 font-medium">{list.length}</td>
-                  <td className="px-4 py-2.5 text-right font-semibold text-red-600">
-                    {formatCurrency(parcelaMensalDe(list))}
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <span className="font-bold text-red-700">{formatCurrency(totalDe(list))}</span>
-                  </td>
+                  <td className="px-4 py-2.5 text-right font-semibold text-red-600">{formatCurrency(parcelaMensalDe(list))}</td>
+                  <td className="px-4 py-2.5 text-right font-bold text-red-700">{formatCurrency(totalDe(list))}</td>
                 </tr>
               ))}
               <tr className="bg-red-50">
@@ -468,7 +491,37 @@ export default async function FinanceiroPage({
             <TrendingUp className="w-3.5 h-3.5 text-green-500" />
             <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Vendas por Categoria</h3>
           </div>
-          <table className="w-full text-xs">
+
+          {/* Mobile */}
+          <div className="md:hidden divide-y divide-gray-50">
+            {[
+              { label: "Animal",    list: vendasAnimal,    cls: "bg-indigo-100 text-indigo-700" },
+              { label: "Prenhez",   list: vendasPrenhez,   cls: "bg-orange-100 text-orange-700" },
+              { label: "Aspiração", list: vendasAspiracao, cls: "bg-pink-100 text-pink-700"     },
+              { label: "Rebanho",   list: vendasRebanho,   cls: "bg-green-100 text-green-700"   },
+            ].map(({ label, list, cls }) => list.length > 0 && (
+              <div key={label} className="px-4 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${cls}`}>{label}</span>
+                  <span className="text-xs text-gray-400">{list.length}×</span>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-sm font-bold text-green-600">{formatCurrency(parcelaMensalDe(list))}<span className="text-[10px] font-normal text-gray-400">/mês</span></div>
+                  <div className="text-[10px] text-gray-400">total {formatCurrency(totalDe(list))}</div>
+                </div>
+              </div>
+            ))}
+            <div className="px-4 py-3 flex items-center justify-between bg-green-50">
+              <span className="text-xs font-bold text-gray-700">Total Vendas · {vendasAll.length}</span>
+              <div className="text-right">
+                <div className="text-sm font-bold text-green-600">{formatCurrency(parcelaMensalVendas)}<span className="text-[10px] font-normal text-green-400">/mês</span></div>
+                <div className="text-[10px] text-green-400">total {formatCurrency(totalVendas)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop */}
+          <table className="w-full text-xs hidden md:table">
             <thead>
               <tr className="bg-gray-50 text-left">
                 <th className="px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase">Categoria</th>
@@ -485,16 +538,10 @@ export default async function FinanceiroPage({
                 { label: "Rebanho",   list: vendasRebanho,   cls: "bg-green-100 text-green-700"   },
               ].map(({ label, list, cls }) => list.length > 0 && (
                 <tr key={label} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5">
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cls}`}>{label}</span>
-                  </td>
+                  <td className="px-4 py-2.5"><span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cls}`}>{label}</span></td>
                   <td className="px-4 py-2.5 text-right text-gray-500 font-medium">{list.length}</td>
-                  <td className="px-4 py-2.5 text-right font-semibold text-green-600">
-                    {formatCurrency(parcelaMensalDe(list))}
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <span className="font-bold text-green-700">{formatCurrency(totalDe(list))}</span>
-                  </td>
+                  <td className="px-4 py-2.5 text-right font-semibold text-green-600">{formatCurrency(parcelaMensalDe(list))}</td>
+                  <td className="px-4 py-2.5 text-right font-bold text-green-700">{formatCurrency(totalDe(list))}</td>
                 </tr>
               ))}
               <tr className="bg-green-50">
