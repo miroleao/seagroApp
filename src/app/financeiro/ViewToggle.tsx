@@ -14,7 +14,8 @@ export function ViewToggle({ active }: Props) {
 
   function buildHref(v: "cards" | "tabela"): string {
     const params = new URLSearchParams(sp?.toString() ?? "");
-    if (v === "cards") params.delete("view");
+    // "tabela" é o padrão — sem param. "cards" precisa de ?view=cards
+    if (v === "tabela") params.delete("view");
     else params.set("view", v);
     const qs = params.toString();
     return qs ? `${pathname}?${qs}` : pathname;
