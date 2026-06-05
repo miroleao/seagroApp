@@ -302,10 +302,21 @@ export default async function FinanceiroPage({
           </p>
         </div>
         <ExportarPDF
-          titulo={`Financeiro — ${filtroLabels[filtroAtivo] ?? "Filtro"}`}
-          subtitulo={`${txs.length} transações · SE Agropecuária Nelore de Elite`}
+          titulo="Financeiro"
+          subtitulo="SE Agropecuária Nelore de Elite"
           orientacao="landscape"
-          nomeArquivo={`SE_Financeiro${filtroAtivo ? `_${filtroAtivo}` : ""}.pdf`}
+          nomeArquivo="SE_Financeiro.pdf"
+          grupos={[
+            { key: "COMPRA_ANIMAL",    label: "Compra — Animal",    padrao: true },
+            { key: "COMPRA_PRENHEZ",   label: "Compra — Prenhez",   padrao: true },
+            { key: "COMPRA_ASPIRACAO", label: "Compra — Aspiração", padrao: true },
+            { key: "VENDA_ANIMAL",     label: "Venda — Animal",     padrao: true },
+            { key: "VENDA_PRENHEZ",    label: "Venda — Prenhez",    padrao: true },
+            { key: "VENDA_ASPIRACAO",  label: "Venda — Aspiração",  padrao: true },
+            { key: "VENDA_REBANHO",    label: "Venda — Rebanho",    padrao: true },
+            { key: "OUTRO",            label: "Outros",             padrao: true },
+          ]}
+          campoGrupo="grupo"
           colunas={[
             { key: "data",          label: "Data",               padrao: true,  largura: 1.0 },
             { key: "leilao",        label: "Leilão",             padrao: true,  largura: 1.8 },
@@ -318,7 +329,7 @@ export default async function FinanceiroPage({
             { key: "valor_total",   label: "Valor Total",        padrao: true,  largura: 1.1 },
             { key: "observacoes",   label: "Observações",        padrao: false, largura: 2.0 },
           ] satisfies ColunaPDF[]}
-          dados={[...txs].sort((a: any, b: any) => {
+          dados={[...txsAll].sort((a: any, b: any) => {
             const da = a.data ?? (a.auction as any)?.data ?? "";
             const db = b.data ?? (b.auction as any)?.data ?? "";
             return db.localeCompare(da);
@@ -333,7 +344,20 @@ export default async function FinanceiroPage({
               EMBRIAO: "Embrião", ASPIRACAO: "Aspiração", PRENHEZ: "Prenhez", SEMEN: "Sêmen",
               LEILAO: "Leilão", OUTRO: "Outro",
             };
+            // Determina grupo para filtro do PDF
+            let grupo = "OUTRO";
+            if (t.tipo === "COMPRA") {
+              if (isAnimal(t))    grupo = "COMPRA_ANIMAL";
+              else if (isPrenhez(t))   grupo = "COMPRA_PRENHEZ";
+              else if (isAspiracao(t)) grupo = "COMPRA_ASPIRACAO";
+            } else {
+              if (isRebanho(t))        grupo = "VENDA_REBANHO";
+              else if (isAnimal(t))    grupo = "VENDA_ANIMAL";
+              else if (isPrenhez(t))   grupo = "VENDA_PRENHEZ";
+              else if (isAspiracao(t)) grupo = "VENDA_ASPIRACAO";
+            }
             return {
+              grupo,
               data:          dataRef ? new Date(dataRef + "T12:00:00").toLocaleDateString("pt-BR") : "—",
               leilao:        auc?.nome ?? "Avulsa",
               animal:        nomeLimpo(t.animal_nome),
