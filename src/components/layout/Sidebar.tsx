@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Heart, FlaskConical,
-  DollarSign, Trophy, Beef, ChevronRight, ChevronDown, Menu, X, Dna, Baby, Sparkles, Star, Droplet,
+  DollarSign, Trophy, Beef, ChevronRight, ChevronDown, Menu, X, Dna, Baby, Sparkles, Star, Droplet, Gavel,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +42,12 @@ const bottomItems = [
     match: (p: string) => p.startsWith("/pista"),
   },
   {
+    href: "/leiloes",
+    label: "Leilões",
+    icon: Gavel,
+    match: (p: string) => p.startsWith("/leiloes"),
+  },
+  {
     href: "/financeiro",
     label: "Financeiro",
     icon: DollarSign,
@@ -72,7 +78,8 @@ const navItems: NavItem[] = [
     ],
   },
   { href: "/pista",      label: "Pista / Exposições", icon: Trophy },
-  { href: "/financeiro", label: "Financeiro/Leilões", icon: DollarSign },
+  { href: "/leiloes",    label: "Leilões",            icon: Gavel },
+  { href: "/financeiro", label: "Financeiro",         icon: DollarSign },
   { href: "/elitia",     label: "ElitIA (beta)",      icon: Sparkles },
 ];
 
