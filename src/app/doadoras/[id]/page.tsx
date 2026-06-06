@@ -657,6 +657,36 @@ export default async function DoadoraDetalhePage({
     }
   }
 
+  // Transação de compra com dados de leilão (para auto-preencher "Leilão onde Comprou")
+  let txCompraLeilao: any = null;
+  if (junctionIds.length > 0) {
+    const { data } = await supabase
+      .from("transactions")
+      .select(`tipo, valor_total, n_parcelas, data, auction:auctions ( nome, data )`)
+      .eq("farm_id", FARM_ID)
+      .eq("tipo", "COMPRA")
+      .in("id", junctionIds)
+      .maybeSingle();
+    txCompraLeilao = data ?? null;
+  }
+  if (!txCompraLeilao) {
+    const { data } = await supabase
+      .from("transactions")
+      .select(`tipo, valor_total, n_parcelas, data, auction:auctions ( nome, data )`)
+      .eq("farm_id", FARM_ID)
+      .eq("doadora_id", id)
+      .eq("tipo", "COMPRA")
+      .maybeSingle();
+    txCompraLeilao = data ?? null;
+  }
+
+  const compraLeilaoNome   = leilaoInfo?.compra_leilao_nome   ?? (txCompraLeilao as any)?.auction?.nome ?? null;
+  const compraLeilaoData   = leilaoInfo?.compra_leilao_data   ?? (txCompraLeilao as any)?.auction?.data ?? (txCompraLeilao as any)?.data ?? null;
+  const compraValorParcela = leilaoInfo?.compra_valor_parcela ??
+    (txCompraLeilao?.valor_total && txCompraLeilao?.n_parcelas
+      ? parseFloat((txCompraLeilao.valor_total / txCompraLeilao.n_parcelas).toFixed(2))
+      : null);
+
   // Prenhez de origem — se este animal nasceu de uma prenhez comprada
   const { data: prenhez } = await supabase
     .from("aspirations")
@@ -1722,28 +1752,28 @@ export default async function DoadoraDetalhePage({
                 <div className="md:col-span-2">
                   <label className="text-xs text-gray-500 mb-1 block">Nome do Leilão</label>
                   <input name="compra_leilao_nome" type="text"
-                    defaultValue={leilaoInfo?.compra_leilao_nome ?? ""}
+                    defaultValue={compraLeilaoNome ?? ""}
                     placeholder="Ex: Leilão Gran Nelore 2025"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Data</label>
                   <input name="compra_leilao_data" type="date"
-                    defaultValue={leilaoInfo?.compra_leilao_data ?? ""}
+                    defaultValue={compraLeilaoData ?? ""}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Parcela (R$)</label>
                   <input name="compra_valor_parcela" type="number" step="0.01" min="0"
-                    defaultValue={leilaoInfo?.compra_valor_parcela ?? ""}
+                    defaultValue={compraValorParcela ?? ""}
                     placeholder="Ex: 600.00"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
                 </div>
                 <div className="flex items-end pb-2">
-                  {leilaoInfo?.compra_valor_parcela != null ? (
+                  {compraValorParcela != null ? (
                     <p className="text-sm text-gray-700">
                       Total: <span className="font-bold text-gray-900">
-                        {formatCurrency(leilaoInfo.compra_valor_parcela * 30)}
+                        {formatCurrency(compraValorParcela * 30)}
                       </span>
                       <span className="text-xs text-gray-400 ml-1">(× 30)</span>
                     </p>

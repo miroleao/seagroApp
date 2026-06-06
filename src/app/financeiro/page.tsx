@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, FARM_ID } from "@/lib/utils";
+import Link from "next/link";
 import { TrendingUp, TrendingDown, ChevronDown, Plus, BarChart3 } from "lucide-react";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 import { VincularDropdown } from "./VincularDropdown";
@@ -159,6 +160,9 @@ export default async function FinanceiroPage({
   ]
     .map((a: any) => ({ id: a.id as string, nome: a.nome as string, rgn: (a.rgn ?? null) as string | null }))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+  const doadoraIds = new Set((doadoras ?? []).map((d: any) => d.id as string));
+  const touroIds   = new Set((touros   ?? []).map((t: any) => t.id as string));
 
   const { data: leiloesRaw } = await supabase
     .from("auctions")
@@ -738,6 +742,15 @@ export default async function FinanceiroPage({
                         ? new Date(dataRef + "T12:00:00").toLocaleDateString("pt-BR")
                         : "—";
 
+                      // Determina link para a ficha do animal
+                      const linkedAnimais = animaisDaTx(t);
+                      const linkedId = linkedAnimais[0]?.id ?? t.doadora_id ?? null;
+                      const animalHref = linkedId
+                        ? doadoraIds.has(linkedId) ? `/doadoras/${linkedId}`
+                        : touroIds.has(linkedId)   ? `/machos/${linkedId}`
+                        : null
+                        : null;
+
                       return (
                         <tr key={t.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap font-mono">{dataFormatada}</td>
@@ -746,7 +759,11 @@ export default async function FinanceiroPage({
                               ? <span title={auc.local ?? ""}>{auc.nome}</span>
                               : <span className="text-gray-400 italic">Avulsa</span>}
                           </td>
-                          <td className="px-3 py-2.5 font-medium text-gray-900">{nomeLimpo(t.animal_nome)}</td>
+                          <td className="px-3 py-2.5 font-medium text-gray-900">
+                            {animalHref
+                              ? <Link href={animalHref} className="hover:text-brand-600 hover:underline transition-colors">{nomeLimpo(t.animal_nome)}</Link>
+                              : nomeLimpo(t.animal_nome)}
+                          </td>
                           <td className="px-3 py-2.5">
                             {catBadge.label
                               ? <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${catBadge.cls}`}>{catBadge.label}</span>
@@ -902,11 +919,20 @@ export default async function FinanceiroPage({
                           const isCompra = (t._tipo ?? t.tipo) === "COMPRA";
                           const catBadge = categoriaBadge(t.categoria);
                           const totalTx = t.valor_total != null ? t.valor_total : (valorParcela != null ? valorParcela * nParcelas : null);
+                          const mLkAnimais = animaisDaTx(t);
+                          const mLkId = mLkAnimais[0]?.id ?? t.doadora_id ?? null;
+                          const mLkHref = mLkId
+                            ? doadoraIds.has(mLkId) ? `/doadoras/${mLkId}`
+                            : touroIds.has(mLkId)   ? `/machos/${mLkId}`
+                            : null : null;
                           return (
                             <div key={t.id} className="px-4 py-3">
                               <div className="flex items-start justify-between gap-2 mb-1.5">
                                 <div className="min-w-0">
-                                  <span className="font-medium text-gray-900 text-sm truncate block">{nomeLimpo(t.animal_nome)}</span>
+                                  {mLkHref
+                                    ? <Link href={mLkHref} className="font-medium text-gray-900 text-sm truncate block hover:text-brand-600 hover:underline">{nomeLimpo(t.animal_nome)}</Link>
+                                    : <span className="font-medium text-gray-900 text-sm truncate block">{nomeLimpo(t.animal_nome)}</span>}
+
                                   {catBadge.label && (
                                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${catBadge.cls}`}>{catBadge.label}</span>
                                   )}
@@ -954,11 +980,19 @@ export default async function FinanceiroPage({
                             const label = tipoLabel(t._tipo ?? t.tipo, t.animal_nome, t.categoria);
                             const isCompra = (t._tipo ?? t.tipo) === "COMPRA";
                             const catBadge = categoriaBadge(t.categoria);
+                            const lkAnimais = animaisDaTx(t);
+                            const lkId = lkAnimais[0]?.id ?? t.doadora_id ?? null;
+                            const lkHref = lkId
+                              ? doadoraIds.has(lkId) ? `/doadoras/${lkId}`
+                              : touroIds.has(lkId)   ? `/machos/${lkId}`
+                              : null : null;
                             return (
                               <tr key={t.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-4 py-2.5 font-medium text-gray-900">
                                   <div className="flex items-center gap-2">
-                                    {nomeLimpo(t.animal_nome)}
+                                    {lkHref
+                                      ? <Link href={lkHref} className="hover:text-brand-600 hover:underline transition-colors">{nomeLimpo(t.animal_nome)}</Link>
+                                      : nomeLimpo(t.animal_nome)}
                                     {catBadge.label && (
                                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${catBadge.cls}`}>{catBadge.label}</span>
                                     )}
