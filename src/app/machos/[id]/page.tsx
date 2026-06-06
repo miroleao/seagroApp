@@ -263,6 +263,47 @@ export default async function MachoDetalhePage({
     .eq("farm_id", FARM_ID)
     .maybeSingle();
 
+  // Transação de compra vinculada ao animal (para auto-preencher "Leilão onde Comprou")
+  // Passo 1: busca transaction_ids via junction
+  const { data: taRows } = await supabase
+    .from("transaction_animals")
+    .select("transaction_id")
+    .eq("animal_id", id);
+  const junctionIds = (taRows ?? []).map((r: any) => r.transaction_id as string);
+
+  // Passo 2: busca a primeira transação de COMPRA entre as vinculadas
+  let txCompraFinal: any = null;
+  if (junctionIds.length > 0) {
+    const { data: txJunction } = await supabase
+      .from("transactions")
+      .select(`tipo, valor_total, n_parcelas, data, auction:auctions ( nome, data )`)
+      .eq("farm_id", FARM_ID)
+      .eq("tipo", "COMPRA")
+      .in("id", junctionIds)
+      .maybeSingle();
+    txCompraFinal = txJunction ?? null;
+  }
+
+  // Fallback: transação com doadora_id = animal.id e tipo COMPRA
+  if (!txCompraFinal) {
+    const { data } = await supabase
+      .from("transactions")
+      .select(`tipo, valor_total, n_parcelas, data, auction:auctions ( nome, data )`)
+      .eq("doadora_id", id)
+      .eq("farm_id", FARM_ID)
+      .eq("tipo", "COMPRA")
+      .maybeSingle();
+    txCompraFinal = data ?? null;
+  }
+
+  // Valores de compra: prioriza leilaoInfo já salvo, depois dados da transação
+  const compraLeilaoNome    = leilaoInfo?.compra_leilao_nome    ?? (txCompraFinal as any)?.auction?.nome ?? null;
+  const compraLeilaoData    = leilaoInfo?.compra_leilao_data    ?? (txCompraFinal as any)?.auction?.data ?? (txCompraFinal as any)?.data ?? null;
+  const compraValorParcela  = leilaoInfo?.compra_valor_parcela  ??
+    (txCompraFinal && txCompraFinal.valor_total && txCompraFinal.n_parcelas
+      ? parseFloat((txCompraFinal.valor_total / txCompraFinal.n_parcelas).toFixed(2))
+      : null);
+
   // Prenhez de origem — se este macho nasceu de prenhez comprada
   const { data: prenhez } = await supabase
     .from("aspirations")
@@ -832,28 +873,28 @@ export default async function MachoDetalhePage({
                 <div className="md:col-span-2">
                   <label className="text-xs text-gray-500 mb-1 block">Nome do Leilão</label>
                   <input name="compra_leilao_nome" type="text"
-                    defaultValue={leilaoInfo?.compra_leilao_nome ?? ""}
+                    defaultValue={compraLeilaoNome ?? ""}
                     placeholder="Ex: Leilão Gran Nelore 2025"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Data</label>
                   <input name="compra_leilao_data" type="date"
-                    defaultValue={leilaoInfo?.compra_leilao_data ?? ""}
+                    defaultValue={compraLeilaoData ?? ""}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Parcela (R$)</label>
                   <input name="compra_valor_parcela" type="number" step="0.01" min="0"
-                    defaultValue={leilaoInfo?.compra_valor_parcela ?? ""}
+                    defaultValue={compraValorParcela ?? ""}
                     placeholder="Ex: 600.00"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
                 </div>
                 <div className="flex items-end pb-2">
-                  {leilaoInfo?.compra_valor_parcela != null ? (
+                  {compraValorParcela != null ? (
                     <p className="text-sm text-gray-700">
                       Total: <span className="font-bold text-gray-900">
-                        {formatCurrency(leilaoInfo.compra_valor_parcela * 30)}
+                        {formatCurrency(compraValorParcela! * 30)}
                       </span>
                       <span className="text-xs text-gray-400 ml-1">(× 30)</span>
                     </p>

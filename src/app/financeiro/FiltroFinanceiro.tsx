@@ -14,6 +14,7 @@ const OPCOES: FiltroOpt[] = [
   { value: "vendas",            label: "Vendas",             group: "venda"  },
   { value: "vendas-animal",     label: "Animal",             group: "venda"  },
   { value: "vendas-prenhez",    label: "Prenhez",            group: "venda"  },
+  { value: "vendas-aspiracao",  label: "Aspiração",          group: "venda"  },
   { value: "vendas-rebanho",    label: "Rebanho",            group: "venda"  },
 ];
 

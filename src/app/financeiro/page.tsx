@@ -119,6 +119,7 @@ function aplicarFiltro(list: any[], filtro: string): any[] {
   if (filtro === "vendas")            return list.filter(t => t.tipo === "VENDA");
   if (filtro === "vendas-animal")     return list.filter(t => t.tipo === "VENDA" && isAnimal(t));
   if (filtro === "vendas-prenhez")    return list.filter(t => t.tipo === "VENDA" && isPrenhez(t));
+  if (filtro === "vendas-aspiracao")  return list.filter(t => t.tipo === "VENDA" && isAspiracao(t));
   if (filtro === "vendas-rebanho")    return list.filter(t => t.tipo === "VENDA" && isRebanho(t));
   return list;
 }
@@ -287,6 +288,7 @@ export default async function FinanceiroPage({
     "vendas":            "Vendas",
     "vendas-animal":     "Vendas de Animal",
     "vendas-prenhez":    "Vendas de Prenhez",
+    "vendas-aspiracao":  "Vendas de Aspiração",
     "vendas-rebanho":    "Vendas de Rebanho",
   };
 
@@ -427,7 +429,7 @@ export default async function FinanceiroPage({
         <div className="card p-4 border-l-4 border-l-brand-500">
           <div className="flex items-center gap-2 mb-1.5">
             <BarChart3 className="w-4 h-4 text-brand-500 shrink-0" />
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Plantel a 100%</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Valorização do Plantel</p>
           </div>
           <p className="text-2xl font-bold text-brand-700 truncate">{formatCurrency(valorizacaoPlantel)}</p>
           <p className="text-xs text-gray-400 mt-1">
