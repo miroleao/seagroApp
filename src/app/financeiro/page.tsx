@@ -521,24 +521,37 @@ export default async function FinanceiroPage({
           {/* Mobile */}
           <div className="md:hidden divide-y divide-gray-50">
             {[
-              { label: "Animal",    list: vendasAnimal,    cls: "bg-indigo-100 text-indigo-700" },
-              { label: "Prenhez",   list: vendasPrenhez,   cls: "bg-orange-100 text-orange-700" },
-              { label: "Aspiração", list: vendasAspiracao, cls: "bg-pink-100 text-pink-700"     },
-              { label: "Rebanho",   list: vendasRebanho,   cls: "bg-green-100 text-green-700"   },
-            ].map(({ label, list, cls }) => list.length > 0 && (
-              <div key={label} className="px-4 py-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
+              { label: "Animal",    list: vendasAnimal,    cls: "bg-indigo-100 text-indigo-700", naoRecorrente: false },
+              { label: "Prenhez",   list: vendasPrenhez,   cls: "bg-orange-100 text-orange-700", naoRecorrente: false },
+              { label: "Aspiração", list: vendasAspiracao, cls: "bg-pink-100 text-pink-700",     naoRecorrente: false },
+              { label: "Rebanho",   list: vendasRebanho,   cls: "bg-green-100 text-green-700",   naoRecorrente: true  },
+            ].map(({ label, list, cls, naoRecorrente }) => list.length > 0 && (
+              <div key={label} className={`px-4 py-3 flex items-center justify-between gap-3 ${naoRecorrente ? "bg-amber-50/50" : ""}`}>
+                <div className="flex items-center gap-2 min-w-0 flex-wrap">
                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${cls}`}>{label}</span>
                   <span className="text-xs text-gray-400">{list.length}×</span>
+                  {naoRecorrente && <span className="text-[9px] text-amber-600 font-medium italic">não recorrente</span>}
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-sm font-bold text-green-600">{formatCurrency(parcelaMensalDe(list))}<span className="text-[10px] font-normal text-gray-400">/mês</span></div>
+                  {naoRecorrente
+                    ? <div className="text-sm font-bold text-green-600">—<span className="text-[10px] font-normal text-gray-400">/mês</span></div>
+                    : <div className="text-sm font-bold text-green-600">{formatCurrency(parcelaMensalDe(list))}<span className="text-[10px] font-normal text-gray-400">/mês</span></div>
+                  }
                   <div className="text-[10px] text-gray-400">total {formatCurrency(totalDe(list))}</div>
                 </div>
               </div>
             ))}
+            {vendasRebanho.length > 0 && (
+              <div className="px-4 py-2.5 flex items-center justify-between bg-green-50/70 border-t border-green-100">
+                <span className="text-[10px] text-gray-500">Recorrentes (sem Rebanho) · {vendasSemRebanho.length}</span>
+                <div className="text-right">
+                  <div className="text-xs font-semibold text-green-600">{formatCurrency(parcelaMensalDe(vendasSemRebanho))}<span className="text-[9px] font-normal text-gray-400">/mês</span></div>
+                  <div className="text-[9px] text-gray-400">total {formatCurrency(totalDe(vendasSemRebanho))}</div>
+                </div>
+              </div>
+            )}
             <div className="px-4 py-3 flex items-center justify-between bg-green-50">
-              <span className="text-xs font-bold text-gray-700">Total Vendas · {vendasAll.length}</span>
+              <span className="text-xs font-bold text-gray-700">Total Geral · {vendasAll.length}</span>
               <div className="text-right">
                 <div className="text-sm font-bold text-green-600">{formatCurrency(parcelaMensalVendas)}<span className="text-[10px] font-normal text-green-400">/mês</span></div>
                 <div className="text-[10px] text-green-400">total {formatCurrency(totalVendas)}</div>
@@ -558,20 +571,35 @@ export default async function FinanceiroPage({
             </thead>
             <tbody className="divide-y divide-gray-50">
               {[
-                { label: "Animal",    list: vendasAnimal,    cls: "bg-indigo-100 text-indigo-700" },
-                { label: "Prenhez",   list: vendasPrenhez,   cls: "bg-orange-100 text-orange-700" },
-                { label: "Aspiração", list: vendasAspiracao, cls: "bg-pink-100 text-pink-700"     },
-                { label: "Rebanho",   list: vendasRebanho,   cls: "bg-green-100 text-green-700"   },
-              ].map(({ label, list, cls }) => list.length > 0 && (
-                <tr key={label} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5"><span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cls}`}>{label}</span></td>
+                { label: "Animal",    list: vendasAnimal,    cls: "bg-indigo-100 text-indigo-700", naoRecorrente: false },
+                { label: "Prenhez",   list: vendasPrenhez,   cls: "bg-orange-100 text-orange-700", naoRecorrente: false },
+                { label: "Aspiração", list: vendasAspiracao, cls: "bg-pink-100 text-pink-700",     naoRecorrente: false },
+                { label: "Rebanho",   list: vendasRebanho,   cls: "bg-green-100 text-green-700",   naoRecorrente: true  },
+              ].map(({ label, list, cls, naoRecorrente }) => list.length > 0 && (
+                <tr key={label} className={`hover:bg-gray-50 ${naoRecorrente ? "bg-amber-50/40" : ""}`}>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cls}`}>{label}</span>
+                      {naoRecorrente && <span className="text-[9px] text-amber-600 font-medium italic">não recorrente (venda pontual)</span>}
+                    </div>
+                  </td>
                   <td className="px-4 py-2.5 text-right text-gray-500 font-medium">{list.length}</td>
-                  <td className="px-4 py-2.5 text-right font-semibold text-green-600">{formatCurrency(parcelaMensalDe(list))}</td>
+                  <td className="px-4 py-2.5 text-right font-semibold text-gray-400">
+                    {naoRecorrente ? "—" : formatCurrency(parcelaMensalDe(list))}
+                  </td>
                   <td className="px-4 py-2.5 text-right font-bold text-green-700">{formatCurrency(totalDe(list))}</td>
                 </tr>
               ))}
+              {vendasRebanho.length > 0 && (
+                <tr className="bg-green-50/60 border-t border-green-100">
+                  <td className="px-4 py-2 text-[10px] text-gray-500 font-semibold">Recorrentes (sem Rebanho)</td>
+                  <td className="px-4 py-2 text-right text-gray-400 text-[10px]">{vendasSemRebanho.length}</td>
+                  <td className="px-4 py-2 text-right font-semibold text-green-600 text-[10px]">{formatCurrency(parcelaMensalDe(vendasSemRebanho))}</td>
+                  <td className="px-4 py-2 text-right font-semibold text-green-700 text-[10px]">{formatCurrency(totalDe(vendasSemRebanho))}</td>
+                </tr>
+              )}
               <tr className="bg-green-50">
-                <td className="px-4 py-2.5 font-bold text-gray-700 text-[11px]">Total Vendas</td>
+                <td className="px-4 py-2.5 font-bold text-gray-700 text-[11px]">Total Geral</td>
                 <td className="px-4 py-2.5 text-right font-bold text-gray-600">{vendasAll.length}</td>
                 <td className="px-4 py-2.5 text-right font-bold text-green-600">{formatCurrency(parcelaMensalVendas)}</td>
                 <td className="px-4 py-2.5 text-right font-bold text-green-700">{formatCurrency(totalVendas)}</td>
