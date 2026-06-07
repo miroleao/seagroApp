@@ -28,6 +28,17 @@ export async function criarDoadora(formData: FormData) {
   const status_reprodutivo     = formData.get("status_reprodutivo") as string || null;
   const observacoes            = formData.get("observacoes") as string || null;
 
+  // ── Financeiro: aquisição ──────────────────────────────────────────────────
+  const tipo_aquisicao          = formData.get("tipo_aquisicao") as string || "COMPRA_DIRETA";
+  const auction_id_raw          = (formData.get("auction_id") as string || "").trim();
+  const novo_leilao_nome        = (formData.get("novo_leilao_nome") as string || "").trim() || null;
+  const novo_leilao_organizador = (formData.get("novo_leilao_organizador") as string || "").trim() || null;
+  const novo_leilao_local       = (formData.get("novo_leilao_local") as string || "").trim() || null;
+  const data_leilao             = (formData.get("data_leilao") as string || "").trim() || null;
+  const contraparte             = (formData.get("contraparte") as string || "").trim() || null;
+  const valor_total_compra_raw  = formData.get("valor_total_compra") as string || null;
+  const n_parcelas_compra_raw   = formData.get("n_parcelas_compra") as string || null;
+
   if (!nome) return;
 
   const supabase = await createClient();
@@ -106,6 +117,86 @@ export async function criarDoadora(formData: FormData) {
       percentual: percVal,
       valor_parcela: isNaN(parcVal as any) ? null : parcVal,
     }).select();
+  }
+
+  // ── Criar Transação de Compra (se informado valor) ────────────────────────
+  if (tipo_aquisicao !== "PRODUCAO_PROPRIA" && valor_total_compra_raw) {
+    const valor_total = parseFloat(valor_total_compra_raw);
+    const n_parcelas  = parseInt(n_parcelas_compra_raw || "1") || 1;
+
+    if (!isNaN(valor_total) && valor_total > 0) {
+      // Resolver leilão
+      let finalAuctionId: string | null = null;
+      if (tipo_aquisicao === "LEILAO") {
+        if (auction_id_raw === "__novo__" && novo_leilao_nome) {
+          const { data: novo } = await supabase
+            .from("auctions")
+            .insert({
+              farm_id:     FARM_ID,
+              nome:        novo_leilao_nome,
+              data:        data_leilao || null,
+              organizador: novo_leilao_organizador || null,
+              local:       novo_leilao_local || null,
+            })
+            .select("id")
+            .single();
+          finalAuctionId = novo?.id ?? null;
+        } else if (auction_id_raw && auction_id_raw !== "__novo__") {
+          finalAuctionId = auction_id_raw;
+          // Atualiza a data do leilão se informada
+          if (data_leilao) {
+            await supabase
+              .from("auctions")
+              .update({ data: data_leilao })
+              .eq("id", finalAuctionId);
+          }
+        }
+      }
+
+      // Inserir transação
+      const dataBase = data_leilao || new Date().toISOString().split("T")[0];
+      const { data: tx } = await supabase
+        .from("transactions")
+        .insert({
+          farm_id:     FARM_ID,
+          tipo:        "COMPRA",
+          categoria:   "DOADORA",
+          animal_nome: nome.trim(),
+          doadora_id:  data.id,
+          contraparte: contraparte || null,
+          valor_total,
+          n_parcelas,
+          data:        dataBase,
+          auction_id:  finalAuctionId,
+        })
+        .select("id")
+        .single();
+
+      if (tx) {
+        // Vincular animal à transação
+        await supabase.from("transaction_animals").insert({
+          transaction_id: tx.id,
+          animal_id:      data.id,
+        });
+
+        // Gerar parcelas mensais
+        const valorParcela = valor_total / n_parcelas;
+        const inicio = new Date(dataBase + "T12:00:00");
+        const parcelas = Array.from({ length: n_parcelas }, (_, i) => {
+          const venc = new Date(inicio);
+          venc.setMonth(venc.getMonth() + i + 1);
+          return {
+            farm_id:        FARM_ID,
+            transaction_id: tx.id,
+            numero:         i + 1,
+            vencimento:     venc.toISOString().split("T")[0],
+            valor:          parseFloat(valorParcela.toFixed(2)),
+            status:         "PENDENTE" as const,
+          };
+        });
+        await supabase.from("installments").insert(parcelas);
+      }
+    }
   }
 
   redirect(`/doadoras/${data.id}`);

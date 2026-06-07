@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FARM_ID } from "@/lib/utils";
 import { criarMacho } from "./actions";
 import GenealogyForm from "@/components/GenealogyForm";
+import FinanceiroFormSection from "@/components/FinanceiroFormSection";
 
 export default async function NovoMachoPage({
   searchParams,
@@ -12,11 +13,10 @@ export default async function NovoMachoPage({
 }) {
   const { erro } = await searchParams;
   const supabase = await createClient();
-  const { data: parceiros } = await supabase
-    .from("partners")
-    .select("id, nome")
-    .eq("farm_id", FARM_ID)
-    .order("nome", { ascending: true });
+  const [{ data: parceiros }, { data: leiloes }] = await Promise.all([
+    supabase.from("partners").select("id, nome").eq("farm_id", FARM_ID).order("nome"),
+    supabase.from("auctions").select("id, nome, data, organizador").eq("farm_id", FARM_ID).order("data", { ascending: false }),
+  ]);
 
   return (
     <div className="p-6 max-w-2xl space-y-6">
@@ -77,24 +77,7 @@ export default async function NovoMachoPage({
         <GenealogyForm />
 
         {/* ── Financeiro ── */}
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b border-gray-100 pb-2">Financeiro</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">% Próprio da Fazenda</label>
-              <div className="flex items-center gap-2">
-                <input name="percentual_proprio" type="number" min="0" max="100" step="1" placeholder="Ex: 50"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                <span className="text-sm text-gray-400">%</span>
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Valor da Parcela (R$)</label>
-              <input name="valor_parcela" type="number" min="0" step="0.01" placeholder="Ex: 1500.00"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" />
-            </div>
-          </div>
-        </section>
+        <FinanceiroFormSection auctions={leiloes ?? []} />
 
         {/* ── Sócios ── */}
         {parceiros && parceiros.length > 0 && (
