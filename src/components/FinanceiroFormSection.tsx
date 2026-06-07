@@ -20,26 +20,26 @@ function fmt(value: number) {
 }
 
 export default function FinanceiroFormSection({ auctions }: Props) {
-  const [tipo, setTipo] = useState<TipoAquisicao>("COMPRA_DIRETA");
+  const [tipo, setTipo]           = useState<TipoAquisicao>("COMPRA_DIRETA");
   const [auctionId, setAuctionId] = useState("");
-  const [valorTotal, setValorTotal] = useState("");
+  const [valorParcela, setValorParcela] = useState("");
   const [nParcelas, setNParcelas] = useState("30");
-  const [percProprio, setPercProprio] = useState("100");
-  const [valorParcelaManual, setValorParcelaManual] = useState("");
+  const [percProprio, setPercProprio]   = useState("100");
 
-  const isLeilao   = tipo === "LEILAO";
-  const isCompra   = tipo !== "PRODUCAO_PROPRIA";
+  const isLeilao     = tipo === "LEILAO";
+  const isCompra     = tipo !== "PRODUCAO_PROPRIA";
   const isNovoLeilao = auctionId === "__novo__";
 
-  const totalNum = parseFloat(valorTotal.replace(",", ".")) || 0;
-  const parcNum  = parseInt(nParcelas) || 1;
-  const percNum  = parseFloat(percProprio) || 100;
+  const parcelaNum = parseFloat(valorParcela.replace(",", ".")) || 0;
+  const parcNum    = parseInt(nParcelas) || 1;
+  const percNum    = parseFloat(percProprio) || 100;
 
-  const parcelaTotal  = totalNum > 0 ? totalNum / parcNum : null;
-  const parcelaFazenda = parcelaTotal ? parcelaTotal * (percNum / 100) : null;
-
-  // Se usuário não digitou manualmente, usa o calculado
-  const parcelaExibida = valorParcelaManual || (parcelaFazenda ? parcelaFazenda.toFixed(2) : "");
+  // Valor total = parcela × nº parcelas
+  const totalCompra    = parcelaNum > 0 ? parcelaNum * parcNum : null;
+  // Valorização = total ÷ % próprio → equivalente a 100% do animal
+  const valorizacao    = totalCompra && percNum > 0 && percNum < 100
+    ? totalCompra / (percNum / 100)
+    : null;
 
   return (
     <section className="space-y-4">
@@ -47,7 +47,6 @@ export default function FinanceiroFormSection({ auctions }: Props) {
         Financeiro
       </h2>
 
-      {/* Hidden: tipo_aquisicao para o Server Action ler */}
       <input type="hidden" name="tipo_aquisicao" value={tipo} />
 
       {/* ── Forma de Aquisição ── */}
@@ -56,9 +55,9 @@ export default function FinanceiroFormSection({ auctions }: Props) {
         <div className="flex flex-wrap gap-2">
           {(
             [
-              { value: "LEILAO",          label: "🔨 Leilão"          },
-              { value: "COMPRA_DIRETA",   label: "🤝 Compra Direta"   },
-              { value: "PRODUCAO_PROPRIA",label: "🐄 Produção Própria" },
+              { value: "LEILAO",           label: "🔨 Leilão"           },
+              { value: "COMPRA_DIRETA",    label: "🤝 Compra Direta"    },
+              { value: "PRODUCAO_PROPRIA", label: "🐄 Produção Própria" },
             ] as { value: TipoAquisicao; label: string }[]
           ).map((opt) => (
             <button
@@ -94,9 +93,7 @@ export default function FinanceiroFormSection({ auctions }: Props) {
               {auctions.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.nome}
-                  {a.data
-                    ? ` (${new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")})`
-                    : ""}
+                  {a.data ? ` (${new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")})` : ""}
                 </option>
               ))}
               <option value="__novo__">+ Cadastrar novo leilão…</option>
@@ -149,35 +146,36 @@ export default function FinanceiroFormSection({ auctions }: Props) {
       {/* ── Valores da Compra ── */}
       {isCompra && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Vendedor(es) */}
           <div className="md:col-span-2">
             <label className="text-xs text-gray-500 mb-1 block">
-              {isLeilao ? "Vendedor / Fazenda de Origem" : "Contraparte (quem vendeu)"}
+              {isLeilao ? "Vendedor(es) / Fazenda(s) de Origem" : "Contraparte (quem vendeu)"}
             </label>
             <input
               name="contraparte"
               type="text"
-              placeholder="Nome da fazenda ou pessoa"
+              placeholder="Ex: Fazenda Boa Vista; Haras Primavera"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
             />
+            <p className="mt-1 text-xs text-gray-400">Para múltiplos vendedores, separe com ponto e vírgula ( ; )</p>
           </div>
 
+          {/* Valor da Parcela — input principal */}
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Valor Total da Compra (R$)</label>
+            <label className="text-xs text-gray-500 mb-1 block">Valor da Parcela (R$)</label>
             <input
-              name="valor_total_compra"
+              name="valor_parcela"
               type="number"
               min="0"
               step="0.01"
-              placeholder="Ex: 500000.00"
-              value={valorTotal}
-              onChange={(e) => {
-                setValorTotal(e.target.value);
-                setValorParcelaManual(""); // limpa override ao mudar o total
-              }}
+              placeholder="Ex: 10333.33"
+              value={valorParcela}
+              onChange={(e) => setValorParcela(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
             />
           </div>
 
+          {/* Nº de Parcelas */}
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Nº de Parcelas</label>
             <input
@@ -188,26 +186,37 @@ export default function FinanceiroFormSection({ auctions }: Props) {
               step="1"
               placeholder="Ex: 30"
               value={nParcelas}
-              onChange={(e) => {
-                setNParcelas(e.target.value);
-                setValorParcelaManual(""); // limpa override ao mudar parcelas
-              }}
+              onChange={(e) => setNParcelas(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
             />
           </div>
 
-          {/* Resumo parcela total */}
-          {parcelaTotal && (
-            <div className="md:col-span-2 flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-lg px-4 py-2.5 text-sm">
-              <span className="text-gray-500">Parcela total do negócio:</span>
-              <span className="font-semibold text-gray-900">{fmt(parcelaTotal)}</span>
-              <span className="text-gray-400 text-xs">× {nParcelas}x</span>
+          {/* Faixa cinza: valor total calculado */}
+          {totalCompra && (
+            <div className="md:col-span-2 bg-gray-50 border border-gray-100 rounded-lg px-4 py-2.5 text-sm flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="text-gray-500">
+                Valor total da compra:{" "}
+                <span className="font-semibold text-gray-900">{fmt(totalCompra)}</span>
+                <span className="text-gray-400 ml-1">({nParcelas}× {fmt(parcelaNum)})</span>
+              </span>
+              {valorizacao && (
+                <>
+                  <span className="text-gray-300 hidden md:inline">|</span>
+                  <span className="text-gray-500">
+                    Valorização 100%:{" "}
+                    <span className="font-semibold text-brand-700">{fmt(valorizacao)}</span>
+                  </span>
+                </>
+              )}
             </div>
           )}
+
+          {/* Hidden: valor_total_compra para o Server Action */}
+          <input type="hidden" name="valor_total_compra" value={totalCompra?.toFixed(2) ?? ""} />
         </div>
       )}
 
-      {/* ── % Próprio + Parcela da Fazenda ── */}
+      {/* ── % Próprio da Fazenda ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="text-xs text-gray-500 mb-1 block">% Próprio da Fazenda</label>
@@ -218,40 +227,16 @@ export default function FinanceiroFormSection({ auctions }: Props) {
               min="0"
               max="100"
               step="1"
-              placeholder="Ex: 50"
+              placeholder="Ex: 33"
               value={percProprio}
-              onChange={(e) => {
-                setPercProprio(e.target.value);
-                setValorParcelaManual("");
-              }}
+              onChange={(e) => setPercProprio(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
             />
             <span className="text-sm text-gray-400">%</span>
           </div>
-        </div>
-
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">
-            Parcela da Fazenda (R$)
-            {parcelaFazenda && !valorParcelaManual && (
-              <span className="ml-1 text-xs text-brand-600">
-                — calculado automaticamente
-              </span>
-            )}
-          </label>
-          <input
-            name="valor_parcela"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder={parcelaFazenda ? parcelaFazenda.toFixed(2) : "Ex: 8333.33"}
-            value={parcelaExibida}
-            onChange={(e) => setValorParcelaManual(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-          />
-          {parcelaFazenda && (
+          {valorizacao && (
             <p className="mt-1 text-xs text-gray-400">
-              {percNum}% de {fmt(parcelaTotal!)} = {fmt(parcelaFazenda)}
+              {percNum}% de {fmt(valorizacao)} = {fmt(totalCompra!)}
             </p>
           )}
         </div>
