@@ -1796,18 +1796,17 @@ export default async function DoadoraDetalhePage({
                     placeholder="Ex: 1500.00"
                     className="w-44 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
                 </div>
-                <div className="pb-2">
-                  {leilaoInfo?.meta_valor_parcela != null ? (
-                    <p className="text-sm text-gray-700">
-                      Meta Total: <span className="font-bold text-green-700 text-base">
-                        {formatCurrency(leilaoInfo.meta_valor_parcela * 30)}
-                      </span>
-                      <span className="text-xs text-gray-400 ml-1">(× 30)</span>
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-400 italic">Total = parcela × 30</p>
-                  )}
-                </div>
+                {leilaoInfo?.meta_valor_parcela != null ? (
+                  <div className="inline-flex items-center gap-2 bg-emerald-600 text-white rounded-lg px-4 py-2.5">
+                    <span className="text-xs font-medium opacity-80">Meta Total</span>
+                    <span className="font-bold text-lg leading-none">
+                      {formatCurrency(leilaoInfo.meta_valor_parcela * 30)}
+                    </span>
+                    <span className="text-xs opacity-60">× 30</span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic self-end pb-2">Total = parcela × 30</p>
+                )}
               </div>
             </div>
 
