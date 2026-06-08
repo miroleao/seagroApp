@@ -6,6 +6,7 @@ import { toggleParaPista, toggleNascidoSeAgro, toggleParaLeilao, salvarInfoLeila
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 import AnimalFotoUpload from "@/components/AnimalFotoUpload";
 import AnimalDocumentosUpload from "@/components/AnimalDocumentosUpload";
+import VendaLeilaoSection from "@/components/VendaLeilaoSection";
 import { FormPremiacao } from "./FormPremiacao";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
@@ -1809,6 +1810,14 @@ export default async function DoadoraDetalhePage({
                 </div>
               </div>
             </div>
+
+            {/* Venda + Comparativo */}
+            <VendaLeilaoSection
+              metaParcela={(leilaoInfo as any)?.meta_valor_parcela ?? null}
+              defaultComprador={(leilaoInfo as any)?.venda_comprador ?? ""}
+              defaultParcela={(leilaoInfo as any)?.venda_valor_parcela ?? undefined}
+              defaultNParcelas={(leilaoInfo as any)?.venda_n_parcelas ?? undefined}
+            />
 
             <button type="submit"
               className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">

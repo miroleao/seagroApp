@@ -24,6 +24,7 @@ import {
 import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 import AnimalFotoUpload from "@/components/AnimalFotoUpload";
 import AnimalDocumentosUpload from "@/components/AnimalDocumentosUpload";
+import VendaLeilaoSection from "@/components/VendaLeilaoSection";
 
 // ── Tabela ABCZ de circunferência escrotal mínima por idade ──────────────────
 const CE_TABLE = [
@@ -930,6 +931,14 @@ export default async function MachoDetalhePage({
                 </div>
               </div>
             </div>
+
+            {/* Venda + Comparativo */}
+            <VendaLeilaoSection
+              metaParcela={(leilaoInfo as any)?.meta_valor_parcela ?? null}
+              defaultComprador={(leilaoInfo as any)?.venda_comprador ?? ""}
+              defaultParcela={(leilaoInfo as any)?.venda_valor_parcela ?? undefined}
+              defaultNParcelas={(leilaoInfo as any)?.venda_n_parcelas ?? undefined}
+            />
 
             <button type="submit"
               className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">

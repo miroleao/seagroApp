@@ -54,11 +54,16 @@ export async function salvarInfoLeilaoMacho(formData: FormData) {
   const convite_promotores  = (formData.get("convite_promotores") as string)?.trim() || null;
   const compra_leilao_nome  = (formData.get("compra_leilao_nome") as string)?.trim() || null;
   const compra_leilao_data  = (formData.get("compra_leilao_data") as string) || null;
-  const compra_parcela_raw  = formData.get("compra_valor_parcela") as string;
-  const meta_parcela_raw    = formData.get("meta_valor_parcela") as string;
+  const compra_parcela_raw    = formData.get("compra_valor_parcela") as string;
+  const meta_parcela_raw      = formData.get("meta_valor_parcela") as string;
+  const venda_comprador       = (formData.get("venda_comprador") as string)?.trim() || null;
+  const venda_parcela_raw     = formData.get("venda_valor_parcela") as string;
+  const venda_n_parcelas_raw  = formData.get("venda_n_parcelas") as string;
 
-  const compra_valor_parcela = compra_parcela_raw ? parseFloat(compra_parcela_raw) : null;
-  const meta_valor_parcela   = meta_parcela_raw   ? parseFloat(meta_parcela_raw)   : null;
+  const compra_valor_parcela  = compra_parcela_raw   ? parseFloat(compra_parcela_raw)   : null;
+  const meta_valor_parcela    = meta_parcela_raw     ? parseFloat(meta_parcela_raw)     : null;
+  const venda_valor_parcela   = venda_parcela_raw    ? parseFloat(venda_parcela_raw)    : null;
+  const venda_n_parcelas      = venda_n_parcelas_raw ? parseInt(venda_n_parcelas_raw)   : null;
 
   if (!animal_id) return;
 
@@ -76,6 +81,9 @@ export async function salvarInfoLeilaoMacho(formData: FormData) {
         compra_leilao_data,
         compra_valor_parcela: compra_valor_parcela && !isNaN(compra_valor_parcela) ? compra_valor_parcela : null,
         meta_valor_parcela:   meta_valor_parcela   && !isNaN(meta_valor_parcela)   ? meta_valor_parcela   : null,
+        venda_comprador,
+        venda_valor_parcela:  venda_valor_parcela  && !isNaN(venda_valor_parcela)  ? venda_valor_parcela  : null,
+        venda_n_parcelas:     venda_n_parcelas     && !isNaN(venda_n_parcelas)     ? venda_n_parcelas     : null,
         atualizado_em: new Date().toISOString(),
       },
       { onConflict: "animal_id,farm_id" }
