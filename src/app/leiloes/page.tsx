@@ -291,6 +291,7 @@ export default async function LeioesPage() {
                   <tr className="bg-gray-50 border-b border-gray-100 text-left">
                     <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase">Animal</th>
                     <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase">Idade / Grupo</th>
+                    <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase">Leilão Convidado</th>
                     <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase">Leilão onde Comprou</th>
                     <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase text-right">Parcela Compra</th>
                     <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase text-right">Total Compra</th>
@@ -329,6 +330,16 @@ export default async function LeioesPage() {
                           {d.grupo
                             ? <span className={`badge text-[9px] font-semibold mt-0.5 ${isMacho ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"}`}>{d.grupo}</span>
                             : <span className="text-gray-300 text-[9px]">Fora de faixa</span>}
+                        </td>
+
+                        {/* Leilão convidado (a vender) */}
+                        <td className="px-4 py-3">
+                          {d.convite_nome
+                            ? <>
+                                <p className="text-gray-800 font-medium">{d.convite_nome}</p>
+                                {d.convite_data && <p className="text-gray-400">{formatDate(d.convite_data)}</p>}
+                              </>
+                            : <span className="text-gray-300 italic">Sem convite</span>}
                         </td>
 
                         {/* Leilão onde comprou */}
@@ -415,7 +426,7 @@ export default async function LeioesPage() {
                       ? ((totalVendaGrupo - totalMetaGrupoVal) / totalMetaGrupoVal) * 100 : null;
                     return (
                       <tr className="bg-amber-50/60 font-semibold">
-                        <td className="px-4 py-2 text-[10px] text-gray-600 font-bold" colSpan={3}>
+                        <td className="px-4 py-2 text-[10px] text-gray-600 font-bold" colSpan={4}>
                           Subtotal — {grupo.animais.length} animais
                         </td>
                         <td className="px-4 py-2 text-right text-red-600">{formatCurrency(parcCompraGrupo)}</td>
