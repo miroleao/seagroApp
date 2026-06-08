@@ -130,26 +130,39 @@ export async function salvarInfoLeilao(formData: FormData) {
   if (!animal_id) return;
 
   const supabase = await createClient();
-  await supabase
+
+  const payload = {
+    convite_nome,
+    convite_data:        convite_data        || null,
+    convite_promotores,
+    compra_leilao_nome,
+    compra_leilao_data:  compra_leilao_data  || null,
+    compra_valor_parcela: (compra_valor_parcela != null && !isNaN(compra_valor_parcela)) ? compra_valor_parcela : null,
+    meta_valor_parcela:   (meta_valor_parcela   != null && !isNaN(meta_valor_parcela))   ? meta_valor_parcela   : null,
+    venda_comprador,
+    venda_valor_parcela:  (venda_valor_parcela  != null && !isNaN(venda_valor_parcela))  ? venda_valor_parcela  : null,
+    venda_n_parcelas:     (venda_n_parcelas     != null && !isNaN(venda_n_parcelas))     ? venda_n_parcelas     : null,
+    atualizado_em: new Date().toISOString(),
+  };
+
+  // Verifica se já existe linha para este animal
+  const { data: existing } = await supabase
     .from("animal_leilao_info")
-    .upsert(
-      {
-        animal_id,
-        farm_id: FARM_ID,
-        convite_nome,
-        convite_data,
-        convite_promotores,
-        compra_leilao_nome,
-        compra_leilao_data,
-        compra_valor_parcela: compra_valor_parcela && !isNaN(compra_valor_parcela) ? compra_valor_parcela : null,
-        meta_valor_parcela:   meta_valor_parcela   && !isNaN(meta_valor_parcela)   ? meta_valor_parcela   : null,
-        venda_comprador,
-        venda_valor_parcela:  venda_valor_parcela  && !isNaN(venda_valor_parcela)  ? venda_valor_parcela  : null,
-        venda_n_parcelas:     venda_n_parcelas     && !isNaN(venda_n_parcelas)     ? venda_n_parcelas     : null,
-        atualizado_em: new Date().toISOString(),
-      },
-      { onConflict: "animal_id,farm_id" }
-    );
+    .select("id")
+    .eq("animal_id", animal_id)
+    .eq("farm_id", FARM_ID)
+    .maybeSingle();
+
+  if (existing?.id) {
+    await supabase
+      .from("animal_leilao_info")
+      .update(payload)
+      .eq("id", existing.id);
+  } else {
+    await supabase
+      .from("animal_leilao_info")
+      .insert({ ...payload, animal_id, farm_id: FARM_ID });
+  }
 
   revalidatePath(`/doadoras/${animal_id}`);
   revalidatePath("/leiloes");
