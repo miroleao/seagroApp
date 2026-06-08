@@ -18,21 +18,47 @@ export async function atualizarRgn(formData: FormData) {
 // ── Correção manual de partos (número, datas) ────────────────────────────────
 
 export async function corrigirPartos(formData: FormData) {
-  const id                 = (formData.get("id")                  as string)?.trim();
-  const numero_partos_raw  = (formData.get("numero_partos")       as string)?.trim();
-  const data_primeiro_parto = (formData.get("data_primeiro_parto") as string)?.trim() || null;
-  const data_ultimo_parto   = (formData.get("data_ultimo_parto")   as string)?.trim() || null;
+  const id                  = (formData.get("id")                   as string)?.trim();
+  const numero_partos_raw   = (formData.get("numero_partos")        as string)?.trim();
+  const data_primeiro_parto = (formData.get("data_primeiro_parto")  as string)?.trim() || null;
+  const data_ultimo_parto   = (formData.get("data_ultimo_parto")    as string)?.trim() || null;
 
   if (!id) return;
 
   const numero_partos = numero_partos_raw !== "" ? parseInt(numero_partos_raw) : null;
 
   const supabase = await createClient();
+
+  // 1. Atualiza campos de resumo no animal
   await supabase.from("animals").update({
     numero_partos:       isNaN(numero_partos as number) ? null : numero_partos,
     data_primeiro_parto: data_primeiro_parto || null,
     data_ultimo_parto:   data_ultimo_parto   || null,
   }).eq("id", id).eq("farm_id", FARM_ID);
+
+  // 2. Para cada data de parto informada, garante um registro em prenhezes_naturais
+  //    (evita duplicata checando se já existe um PARIDA nessa data)
+  const datasPartos = [data_primeiro_parto, data_ultimo_parto]
+    .filter(Boolean)
+    .filter((v, i, arr) => arr.indexOf(v) === i) as string[]; // únicas
+
+  for (const data_parto of datasPartos) {
+    const { data: existente } = await supabase
+      .from("prenhezes_naturais")
+      .select("id")
+      .eq("doadora_id", id)
+      .eq("data_parto", data_parto)
+      .maybeSingle();
+
+    if (!existente) {
+      await supabase.from("prenhezes_naturais").insert({
+        farm_id:    FARM_ID,
+        doadora_id: id,
+        data_parto,
+        resultado:  "PARIDA",
+      });
+    }
+  }
 
   revalidatePath(`/doadoras/${id}`);
   redirect(`/doadoras/${id}`);
