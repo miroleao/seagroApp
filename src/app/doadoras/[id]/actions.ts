@@ -152,6 +152,7 @@ export async function salvarInfoLeilao(formData: FormData) {
     );
 
   revalidatePath(`/doadoras/${animal_id}`);
+  revalidatePath("/leiloes");
   redirect(`/doadoras/${animal_id}`);
 }
 

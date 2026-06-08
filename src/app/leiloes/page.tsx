@@ -144,6 +144,18 @@ export default async function LeioesPage() {
       lucro_parcela: (info?.meta_valor_parcela != null && compraValorParcela != null)
         ? info.meta_valor_parcela - compraValorParcela
         : null,
+      venda_valor_parcela: info?.venda_valor_parcela ?? null,
+      venda_n_parcelas:    info?.venda_n_parcelas    ?? null,
+      venda_total: (info?.venda_valor_parcela != null && info?.venda_n_parcelas != null)
+        ? info.venda_valor_parcela * info.venda_n_parcelas
+        : null,
+      vs_meta_perc: (() => {
+        const vT = (info?.venda_valor_parcela && info?.venda_n_parcelas)
+          ? info.venda_valor_parcela * info.venda_n_parcelas : null;
+        const mT = info?.meta_valor_parcela ? info.meta_valor_parcela * 30 : null;
+        if (!vT || !mT) return null;
+        return ((vT - mT) / mT) * 100;
+      })(),
     };
   });
 
@@ -284,6 +296,9 @@ export default async function LeioesPage() {
                     <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase text-right">Total Compra</th>
                     <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase text-right">Parcela Meta</th>
                     <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase text-right">Total Meta</th>
+                    <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase text-right">Parc. Venda</th>
+                    <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase text-right">Total Venda</th>
+                    <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase text-right">Vs. Meta</th>
                     <th className="px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase text-right">Resultado</th>
                   </tr>
                 </thead>
@@ -354,6 +369,29 @@ export default async function LeioesPage() {
                             : <span className="text-gray-300">—</span>}
                         </td>
 
+                        {/* Parcela venda efetiva */}
+                        <td className="px-4 py-3 text-right">
+                          {d.venda_valor_parcela != null
+                            ? <span className="font-semibold text-blue-600">{formatCurrency(d.venda_valor_parcela)}</span>
+                            : <span className="text-gray-300">—</span>}
+                        </td>
+
+                        {/* Total venda efetiva */}
+                        <td className="px-4 py-3 text-right">
+                          {d.venda_total != null
+                            ? <span className="font-bold text-blue-700">{formatCurrency(d.venda_total)}</span>
+                            : <span className="text-gray-300">—</span>}
+                        </td>
+
+                        {/* Vs. Meta % */}
+                        <td className="px-4 py-3 text-right">
+                          {d.vs_meta_perc != null
+                            ? <span className={`font-bold text-sm ${d.vs_meta_perc >= 0 ? "text-green-600" : "text-red-500"}`}>
+                                {d.vs_meta_perc >= 0 ? "+" : ""}{d.vs_meta_perc.toFixed(1)}%
+                              </span>
+                            : <span className="text-gray-300">—</span>}
+                        </td>
+
                         {/* Resultado esperado */}
                         <td className="px-4 py-3 text-right">
                           {d.lucro_parcela != null
@@ -370,20 +408,31 @@ export default async function LeioesPage() {
                   })}
 
                   {/* Subtotal do grupo */}
-                  {grupo.animais.length > 1 && (
-                    <tr className="bg-amber-50/60 font-semibold">
-                      <td className="px-4 py-2 text-[10px] text-gray-600 font-bold" colSpan={3}>
-                        Subtotal — {grupo.animais.length} animais
-                      </td>
-                      <td className="px-4 py-2 text-right text-red-600">{formatCurrency(parcCompraGrupo)}</td>
-                      <td className="px-4 py-2 text-right text-red-700">{formatCurrency(grupo.animais.reduce((s, d) => s + (d.compra_total ?? 0), 0))}</td>
-                      <td className="px-4 py-2 text-right text-green-600">{formatCurrency(parcMetaGrupo)}</td>
-                      <td className="px-4 py-2 text-right text-green-700">{formatCurrency(grupo.animais.reduce((s, d) => s + (d.meta_total ?? 0), 0))}</td>
-                      <td className={`px-4 py-2 text-right font-bold ${lucroGrupo >= 0 ? "text-green-600" : "text-red-500"}`}>
-                        {lucroGrupo >= 0 ? "+" : ""}{formatCurrency(lucroGrupo)}/mês
-                      </td>
-                    </tr>
-                  )}
+                  {grupo.animais.length > 1 && (() => {
+                    const totalVendaGrupo = grupo.animais.reduce((s, d: any) => s + (d.venda_total ?? 0), 0);
+                    const totalMetaGrupoVal = grupo.animais.reduce((s, d: any) => s + (d.meta_total ?? 0), 0);
+                    const vsMetaGrupo = totalMetaGrupoVal > 0
+                      ? ((totalVendaGrupo - totalMetaGrupoVal) / totalMetaGrupoVal) * 100 : null;
+                    return (
+                      <tr className="bg-amber-50/60 font-semibold">
+                        <td className="px-4 py-2 text-[10px] text-gray-600 font-bold" colSpan={3}>
+                          Subtotal — {grupo.animais.length} animais
+                        </td>
+                        <td className="px-4 py-2 text-right text-red-600">{formatCurrency(parcCompraGrupo)}</td>
+                        <td className="px-4 py-2 text-right text-red-700">{formatCurrency(grupo.animais.reduce((s, d: any) => s + (d.compra_total ?? 0), 0))}</td>
+                        <td className="px-4 py-2 text-right text-green-600">{formatCurrency(parcMetaGrupo)}</td>
+                        <td className="px-4 py-2 text-right text-green-700">{formatCurrency(grupo.animais.reduce((s, d: any) => s + (d.meta_total ?? 0), 0))}</td>
+                        <td className="px-4 py-2 text-right text-blue-600">{totalVendaGrupo > 0 ? formatCurrency(grupo.animais.reduce((s, d: any) => s + (d.venda_valor_parcela ?? 0), 0)) : "—"}</td>
+                        <td className="px-4 py-2 text-right text-blue-700">{totalVendaGrupo > 0 ? formatCurrency(totalVendaGrupo) : "—"}</td>
+                        <td className={`px-4 py-2 text-right font-bold ${vsMetaGrupo != null ? (vsMetaGrupo >= 0 ? "text-green-600" : "text-red-500") : "text-gray-300"}`}>
+                          {vsMetaGrupo != null ? `${vsMetaGrupo >= 0 ? "+" : ""}${vsMetaGrupo.toFixed(1)}%` : "—"}
+                        </td>
+                        <td className={`px-4 py-2 text-right font-bold ${lucroGrupo >= 0 ? "text-green-600" : "text-red-500"}`}>
+                          {lucroGrupo >= 0 ? "+" : ""}{formatCurrency(lucroGrupo)}/mês
+                        </td>
+                      </tr>
+                    );
+                  })()}
                 </tbody>
               </table>
             </div>

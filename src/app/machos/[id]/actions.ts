@@ -90,6 +90,7 @@ export async function salvarInfoLeilaoMacho(formData: FormData) {
     );
 
   revalidatePath(`/machos/${animal_id}`);
+  revalidatePath("/leiloes");
   redirect(`/machos/${animal_id}`);
 }
 
