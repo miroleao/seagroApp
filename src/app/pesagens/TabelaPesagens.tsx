@@ -130,8 +130,8 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
                           Histórico — {r.nome}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {[...r.historico].reverse().map((w, idx) => {
-                            const prev = r.historico[r.historico.length - 2 - idx] ?? null;
+                          {r.historico.map((w, idx) => {
+                            const prev = idx > 0 ? r.historico[idx - 1] : null;
                             const diff = prev != null ? w.peso_kg - prev.peso_kg : null;
                             return (
                               <div key={w.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs min-w-[90px]">

@@ -8,7 +8,7 @@ const opcoes = [
   { value: "DOADORA",   label: "Doadoras" },
   { value: "TOURO",     label: "Touros" },
   { value: "RECEPTORA", label: "Receptoras" },
-  { value: "NASCIDO",   label: "Nascidos" },
+  { value: "NASCIDO",   label: "Nascidos SE" },
 ];
 
 export default function FiltroPesagens({ active }: { active: string }) {
