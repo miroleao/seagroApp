@@ -833,24 +833,58 @@ export default async function FinanceiroPage({
                       );
                     })}
                   </tbody>
-                  {/* Rodapé com totais */}
+                  {/* Rodapé com totais por tipo + saldo */}
                   <tfoot>
-                    <tr className="bg-gray-50 border-t-2 border-gray-200">
-                      <td colSpan={6} className="px-3 py-2.5 text-xs font-bold text-gray-600">
-                        {txsOrdenadas.length} transações
-                      </td>
-                      <td className="px-3 py-2.5 text-right text-xs font-bold text-gray-700">
-                        {formatCurrency(totalParcelaSel)}
-                      </td>
-                      <td className="px-3 py-2.5"></td>
-                      <td className="px-3 py-2.5 text-right text-xs font-bold text-gray-700">
-                        <div>{formatCurrency(totalValorSel)}</div>
-                        <div className="text-[10px] font-normal text-gray-400">
-                          −{formatCurrency(totalComprasSel)} / +{formatCurrency(totalVendasSel)}
-                        </div>
-                      </td>
-                      <td colSpan={2}></td>
-                    </tr>
+                    {totalComprasSel > 0 && (
+                      <tr className="bg-red-50 border-t border-red-100">
+                        <td colSpan={6} className="px-3 py-2 text-xs font-bold text-red-700">
+                          ↓ Compras · {txsOrdenadas.filter(t => t.tipo === "COMPRA").length}
+                        </td>
+                        <td className="px-3 py-2 text-right text-xs font-bold text-red-600">
+                          {formatCurrency(totalParcelaComprasSel)}
+                        </td>
+                        <td className="px-3 py-2"></td>
+                        <td className="px-3 py-2 text-right text-xs font-bold text-red-700">
+                          {formatCurrency(totalComprasSel)}
+                        </td>
+                        <td colSpan={2}></td>
+                      </tr>
+                    )}
+                    {totalVendasSel > 0 && (
+                      <tr className="bg-green-50 border-t border-green-100">
+                        <td colSpan={6} className="px-3 py-2 text-xs font-bold text-green-700">
+                          ↑ Vendas · {txsOrdenadas.filter(t => t.tipo === "VENDA").length}
+                        </td>
+                        <td className="px-3 py-2 text-right text-xs font-bold text-green-600">
+                          {formatCurrency(totalParcelaVendasSel)}
+                        </td>
+                        <td className="px-3 py-2"></td>
+                        <td className="px-3 py-2 text-right text-xs font-bold text-green-700">
+                          {formatCurrency(totalVendasSel)}
+                        </td>
+                        <td colSpan={2}></td>
+                      </tr>
+                    )}
+                    {(() => {
+                      const saldoParcela = totalParcelaVendasSel - totalParcelaComprasSel;
+                      const saldoTotal   = totalVendasSel - totalComprasSel;
+                      const pos = saldoTotal >= 0;
+                      return (
+                        <tr className={`border-t-2 ${pos ? "bg-green-100 border-green-300" : "bg-red-100 border-red-300"}`}>
+                          <td colSpan={6} className={`px-3 py-2.5 text-xs font-bold ${pos ? "text-green-800" : "text-red-800"}`}>
+                            ⚖ Saldo · {txsOrdenadas.length} transações
+                          </td>
+                          <td className={`px-3 py-2.5 text-right text-sm font-bold ${pos ? "text-green-700" : "text-red-700"}`}>
+                            {saldoParcela >= 0 ? "+" : ""}{formatCurrency(saldoParcela)}
+                          </td>
+                          <td className="px-3 py-2.5"></td>
+                          <td className={`px-3 py-2.5 text-right text-sm font-bold ${pos ? "text-green-800" : "text-red-800"}`}>
+                            {saldoTotal >= 0 ? "+" : ""}{formatCurrency(saldoTotal)}
+                          </td>
+                          <td colSpan={2}></td>
+                        </tr>
+                      );
+                    })()}
                   </tfoot>
                 </table>
               </div>
@@ -1050,6 +1084,56 @@ export default async function FinanceiroPage({
                             );
                           })}
                         </tbody>
+                        <tfoot>
+                          {(() => {
+                            const parcC = l.compras.reduce((s: number, t: any) => {
+                              const p = (t.installments ?? []) as any[];
+                              const n = t.n_parcelas ?? (p.length > 0 ? p.length : 1);
+                              return s + (p[0]?.valor ?? (t.valor_total != null ? t.valor_total / n : 0));
+                            }, 0);
+                            const parcV = l.vendas.reduce((s: number, t: any) => {
+                              const p = (t.installments ?? []) as any[];
+                              const n = t.n_parcelas ?? (p.length > 0 ? p.length : 1);
+                              return s + (p[0]?.valor ?? (t.valor_total != null ? t.valor_total / n : 0));
+                            }, 0);
+                            const saldoParcela = parcV - parcC;
+                            const saldoTotal   = totalLV - totalLC;
+                            const pos = saldoTotal >= 0;
+                            return (<>
+                              {totalLC > 0 && (
+                                <tr className="bg-red-50 border-t border-red-100">
+                                  <td colSpan={3} className="px-4 py-1.5 text-[11px] font-bold text-red-700">↓ Compras · {l.compras.length}</td>
+                                  <td className="px-4 py-1.5 text-right text-[11px] font-bold text-red-600">{formatCurrency(parcC)}</td>
+                                  <td className="px-4 py-1.5"></td>
+                                  <td className="px-4 py-1.5 text-right text-[11px] font-bold text-red-700">{formatCurrency(totalLC)}</td>
+                                  <td colSpan={2}></td>
+                                </tr>
+                              )}
+                              {totalLV > 0 && (
+                                <tr className="bg-green-50 border-t border-green-100">
+                                  <td colSpan={3} className="px-4 py-1.5 text-[11px] font-bold text-green-700">↑ Vendas · {l.vendas.length}</td>
+                                  <td className="px-4 py-1.5 text-right text-[11px] font-bold text-green-600">{formatCurrency(parcV)}</td>
+                                  <td className="px-4 py-1.5"></td>
+                                  <td className="px-4 py-1.5 text-right text-[11px] font-bold text-green-700">{formatCurrency(totalLV)}</td>
+                                  <td colSpan={2}></td>
+                                </tr>
+                              )}
+                              {totalLC > 0 && totalLV > 0 && (
+                                <tr className={`border-t-2 ${pos ? "bg-green-100 border-green-300" : "bg-red-100 border-red-300"}`}>
+                                  <td colSpan={3} className={`px-4 py-2 text-[11px] font-bold ${pos ? "text-green-800" : "text-red-800"}`}>⚖ Saldo</td>
+                                  <td className={`px-4 py-2 text-right text-xs font-bold ${pos ? "text-green-700" : "text-red-700"}`}>
+                                    {saldoParcela >= 0 ? "+" : ""}{formatCurrency(saldoParcela)}
+                                  </td>
+                                  <td className="px-4 py-2"></td>
+                                  <td className={`px-4 py-2 text-right text-sm font-bold ${pos ? "text-green-800" : "text-red-800"}`}>
+                                    {saldoTotal >= 0 ? "+" : ""}{formatCurrency(saldoTotal)}
+                                  </td>
+                                  <td colSpan={2}></td>
+                                </tr>
+                              )}
+                            </>);
+                          })()}
+                        </tfoot>
                       </table>
                     </div>
                   </details>
