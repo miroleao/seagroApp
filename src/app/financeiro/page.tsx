@@ -110,85 +110,49 @@ function totalDe(list: any[]): number {
 }
 
 // ── Situação das parcelas (pagas vs pendentes) ────────────────────────────────
-
-// Converte qualquer representação de vencimento em string "YYYY-MM-DD"
-// Estratégias (em ordem):
-//  1. String ISO "YYYY-MM-DD*" → usa diretamente
-//  2. Número > 0 → dias a partir da dataBase (transaction.data)
-//  3. null/undefined + numero disponível → estima via dataBase + numero * 30 dias
-function resolveVencStr(p: any, dataBase: Date | null): string | null {
-  const v = p.vencimento;
-
-  // Caso 1: string com data ISO
-  if (typeof v === "string" && v.match(/^\d{4}-\d{2}-\d{2}/)) {
-    return v.substring(0, 10);
-  }
-
-  // Caso 2: número de dias a partir da data da transação
-  const n = Number(v);
-  if (!isNaN(n) && n > 0 && dataBase) {
-    const d = new Date(dataBase.getTime());
-    d.setDate(d.getDate() + n);
-    return d.toISOString().split("T")[0];
-  }
-
-  // Caso 3: vencimento null/inválido — estima por número da parcela (30 dias cada)
-  if ((v === null || v === undefined) && dataBase && p.numero != null) {
-    const num = Number(p.numero);
-    if (!isNaN(num) && num > 0) {
-      const d = new Date(dataBase.getTime());
-      d.setMonth(d.getMonth() + num);
-      return d.toISOString().split("T")[0];
-    }
-  }
-
-  return null;
-}
+// Lógica simples: 1 parcela a cada 30 dias a partir da data da transação.
+// Não depende da tabela installments nem do campo vencimento.
 
 function calcParcelaStats(t: any, hojeStr: string) {
-  const parcelas: any[] = t.installments ?? [];
-  const nTotal = t.n_parcelas ?? (parcelas.length > 0 ? parcelas.length : 1);
+  const nTotal = Math.max(t.n_parcelas ?? 1, 1);
+  const valorParcela = t.valor_total != null ? t.valor_total / nTotal : 0;
+  const dataStr: string | null = t.data ?? (t.auction as any)?.data ?? null;
 
-  if (parcelas.length === 0) {
-    return { pagas: 0, pendentes: nTotal, atrasadas: 0, valorPago: 0, valorPendente: t.valor_total ?? 0, nTotal, temRegistros: false };
+  if (!dataStr) {
+    // Sem data — não calcula
+    return { pagas: 0, pendentes: nTotal, valorPago: 0, valorPendente: t.valor_total ?? 0, nTotal, temRegistros: false };
   }
 
-  // Data base: prefere data direta da transação, cai no leilão se não tiver
-  const dataBaseSrc: string | null = t.data ?? (t.auction as any)?.data ?? null;
-  const dataBase = dataBaseSrc ? new Date(dataBaseSrc + "T12:00:00") : null;
+  const dataMs  = Date.parse(dataStr + "T12:00:00Z");
+  const hojeMs  = Date.parse(hojeStr  + "T12:00:00Z");
+  const diasDecorridos = (hojeMs - dataMs) / 86_400_000;
 
-  let pagas = 0, valorPago = 0, pendentes = 0, valorPendente = 0, atrasadas = 0;
-  for (const p of parcelas) {
-    const vencStr = resolveVencStr(p, dataBase);
-    // Pago: status explícito OU data de vencimento <= hoje
-    const isPago = p.status === "PAGO" || (vencStr !== null && vencStr <= hojeStr);
-    const isAtrasada = !isPago && vencStr !== null && vencStr < hojeStr;
-    if (isPago) {
-      pagas++;
-      valorPago += p.valor ?? 0;
-    } else {
-      pendentes++;
-      valorPendente += p.valor ?? 0;
-      if (isAtrasada) atrasadas++;
-    }
-  }
-  return { pagas, pendentes, atrasadas, valorPago, valorPendente, nTotal, temRegistros: true };
+  const pagas    = Math.min(Math.max(Math.floor(diasDecorridos / 30), 0), nTotal);
+  const pendentes = nTotal - pagas;
+
+  return {
+    pagas,
+    pendentes,
+    valorPago:      parseFloat((pagas     * valorParcela).toFixed(2)),
+    valorPendente:  parseFloat((pendentes * valorParcela).toFixed(2)),
+    nTotal,
+    temRegistros: true,
+  };
 }
 
 function agregaStats(txList: any[], hojeStr: string) {
   return txList.reduce(
     (acc, t) => {
       const s = calcParcelaStats(t, hojeStr);
-      acc.pagas += s.pagas;
-      acc.pendentes += s.pendentes;
-      acc.atrasadas += s.atrasadas;
-      acc.valorPago += s.valorPago;
-      acc.valorPendente += s.valorPendente;
-      acc.nTotal += s.nTotal;
+      acc.pagas        += s.pagas;
+      acc.pendentes    += s.pendentes;
+      acc.valorPago    += s.valorPago;
+      acc.valorPendente+= s.valorPendente;
+      acc.nTotal       += s.nTotal;
       acc.comRegistros += s.temRegistros ? 1 : 0;
       return acc;
     },
-    { pagas: 0, pendentes: 0, atrasadas: 0, valorPago: 0, valorPendente: 0, nTotal: 0, comRegistros: 0 }
+    { pagas: 0, pendentes: 0, valorPago: 0, valorPendente: 0, nTotal: 0, comRegistros: 0 }
   );
 }
 
@@ -282,14 +246,6 @@ export default async function FinanceiroPage({
 
   // ── Hoje (para cálculo de parcelas pagas) ────────────────────────────────────
   const hojeStr = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD" UTC
-
-  // DEBUG — aparece nos logs da Vercel Function
-  const sampleTx = (transactions ?? []).find((tx: any) => (tx.installments ?? []).length > 0);
-  if (sampleTx) {
-    console.log("[parcelas-debug] hojeStr:", hojeStr);
-    console.log("[parcelas-debug] tx.data:", (sampleTx as any).data);
-    console.log("[parcelas-debug] installments[0]:", JSON.stringify((sampleTx as any).installments?.[0]));
-  }
 
   // Filtra por busca textual
   const txsQ = query
@@ -983,8 +939,8 @@ export default async function FinanceiroPage({
                               const st = calcParcelaStats(t, hojeStr);
                               if (!st.temRegistros) return <span className="text-gray-600 font-medium">{nParcelas}×</span>;
                               const pct = st.nTotal > 0 ? (st.pagas / st.nTotal) * 100 : 0;
-                              const cor = st.pendentes === 0 ? "text-green-600" : st.atrasadas > 0 ? "text-red-500" : "text-amber-600";
-                              const barCor = st.pendentes === 0 ? "bg-green-500" : st.atrasadas > 0 ? "bg-red-400" : "bg-amber-400";
+                              const cor = st.pendentes === 0 ? "text-green-600" : "text-amber-600";
+                              const barCor = st.pendentes === 0 ? "bg-green-500" : "bg-amber-400";
                               return (
                                 <div>
                                   <div className={`text-xs font-semibold ${cor}`}>{st.pagas}/{st.nTotal}</div>
@@ -1280,8 +1236,8 @@ export default async function FinanceiroPage({
                                     const st = calcParcelaStats(t, hojeStr);
                                     if (!st.temRegistros) return <span className="text-gray-600 font-medium">{nParcelas}×</span>;
                                     const pct = st.nTotal > 0 ? (st.pagas / st.nTotal) * 100 : 0;
-                                    const cor = st.pendentes === 0 ? "text-green-600" : st.atrasadas > 0 ? "text-red-500" : "text-amber-600";
-                                    const barCor = st.pendentes === 0 ? "bg-green-500" : st.atrasadas > 0 ? "bg-red-400" : "bg-amber-400";
+                                    const cor = st.pendentes === 0 ? "text-green-600" : "text-amber-600";
+                                    const barCor = st.pendentes === 0 ? "bg-green-500" : "bg-amber-400";
                                     return (
                                       <div>
                                         <div className={`text-xs font-semibold ${cor}`}>{st.pagas}/{st.nTotal}</div>
