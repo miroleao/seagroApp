@@ -217,11 +217,12 @@ export default async function PesagensPage({
           orientacao="landscape"
           nomeArquivo="SE_Pesagens.pdf"
           grupos={[
-            { key: "Doadora",   label: "Doadoras",   padrao: true },
-            { key: "Touro",     label: "Touros",     padrao: true },
-            { key: "Receptora", label: "Receptoras", padrao: true },
-            { key: "Nascido",   label: "Nascidos",   padrao: true },
-            { key: "Descarte",  label: "Descarte",   padrao: false },
+            { key: "Nascido SE", label: "Nascidos SE", padrao: true  },
+            { key: "Doadora",    label: "Doadoras",    padrao: true  },
+            { key: "Touro",      label: "Touros",      padrao: true  },
+            { key: "Receptora",  label: "Receptoras",  padrao: true  },
+            { key: "Nascido",    label: "Nascidos",    padrao: true  },
+            { key: "Descarte",   label: "Descarte",    padrao: false },
           ]}
           campoGrupo="tipo"
           colunas={[
