@@ -263,7 +263,16 @@ export function Sidebar() {
               </button>
             </div>
             <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
-            <div className="px-5 py-4 border-t border-gray-100">
+            <div className="px-5 py-4 border-t border-gray-100 space-y-3">
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="flex items-center gap-2 text-xs text-gray-400 hover:text-red-500 transition-colors w-full"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sair</span>
+                </button>
+              </form>
               <p className="text-xs text-gray-400">v0.1.0 — 2026</p>
             </div>
           </aside>
