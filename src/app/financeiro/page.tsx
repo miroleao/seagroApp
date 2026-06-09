@@ -122,18 +122,33 @@ function calcParcelaStats(t: any, hoje: Date) {
     return { pagas: 0, pendentes: nTotal, atrasadas: 0, valorPago: 0, valorPendente: t.valor_total ?? 0, nTotal, temRegistros: false };
   }
 
+  // Data base da transação — usada quando vencimento está em dias
+  const dataBase = t.data ? new Date(t.data + "T12:00:00") : null;
+
   let pagas = 0, valorPago = 0, pendentes = 0, valorPendente = 0, atrasadas = 0;
   for (const p of parcelas) {
-    const venc = p.vencimento ? new Date(p.vencimento + "T12:00:00") : null;
+    let venc: Date | null = null;
+
+    if (p.vencimento !== null && p.vencimento !== undefined) {
+      const vencNum = Number(p.vencimento);
+      if (!isNaN(vencNum) && dataBase) {
+        // vencimento armazenado em dias a partir da data da transação
+        venc = new Date(dataBase);
+        venc.setDate(venc.getDate() + vencNum);
+      } else if (typeof p.vencimento === "string" && p.vencimento.includes("-")) {
+        // vencimento como data absoluta YYYY-MM-DD
+        venc = new Date(p.vencimento + "T12:00:00");
+      }
+    }
+
     const isPago = p.status === "PAGO" || (venc !== null && venc <= hoje);
-    const isAtrasada = p.status !== "PAGO" && venc !== null && venc < hoje;
     if (isPago) {
       pagas++;
       valorPago += p.valor ?? 0;
     } else {
       pendentes++;
       valorPendente += p.valor ?? 0;
-      if (isAtrasada) atrasadas++;
+      if (venc !== null && venc < hoje) atrasadas++;
     }
   }
   return { pagas, pendentes, atrasadas, valorPago, valorPendente, nTotal, temRegistros: true };
