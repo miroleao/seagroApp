@@ -87,7 +87,7 @@ export default async function PesagensPage({
   const { data: animaisRaw } = await supabase
     .from("animals")
     .select(`
-      id, nome, tipo, rgn, brinco, nascimento,
+      id, nome, tipo, rgn, brinco, nascimento, nascido_se_agro,
       weight_records ( id, data, peso_kg )
     `)
     .eq("farm_id", FARM_ID)
@@ -101,12 +101,25 @@ export default async function PesagensPage({
     rgn?: string | null;
     brinco?: string | null;
     nascimento?: string | null;
+    nascido_se_agro?: boolean | null;
     weight_records: WeightRecord[];
   }>;
 
+  // Helper: considera "Nascido SE" se flag = true OU RGN começa com "SMEF"
+  function isNascidoSE(a: (typeof animais)[number]): boolean {
+    return (
+      a.nascido_se_agro === true ||
+      (a.rgn?.toUpperCase().startsWith("SMEF") ?? false)
+    );
+  }
+
   // Aplica filtros
   const animaisFiltrados = animais.filter((a) => {
-    if (tipoFiltro !== "todos" && a.tipo !== tipoFiltro) return false;
+    if (tipoFiltro === "NASCIDO") {
+      if (!isNascidoSE(a)) return false;
+    } else if (tipoFiltro !== "todos") {
+      if (a.tipo !== tipoFiltro) return false;
+    }
     if (query) {
       return (
         a.nome?.toLowerCase().includes(query) ||
@@ -132,12 +145,17 @@ export default async function PesagensPage({
         ? `/rebanho/${a.id}`
         : null;
 
+    // Badge especial para animais nascidos na SE
+    const nascidoSE = isNascidoSE(a);
+    const badgeTipoLabel = nascidoSE ? "Nascido SE" : tipoLabelFn(a.tipo);
+    const badgeTipoCls   = nascidoSE ? "bg-brand-100 text-brand-700" : tipoBadgeClsFn(a.tipo);
+
     return {
       id:                  a.id,
       nome:                a.nome,
       tipo:                a.tipo,
-      tipoBadgeCls:        tipoBadgeClsFn(a.tipo),
-      tipoLabel:           tipoLabelFn(a.tipo),
+      tipoBadgeCls:        badgeTipoCls,
+      tipoLabel:           badgeTipoLabel,
       rgn:                 a.rgn ?? null,
       brinco:              a.brinco ?? null,
       nascimento:          a.nascimento ?? null,
