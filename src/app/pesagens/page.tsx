@@ -22,19 +22,27 @@ function calcPonderal(
   nascimento?: string | null
 ): number | null {
   const sorted = sortedWeights(records);
+  if (sorted.length === 0) return null;
+
+  const ultimo = sorted[sorted.length - 1];
+
+  if (nascimento) {
+    // Com data de nascimento: peso atual total ÷ dias de vida até a pesagem
+    // Fórmula: peso_kg × 1000 / dias  →  gramas por dia desde o nascimento
+    const baseDate  = new Date(nascimento + "T12:00:00");
+    const finalDate = new Date(ultimo.data + "T12:00:00");
+    const dias = (finalDate.getTime() - baseDate.getTime()) / 86_400_000;
+    if (dias <= 0) return null;
+    return Math.round((ultimo.peso_kg * 1000) / dias);
+  }
+
+  // Sem data de nascimento: precisa de 2+ registros (ganho entre pesagens)
   if (sorted.length < 2) return null;
-
   const primeiro  = sorted[0];
-  const ultimo    = sorted[sorted.length - 1];
-
-  const baseDate  = nascimento
-    ? new Date(nascimento + "T12:00:00")
-    : new Date(primeiro.data + "T12:00:00");
-  const finalDate = new Date(ultimo.data + "T12:00:00");
-
+  const baseDate  = new Date(primeiro.data + "T12:00:00");
+  const finalDate = new Date(ultimo.data   + "T12:00:00");
   const dias = (finalDate.getTime() - baseDate.getTime()) / 86_400_000;
   if (dias <= 0) return null;
-
   return Math.round(((ultimo.peso_kg - primeiro.peso_kg) / dias) * 1000);
 }
 
