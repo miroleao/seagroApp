@@ -119,9 +119,10 @@ export default async function PesagensPage({
 
   // Pré-calcula dados para o componente client
   const rows: PesagemRow[] = animaisFiltrados.map((a) => {
-    const sorted    = sortedWeights(a.weight_records);
+    const records   = a.weight_records ?? [];
+    const sorted    = sortedWeights(records);
     const ultimo    = sorted[sorted.length - 1] ?? null;
-    const ponderal  = calcPonderal(a.weight_records, a.nascimento);
+    const ponderal  = calcPonderal(records, a.nascimento);
     const badge     = classificacaoBadge(ponderal);
 
     const animalHref =
@@ -147,18 +148,18 @@ export default async function PesagensPage({
       ponderal,
       badgeLabel:          badge?.label ?? null,
       badgeCls:            badge?.cls   ?? null,
-      qtdPesagens:         sorted.length,
+      qtdPesagens:         records.length,
       historico:           sorted,
     };
   });
 
   // Cards resumo (sempre do total geral, ignora filtros)
-  const comPesagem = animais.filter(a => a.weight_records.length > 0);
-  const excelentes = comPesagem.filter(a => { const p = calcPonderal(a.weight_records, a.nascimento); return p !== null && p >= 800; });
-  const bons       = comPesagem.filter(a => { const p = calcPonderal(a.weight_records, a.nascimento); return p !== null && p >= 600 && p < 800; });
-  const abaixo     = comPesagem.filter(a => { const p = calcPonderal(a.weight_records, a.nascimento); return p !== null && p < 600; });
+  const comPesagem = animais.filter(a => (a.weight_records ?? []).length > 0);
+  const excelentes = comPesagem.filter(a => { const p = calcPonderal(a.weight_records ?? [], a.nascimento); return p !== null && p >= 800; });
+  const bons       = comPesagem.filter(a => { const p = calcPonderal(a.weight_records ?? [], a.nascimento); return p !== null && p >= 600 && p < 800; });
+  const abaixo     = comPesagem.filter(a => { const p = calcPonderal(a.weight_records ?? [], a.nascimento); return p !== null && p < 600; });
   const semDados   = animais.length - comPesagem.length +
-                     comPesagem.filter(a => calcPonderal(a.weight_records, a.nascimento) === null).length;
+                     comPesagem.filter(a => calcPonderal(a.weight_records ?? [], a.nascimento) === null).length;
 
   // PDF export data
   const dadosPDF = rows.map((r) => ({
@@ -170,7 +171,7 @@ export default async function PesagensPage({
     data_pesagem:  r.ultimaDataFormatada ?? "—",
     ponderal:      r.ponderal !== null ? `${r.ponderal} g/dia` : "—",
     classificacao: r.badgeLabel ?? "—",
-    qtd_pesagens:  `${r.qtdPesagens}`,
+    qtd_pesagens:  r.qtdPesagens > 0 ? `${r.qtdPesagens}` : "—",
   }));
 
   return (
