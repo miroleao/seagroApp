@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 type WeightRecord = { id: string; data: string; peso_kg: number };
@@ -70,10 +70,9 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
             {rows.map((r) => {
               const isOpen = expanded.has(r.id);
               return (
-                <>
+                <Fragment key={r.id}>
                   {/* ── Linha principal ── */}
                   <tr
-                    key={r.id}
                     onClick={() => r.qtdPesagens > 0 && toggle(r.id)}
                     className={`transition-colors ${r.qtdPesagens > 0 ? "cursor-pointer hover:bg-gray-50" : ""} ${isOpen ? "bg-brand-50/30" : ""}`}
                   >
@@ -125,7 +124,7 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
 
                   {/* ── Histórico (expande ao clicar) ── */}
                   {isOpen && r.historico.length > 0 && (
-                    <tr key={`${r.id}-hist`} className="bg-gray-50 border-b border-gray-100">
+                    <tr className="bg-gray-50 border-b border-gray-100">
                       <td colSpan={9} className="px-8 py-3">
                         <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-2">
                           Histórico — {r.nome}
@@ -150,7 +149,7 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>
