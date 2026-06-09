@@ -109,6 +109,53 @@ function totalDe(list: any[]): number {
   return list.reduce((s, t) => s + (t.valor_total ?? 0), 0);
 }
 
+// ── Situação das parcelas (pagas vs pendentes) ────────────────────────────────
+
+// Uma parcela é "paga" se: status === PAGO ou vencimento já passou
+// Uma parcela é "a pagar" se: vencimento é futuro e não está marcada como PAGO
+function calcParcelaStats(t: any, hoje: Date) {
+  const parcelas: any[] = t.installments ?? [];
+  const nTotal = t.n_parcelas ?? (parcelas.length > 0 ? parcelas.length : 1);
+
+  if (parcelas.length === 0) {
+    // Sem registros individuais — não há como calcular; assume tudo pendente
+    return { pagas: 0, pendentes: nTotal, atrasadas: 0, valorPago: 0, valorPendente: t.valor_total ?? 0, nTotal, temRegistros: false };
+  }
+
+  let pagas = 0, valorPago = 0, pendentes = 0, valorPendente = 0, atrasadas = 0;
+  for (const p of parcelas) {
+    const venc = p.vencimento ? new Date(p.vencimento + "T12:00:00") : null;
+    const isPago = p.status === "PAGO" || (venc !== null && venc <= hoje);
+    const isAtrasada = p.status !== "PAGO" && venc !== null && venc < hoje;
+    if (isPago) {
+      pagas++;
+      valorPago += p.valor ?? 0;
+    } else {
+      pendentes++;
+      valorPendente += p.valor ?? 0;
+      if (isAtrasada) atrasadas++;
+    }
+  }
+  return { pagas, pendentes, atrasadas, valorPago, valorPendente, nTotal, temRegistros: true };
+}
+
+function agregaStats(txList: any[], hoje: Date) {
+  return txList.reduce(
+    (acc, t) => {
+      const s = calcParcelaStats(t, hoje);
+      acc.pagas += s.pagas;
+      acc.pendentes += s.pendentes;
+      acc.atrasadas += s.atrasadas;
+      acc.valorPago += s.valorPago;
+      acc.valorPendente += s.valorPendente;
+      acc.nTotal += s.nTotal;
+      acc.comRegistros += s.temRegistros ? 1 : 0;
+      return acc;
+    },
+    { pagas: 0, pendentes: 0, atrasadas: 0, valorPago: 0, valorPendente: 0, nTotal: 0, comRegistros: 0 }
+  );
+}
+
 // ── Aplica filtro de categoria à lista ────────────────────────────────────────
 
 function aplicarFiltro(list: any[], filtro: string): any[] {
@@ -197,6 +244,10 @@ export default async function FinanceiroPage({
 
   const txsAll = transactions ?? [];
 
+  // ── Hoje (para cálculo de parcelas pagas) ────────────────────────────────────
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
   // Filtra por busca textual
   const txsQ = query
     ? txsAll.filter((t) => {
@@ -238,6 +289,10 @@ export default async function FinanceiroPage({
   const totalCompras            = totalDe(comprasAll);
   const totalVendas             = totalDe(vendasAll);
   const saldo                   = totalVendas - totalCompras;
+
+  // ── Situação das parcelas ────────────────────────────────────────────────────
+  const statsParcCompras = agregaStats(comprasAll, hoje);
+  const statsParcVendas  = agregaStats(vendasAll, hoje);
 
   // Valorização do plantel a 100%
   const doadorasPercMap = new Map(
@@ -614,6 +669,101 @@ export default async function FinanceiroPage({
 
       </div>
 
+      {/* ── Situação das Parcelas ────────────────────────────────────────── */}
+      {(statsParcCompras.comRegistros > 0 || statsParcVendas.comRegistros > 0) && (
+        <div className="card overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Situação das Parcelas</h3>
+            <p className="text-[10px] text-gray-400 mt-0.5">Vencimento até hoje = pago · Vencimento futuro = a pagar</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+
+            {/* Compras */}
+            {statsParcCompras.comRegistros > 0 && (() => {
+              const pct = statsParcCompras.nTotal > 0 ? (statsParcCompras.pagas / statsParcCompras.nTotal) * 100 : 0;
+              const quitadas = statsParcCompras.pendentes === 0;
+              return (
+                <div className="px-5 py-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                    <span className="text-xs font-semibold text-gray-600">Compras — saídas</span>
+                    {quitadas && <span className="ml-auto text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">Quitado</span>}
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Já pago</p>
+                      <p className="text-base font-bold text-gray-800 truncate">{formatCurrency(statsParcCompras.valorPago)}</p>
+                      <p className="text-[11px] text-gray-500">{statsParcCompras.pagas} parcela{statsParcCompras.pagas !== 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">A pagar</p>
+                      <p className={`text-base font-bold truncate ${statsParcCompras.pendentes > 0 ? "text-red-600" : "text-gray-300"}`}>
+                        {statsParcCompras.pendentes > 0 ? formatCurrency(statsParcCompras.valorPendente) : "—"}
+                      </p>
+                      <p className="text-[11px] text-gray-500">{statsParcCompras.pendentes} parcela{statsParcCompras.pendentes !== 1 ? "s" : ""}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                      <span>{pct.toFixed(0)}% pago</span>
+                      <span>{statsParcCompras.pagas}/{statsParcCompras.nTotal} parcelas</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-gray-100">
+                      <div
+                        className={`h-2 rounded-full transition-all ${quitadas ? "bg-green-500" : "bg-red-400"}`}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Vendas */}
+            {statsParcVendas.comRegistros > 0 && (() => {
+              const pct = statsParcVendas.nTotal > 0 ? (statsParcVendas.pagas / statsParcVendas.nTotal) * 100 : 0;
+              const quitadas = statsParcVendas.pendentes === 0;
+              return (
+                <div className="px-5 py-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                    <span className="text-xs font-semibold text-gray-600">Vendas — entradas</span>
+                    {quitadas && <span className="ml-auto text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">Quitado</span>}
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Já recebido</p>
+                      <p className="text-base font-bold text-gray-800 truncate">{formatCurrency(statsParcVendas.valorPago)}</p>
+                      <p className="text-[11px] text-gray-500">{statsParcVendas.pagas} parcela{statsParcVendas.pagas !== 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">A receber</p>
+                      <p className={`text-base font-bold truncate ${statsParcVendas.pendentes > 0 ? "text-green-600" : "text-gray-300"}`}>
+                        {statsParcVendas.pendentes > 0 ? formatCurrency(statsParcVendas.valorPendente) : "—"}
+                      </p>
+                      <p className="text-[11px] text-gray-500">{statsParcVendas.pendentes} parcela{statsParcVendas.pendentes !== 1 ? "s" : ""}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                      <span>{pct.toFixed(0)}% recebido</span>
+                      <span>{statsParcVendas.pagas}/{statsParcVendas.nTotal} parcelas</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-gray-100">
+                      <div
+                        className={`h-2 rounded-full transition-all ${quitadas ? "bg-green-500" : "bg-green-400"}`}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+          </div>
+        </div>
+      )}
+
       {/* ── Nova Transação ─────────────────────────────────────────────── */}
       <div className="card overflow-hidden">
         <details>
@@ -721,7 +871,7 @@ export default async function FinanceiroPage({
                       <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Tipo</th>
                       <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Comprador / Vendedor</th>
                       <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Parcela/Mês</th>
-                      <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Nº Parcelas</th>
+                      <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Parcelas</th>
                       <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Valor Total</th>
                       <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">% Total</th>
                       <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Vínculo</th>
@@ -785,8 +935,22 @@ export default async function FinanceiroPage({
                               {valorParcela != null ? formatCurrency(valorParcela) : "—"}
                             </span>
                           </td>
-                          <td className="px-3 py-2.5 text-right text-gray-600 font-medium whitespace-nowrap">
-                            {nParcelas}×
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                            {(() => {
+                              const st = calcParcelaStats(t, hoje);
+                              if (!st.temRegistros) return <span className="text-gray-600 font-medium">{nParcelas}×</span>;
+                              const pct = st.nTotal > 0 ? (st.pagas / st.nTotal) * 100 : 0;
+                              const cor = st.pendentes === 0 ? "text-green-600" : st.atrasadas > 0 ? "text-red-500" : "text-amber-600";
+                              const barCor = st.pendentes === 0 ? "bg-green-500" : st.atrasadas > 0 ? "bg-red-400" : "bg-amber-400";
+                              return (
+                                <div>
+                                  <div className={`text-xs font-semibold ${cor}`}>{st.pagas}/{st.nTotal}</div>
+                                  <div className="mt-0.5 h-1 rounded-full bg-gray-100 w-10 ml-auto">
+                                    <div className={`h-1 rounded-full ${barCor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className={`px-3 py-2.5 text-right whitespace-nowrap`}>
                             <div>
@@ -1021,7 +1185,7 @@ export default async function FinanceiroPage({
                             <th className="px-4 py-2 font-medium text-gray-500">Tipo</th>
                             <th className="px-4 py-2 font-medium text-gray-500">Comprador / Vendedor</th>
                             <th className="px-4 py-2 font-medium text-gray-500 text-right">Parcela/Mês</th>
-                            <th className="px-4 py-2 font-medium text-gray-500 text-right">Parcelas</th>
+                            <th className="px-4 py-2 font-medium text-gray-500 text-right">Parcelas (pagas/total)</th>
                             <th className="px-4 py-2 font-medium text-gray-500 text-right">Valor Total</th>
                             <th className="px-4 py-2 font-medium text-gray-500 text-right">% Total</th>
                             <th className="px-4 py-2 font-medium text-gray-500"></th>
@@ -1068,7 +1232,23 @@ export default async function FinanceiroPage({
                                     {valorParcela != null ? formatCurrency(valorParcela) : "—"}
                                   </span>
                                 </td>
-                                <td className="px-4 py-2.5 text-right text-gray-600 font-medium">{nParcelas}×</td>
+                                <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                                  {(() => {
+                                    const st = calcParcelaStats(t, hoje);
+                                    if (!st.temRegistros) return <span className="text-gray-600 font-medium">{nParcelas}×</span>;
+                                    const pct = st.nTotal > 0 ? (st.pagas / st.nTotal) * 100 : 0;
+                                    const cor = st.pendentes === 0 ? "text-green-600" : st.atrasadas > 0 ? "text-red-500" : "text-amber-600";
+                                    const barCor = st.pendentes === 0 ? "bg-green-500" : st.atrasadas > 0 ? "bg-red-400" : "bg-amber-400";
+                                    return (
+                                      <div>
+                                        <div className={`text-xs font-semibold ${cor}`}>{st.pagas}/{st.nTotal}</div>
+                                        <div className="mt-0.5 h-1 rounded-full bg-gray-100 w-10 ml-auto">
+                                          <div className={`h-1 rounded-full ${barCor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </td>
                                 <td className="px-4 py-2.5 text-right">
                                   <div>
                                     <div className={`font-bold ${isCompra ? "text-red-700" : "text-green-800"}`}>
