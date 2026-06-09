@@ -76,11 +76,10 @@ export default function BotaoEditarTransacao({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:border-violet-300 text-xs font-medium transition-colors"
+        className="p-1.5 rounded-md border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:border-violet-300 transition-colors"
         title="Editar transação"
       >
         <Pencil className="w-3.5 h-3.5" />
-        Editar
       </button>
 
       {open && (

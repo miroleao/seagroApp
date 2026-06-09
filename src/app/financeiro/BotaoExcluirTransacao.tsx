@@ -32,11 +32,10 @@ export default function BotaoExcluirTransacao({ txId, label }: Props) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 text-xs font-medium transition-colors"
+        className="p-1.5 rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-colors"
         title="Excluir transação"
       >
         <Trash2 className="w-3.5 h-3.5" />
-        Excluir
       </button>
 
       {open && (

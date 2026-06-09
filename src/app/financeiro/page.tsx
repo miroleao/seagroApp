@@ -723,8 +723,9 @@ export default async function FinanceiroPage({
                       <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Parcela/Mês</th>
                       <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Nº Parcelas</th>
                       <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Valor Total</th>
+                      <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">% Total</th>
                       <th className="px-3 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Vínculo</th>
-                      <th className="px-3 py-2.5 w-20"></th>
+                      <th className="px-3 py-2.5 w-14"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -801,6 +802,27 @@ export default async function FinanceiroPage({
                               )}
                             </div>
                           </td>
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                            {(() => {
+                              const base = isCompra ? totalCompras : totalVendas;
+                              const val = t.valor_total;
+                              if (!val || base <= 0) return <span className="text-gray-300 text-xs">—</span>;
+                              const pct = (val / base) * 100;
+                              return (
+                                <div>
+                                  <div className={`text-xs font-semibold ${isCompra ? "text-red-600" : "text-green-700"}`}>
+                                    {pct.toFixed(1)}%
+                                  </div>
+                                  <div className="mt-0.5 h-1 rounded-full bg-gray-100 w-10 ml-auto">
+                                    <div
+                                      className={`h-1 rounded-full ${isCompra ? "bg-red-400" : "bg-green-500"}`}
+                                      style={{ width: `${Math.min(pct, 100)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </td>
                           <td className="px-3 py-2.5">
                             <VinculoCell
                               txId={t.id}
@@ -847,7 +869,7 @@ export default async function FinanceiroPage({
                         <td className="px-3 py-2 text-right text-xs font-bold text-red-700">
                           {formatCurrency(totalComprasSel)}
                         </td>
-                        <td colSpan={2}></td>
+                        <td colSpan={3}></td>
                       </tr>
                     )}
                     {totalVendasSel > 0 && (
@@ -862,7 +884,7 @@ export default async function FinanceiroPage({
                         <td className="px-3 py-2 text-right text-xs font-bold text-green-700">
                           {formatCurrency(totalVendasSel)}
                         </td>
-                        <td colSpan={2}></td>
+                        <td colSpan={3}></td>
                       </tr>
                     )}
                     {(() => {
@@ -881,7 +903,7 @@ export default async function FinanceiroPage({
                           <td className={`px-3 py-2.5 text-right text-sm font-bold ${pos ? "text-green-800" : "text-red-800"}`}>
                             {saldoTotal >= 0 ? "+" : ""}{formatCurrency(saldoTotal)}
                           </td>
-                          <td colSpan={2}></td>
+                          <td colSpan={3}></td>
                         </tr>
                       );
                     })()}
@@ -1001,8 +1023,9 @@ export default async function FinanceiroPage({
                             <th className="px-4 py-2 font-medium text-gray-500 text-right">Parcela/Mês</th>
                             <th className="px-4 py-2 font-medium text-gray-500 text-right">Parcelas</th>
                             <th className="px-4 py-2 font-medium text-gray-500 text-right">Valor Total</th>
+                            <th className="px-4 py-2 font-medium text-gray-500 text-right">% Total</th>
                             <th className="px-4 py-2 font-medium text-gray-500"></th>
-                            <th className="px-4 py-2 w-16"></th>
+                            <th className="px-4 py-2 w-14"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -1056,6 +1079,27 @@ export default async function FinanceiroPage({
                                     )}
                                   </div>
                                 </td>
+                                <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                                  {(() => {
+                                    const base = isCompra ? totalCompras : totalVendas;
+                                    const val = t.valor_total;
+                                    if (!val || base <= 0) return <span className="text-gray-300 text-xs">—</span>;
+                                    const pct = (val / base) * 100;
+                                    return (
+                                      <div>
+                                        <div className={`text-xs font-semibold ${isCompra ? "text-red-600" : "text-green-700"}`}>
+                                          {pct.toFixed(1)}%
+                                        </div>
+                                        <div className="mt-0.5 h-1 rounded-full bg-gray-100 w-10 ml-auto">
+                                          <div
+                                            className={`h-1 rounded-full ${isCompra ? "bg-red-400" : "bg-green-500"}`}
+                                            style={{ width: `${Math.min(pct, 100)}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </td>
                                 <td className="px-4 py-2.5 text-right">
                                   <VinculoCell txId={t.id} animais={animaisDaTx(t)} doadoras={animaisVincularLista} />
                                 </td>
@@ -1106,7 +1150,7 @@ export default async function FinanceiroPage({
                                   <td className="px-4 py-1.5 text-right text-[11px] font-bold text-red-600">{formatCurrency(parcC)}</td>
                                   <td className="px-4 py-1.5"></td>
                                   <td className="px-4 py-1.5 text-right text-[11px] font-bold text-red-700">{formatCurrency(totalLC)}</td>
-                                  <td colSpan={2}></td>
+                                  <td colSpan={3}></td>
                                 </tr>
                               )}
                               {totalLV > 0 && (
@@ -1115,7 +1159,7 @@ export default async function FinanceiroPage({
                                   <td className="px-4 py-1.5 text-right text-[11px] font-bold text-green-600">{formatCurrency(parcV)}</td>
                                   <td className="px-4 py-1.5"></td>
                                   <td className="px-4 py-1.5 text-right text-[11px] font-bold text-green-700">{formatCurrency(totalLV)}</td>
-                                  <td colSpan={2}></td>
+                                  <td colSpan={3}></td>
                                 </tr>
                               )}
                               {totalLC > 0 && totalLV > 0 && (
@@ -1128,7 +1172,7 @@ export default async function FinanceiroPage({
                                   <td className={`px-4 py-2 text-right text-sm font-bold ${pos ? "text-green-800" : "text-red-800"}`}>
                                     {saldoTotal >= 0 ? "+" : ""}{formatCurrency(saldoTotal)}
                                   </td>
-                                  <td colSpan={2}></td>
+                                  <td colSpan={3}></td>
                                 </tr>
                               )}
                             </>);

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
 
 export const metadata: Metadata = {
   title: "SE Agro Elite — Gestão Nelore",
@@ -15,16 +15,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          {/*
-            pt-14 = espaço para a barra fixa no mobile (h-14)
-            md:pt-0 = no desktop, sem padding (sidebar fica à esquerda)
-          */}
-          <main className="flex-1 overflow-auto pt-12 pb-16 md:pt-0 md:pb-0 min-w-0">
-            {children}
-          </main>
-        </div>
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );
