@@ -406,12 +406,26 @@ export default async function LeioesPage() {
                         {/* Resultado esperado */}
                         <td className="px-4 py-3 text-right">
                           {d.lucro_parcela != null
-                            ? <div className={`flex items-center justify-end gap-1 font-bold ${lucroPos ? "text-green-600" : lucroNeg ? "text-red-500" : "text-gray-500"}`}>
-                                {lucroPos ? <ArrowUpRight className="w-3.5 h-3.5" />
-                                  : lucroNeg ? <ArrowDownRight className="w-3.5 h-3.5" />
-                                  : <Minus className="w-3.5 h-3.5" />}
-                                {lucroPos ? "+" : ""}{formatCurrency(d.lucro_parcela)}<span className="text-[9px] font-normal text-gray-400">/mês</span>
-                              </div>
+                            ? (() => {
+                                const perc = d.compra_valor_parcela
+                                  ? (d.lucro_parcela / d.compra_valor_parcela) * 100
+                                  : null;
+                                return (
+                                  <div className={`flex flex-col items-end gap-0.5 font-bold ${lucroPos ? "text-green-600" : lucroNeg ? "text-red-500" : "text-gray-500"}`}>
+                                    <div className="flex items-center gap-1">
+                                      {lucroPos ? <ArrowUpRight className="w-3.5 h-3.5" />
+                                        : lucroNeg ? <ArrowDownRight className="w-3.5 h-3.5" />
+                                        : <Minus className="w-3.5 h-3.5" />}
+                                      {lucroPos ? "+" : ""}{formatCurrency(d.lucro_parcela)}<span className="text-[9px] font-normal text-gray-400">/mês</span>
+                                    </div>
+                                    {perc != null && (
+                                      <span className="text-[10px] font-semibold opacity-75">
+                                        {perc >= 0 ? "+" : ""}{perc.toFixed(0)}%
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()
                             : <span className="text-gray-300">—</span>}
                         </td>
                       </tr>
