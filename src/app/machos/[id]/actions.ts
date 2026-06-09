@@ -84,22 +84,35 @@ export async function salvarInfoLeilaoMacho(formData: FormData) {
   };
 
   // Verifica se já existe linha para este animal
-  const { data: existing } = await supabase
+  const { data: existing, error: selectErr } = await supabase
     .from("animal_leilao_info")
     .select("id")
     .eq("animal_id", animal_id)
     .eq("farm_id", FARM_ID)
     .maybeSingle();
 
+  if (selectErr) {
+    console.error("[salvarInfoLeilaoMacho] SELECT error:", selectErr);
+    throw new Error(`Erro ao buscar info de leilão: ${selectErr.message}`);
+  }
+
   if (existing?.id) {
-    await supabase
+    const { error: updateErr } = await supabase
       .from("animal_leilao_info")
       .update(payload)
       .eq("id", existing.id);
+    if (updateErr) {
+      console.error("[salvarInfoLeilaoMacho] UPDATE error:", updateErr);
+      throw new Error(`Erro ao atualizar info de leilão: ${updateErr.message}`);
+    }
   } else {
-    await supabase
+    const { error: insertErr } = await supabase
       .from("animal_leilao_info")
       .insert({ ...payload, animal_id, farm_id: FARM_ID });
+    if (insertErr) {
+      console.error("[salvarInfoLeilaoMacho] INSERT error:", insertErr);
+      throw new Error(`Erro ao inserir info de leilão: ${insertErr.message}`);
+    }
   }
 
   revalidatePath(`/machos/${animal_id}`);
