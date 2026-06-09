@@ -838,6 +838,10 @@ export default async function FinanceiroPage({
           const totalComprasSel = txsOrdenadas.filter(t => t.tipo === "COMPRA").reduce((s, t: any) => s + (t.valor_total ?? 0), 0);
           const totalVendasSel  = txsOrdenadas.filter(t => t.tipo === "VENDA").reduce((s, t: any) => s + (t.valor_total ?? 0), 0);
 
+          // Agregado de parcelas pagas/pendentes para o tfoot
+          const statsParcelasComprasSel = agregaStats(txsOrdenadas.filter(t => t.tipo === "COMPRA"), hojeStr);
+          const statsParcelasVendasSel  = agregaStats(txsOrdenadas.filter(t => t.tipo === "VENDA"),  hojeStr);
+
           return (
             <div className="card overflow-hidden">
               {/* Barra de totais da seleção */}
@@ -1028,7 +1032,10 @@ export default async function FinanceiroPage({
                         <td className="px-3 py-2 text-right text-xs font-bold text-red-600">
                           {formatCurrency(totalParcelaComprasSel)}
                         </td>
-                        <td className="px-3 py-2"></td>
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          <div className="text-xs font-bold text-red-700">{statsParcelasComprasSel.pagas}/{statsParcelasComprasSel.nTotal}</div>
+                          <div className="text-[10px] text-red-500 font-normal">{statsParcelasComprasSel.pendentes} a pagar</div>
+                        </td>
                         <td className="px-3 py-2 text-right text-xs font-bold text-red-700">
                           {formatCurrency(totalComprasSel)}
                         </td>
@@ -1043,7 +1050,10 @@ export default async function FinanceiroPage({
                         <td className="px-3 py-2 text-right text-xs font-bold text-green-600">
                           {formatCurrency(totalParcelaVendasSel)}
                         </td>
-                        <td className="px-3 py-2"></td>
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          <div className="text-xs font-bold text-green-700">{statsParcelasVendasSel.pagas}/{statsParcelasVendasSel.nTotal}</div>
+                          <div className="text-[10px] text-green-600 font-normal">{statsParcelasVendasSel.pendentes} a receber</div>
+                        </td>
                         <td className="px-3 py-2 text-right text-xs font-bold text-green-700">
                           {formatCurrency(totalVendasSel)}
                         </td>
@@ -1053,6 +1063,9 @@ export default async function FinanceiroPage({
                     {(() => {
                       const saldoParcela = totalParcelaVendasSel - totalParcelaComprasSel;
                       const saldoTotal   = totalVendasSel - totalComprasSel;
+                      const totalPagas   = statsParcelasComprasSel.pagas + statsParcelasVendasSel.pagas;
+                      const totalNTotal  = statsParcelasComprasSel.nTotal + statsParcelasVendasSel.nTotal;
+                      const totalPend    = statsParcelasComprasSel.pendentes + statsParcelasVendasSel.pendentes;
                       const pos = saldoTotal >= 0;
                       return (
                         <tr className={`border-t-2 ${pos ? "bg-green-100 border-green-300" : "bg-red-100 border-red-300"}`}>
@@ -1062,7 +1075,14 @@ export default async function FinanceiroPage({
                           <td className={`px-3 py-2.5 text-right text-sm font-bold ${pos ? "text-green-700" : "text-red-700"}`}>
                             {saldoParcela >= 0 ? "+" : ""}{formatCurrency(saldoParcela)}
                           </td>
-                          <td className="px-3 py-2.5"></td>
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                            {totalNTotal > 0 && (
+                              <>
+                                <div className={`text-xs font-bold ${pos ? "text-green-800" : "text-red-800"}`}>{totalPagas}/{totalNTotal}</div>
+                                <div className="text-[10px] text-gray-500 font-normal">{totalPend} pendentes</div>
+                              </>
+                            )}
+                          </td>
                           <td className={`px-3 py-2.5 text-right text-sm font-bold ${pos ? "text-green-800" : "text-red-800"}`}>
                             {saldoTotal >= 0 ? "+" : ""}{formatCurrency(saldoTotal)}
                           </td>
@@ -1319,6 +1339,8 @@ export default async function FinanceiroPage({
                               const n = t.n_parcelas ?? (p.length > 0 ? p.length : 1);
                               return s + (p[0]?.valor ?? (t.valor_total != null ? t.valor_total / n : 0));
                             }, 0);
+                            const stC = agregaStats(l.compras, hojeStr);
+                            const stV = agregaStats(l.vendas,  hojeStr);
                             const saldoParcela = parcV - parcC;
                             const saldoTotal   = totalLV - totalLC;
                             const pos = saldoTotal >= 0;
@@ -1327,7 +1349,10 @@ export default async function FinanceiroPage({
                                 <tr className="bg-red-50 border-t border-red-100">
                                   <td colSpan={3} className="px-4 py-1.5 text-[11px] font-bold text-red-700">↓ Compras · {l.compras.length}</td>
                                   <td className="px-4 py-1.5 text-right text-[11px] font-bold text-red-600">{formatCurrency(parcC)}</td>
-                                  <td className="px-4 py-1.5"></td>
+                                  <td className="px-4 py-1.5 text-right whitespace-nowrap">
+                                    <div className="text-[11px] font-bold text-red-700">{stC.pagas}/{stC.nTotal}</div>
+                                    <div className="text-[10px] text-red-500">{stC.pendentes} a pagar</div>
+                                  </td>
                                   <td className="px-4 py-1.5 text-right text-[11px] font-bold text-red-700">{formatCurrency(totalLC)}</td>
                                   <td colSpan={3}></td>
                                 </tr>
@@ -1336,18 +1361,32 @@ export default async function FinanceiroPage({
                                 <tr className="bg-green-50 border-t border-green-100">
                                   <td colSpan={3} className="px-4 py-1.5 text-[11px] font-bold text-green-700">↑ Vendas · {l.vendas.length}</td>
                                   <td className="px-4 py-1.5 text-right text-[11px] font-bold text-green-600">{formatCurrency(parcV)}</td>
-                                  <td className="px-4 py-1.5"></td>
+                                  <td className="px-4 py-1.5 text-right whitespace-nowrap">
+                                    <div className="text-[11px] font-bold text-green-700">{stV.pagas}/{stV.nTotal}</div>
+                                    <div className="text-[10px] text-green-600">{stV.pendentes} a receber</div>
+                                  </td>
                                   <td className="px-4 py-1.5 text-right text-[11px] font-bold text-green-700">{formatCurrency(totalLV)}</td>
                                   <td colSpan={3}></td>
                                 </tr>
                               )}
-                              {totalLC > 0 && totalLV > 0 && (
+                              {(totalLC > 0 || totalLV > 0) && (
                                 <tr className={`border-t-2 ${pos ? "bg-green-100 border-green-300" : "bg-red-100 border-red-300"}`}>
                                   <td colSpan={3} className={`px-4 py-2 text-[11px] font-bold ${pos ? "text-green-800" : "text-red-800"}`}>⚖ Saldo</td>
                                   <td className={`px-4 py-2 text-right text-xs font-bold ${pos ? "text-green-700" : "text-red-700"}`}>
                                     {saldoParcela >= 0 ? "+" : ""}{formatCurrency(saldoParcela)}
                                   </td>
-                                  <td className="px-4 py-2"></td>
+                                  <td className="px-4 py-2 text-right whitespace-nowrap">
+                                    {(stC.nTotal + stV.nTotal) > 0 && (
+                                      <>
+                                        <div className={`text-[11px] font-bold ${pos ? "text-green-800" : "text-red-800"}`}>
+                                          {stC.pagas + stV.pagas}/{stC.nTotal + stV.nTotal}
+                                        </div>
+                                        <div className="text-[10px] text-gray-500">
+                                          {stC.pendentes + stV.pendentes} pendentes
+                                        </div>
+                                      </>
+                                    )}
+                                  </td>
                                   <td className={`px-4 py-2 text-right text-sm font-bold ${pos ? "text-green-800" : "text-red-800"}`}>
                                     {saldoTotal >= 0 ? "+" : ""}{formatCurrency(saldoTotal)}
                                   </td>
