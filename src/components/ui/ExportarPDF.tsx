@@ -33,7 +33,6 @@ export interface ExportarPDFProps {
 
 // ─── Paleta SE ────────────────────────────────────────────────────────────────
 
-// Verde pastel suave — substitui o verde duro anterior (#166534)
 const VERDE_R = 80;
 const VERDE_G = 160;
 const VERDE_B = 115;
@@ -41,6 +40,24 @@ const VERDE_B = 115;
 const VERDE_CLARO_R = 237;
 const VERDE_CLARO_G = 248;
 const VERDE_CLARO_B = 243;
+
+// ─── Helper: carrega imagem como data URL ─────────────────────────────────────
+
+async function fetchImgDataUrl(url: string): Promise<string | null> {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 // ─── Labels de status ─────────────────────────────────────────────────────────
 
@@ -102,10 +119,10 @@ export function ExportarPDF({
     });
   }, []);
 
-  const selecionarTodas    = () => setSelecionadas(new Set(colunas.map((c) => c.key)));
-  const limparSelecao      = () => { const p = colunas[0]?.key; if (p) setSelecionadas(new Set([p])); };
+  const selecionarTodas       = () => setSelecionadas(new Set(colunas.map((c) => c.key)));
+  const limparSelecao         = () => { const p = colunas[0]?.key; if (p) setSelecionadas(new Set([p])); };
   const selecionarTodosGrupos = () => setGruposSel(new Set((grupos ?? []).map((g) => g.key)));
-  const limparGrupos       = () => setGruposSel(new Set());
+  const limparGrupos          = () => setGruposSel(new Set());
 
   const dadosFiltrados =
     grupos && grupos.length > 0
@@ -115,54 +132,65 @@ export function ExportarPDF({
         })
       : dados;
 
-  const gerarPDF = useCallback(() => {
+  // Aspect ratio real: 3508 × 2481
+  const LOGO_RATIO = 3508 / 2481; // ≈ 1.414
+
+  const gerarPDF = useCallback(async () => {
     const colsSel = colunas.filter((c) => selecionadas.has(c.key));
     if (colsSel.length === 0 || dadosFiltrados.length === 0) return;
 
-    const doc = new jsPDF({ orientation: orientacao, unit: "mm", format: "a4" });
+    // Carrega logos em paralelo
+    const [logoEscura, logoBranca] = await Promise.all([
+      fetchImgDataUrl("/logo-se.png"),
+      fetchImgDataUrl("/logo-se-white.png"),
+    ]);
 
+    const doc    = new jsPDF({ orientation: orientacao, unit: "mm", format: "a4" });
     const pageW  = doc.internal.pageSize.getWidth();
     const pageH  = doc.internal.pageSize.getHeight();
-    const mH     = 14;   // margem horizontal
+    const mH     = 14;
     const mBottom = 14;
     const tableW = pageW - mH * 2;
 
-    // ── Helper: desenha logo "SE" ────────────────────────────────────────────
-    function logoSE(x: number, y: number, sz: number, invertido = false) {
-      if (invertido) {
-        // Fundo verde, texto branco (para o rodapé final)
-        doc.setFillColor(VERDE_R, VERDE_G, VERDE_B);
-        doc.roundedRect(x, y, sz, sz, 2, 2, "F");
-        doc.setTextColor(255, 255, 255);
-      } else {
-        // Fundo branco, texto verde (para o cabeçalho sobre o fundo verde)
+    // ── Helper fallback: logo "SE" desenhado manualmente ─────────────────────
+    function logoSEFallback(x: number, y: number, sz: number, branco: boolean) {
+      if (branco) {
         doc.setFillColor(255, 255, 255);
         doc.roundedRect(x, y, sz, sz, 1.5, 1.5, "F");
         doc.setTextColor(VERDE_R, VERDE_G, VERDE_B);
+      } else {
+        doc.setFillColor(VERDE_R, VERDE_G, VERDE_B);
+        doc.roundedRect(x, y, sz, sz, 2, 2, "F");
+        doc.setTextColor(255, 255, 255);
       }
       doc.setFontSize(sz * 0.54);
       doc.setFont("helvetica", "bold");
       doc.text("SE", x + sz / 2, y + sz * 0.68, { align: "center" });
     }
 
-    // ── Cabeçalho (todas as páginas via didDrawPage) ──────────────────────────
-    // Desenhado na primeira página antes da tabela; reproduzido via didDrawPage
+    // ── Cabeçalho ─────────────────────────────────────────────────────────────
     function drawHeader() {
       doc.setFillColor(VERDE_R, VERDE_G, VERDE_B);
       doc.rect(0, 0, pageW, 18, "F");
 
-      // Logo branco no canto esquerdo
-      logoSE(mH, 3, 12, false);
+      // Logo branca no canto esquerdo da faixa verde
+      const lhH = 12;                         // altura da logo no header
+      const lhW = lhH * LOGO_RATIO;           // ≈ 17 mm
+      if (logoBranca) {
+        doc.addImage(logoBranca, "PNG", mH, 3, lhW, lhH, "logo-white", "FAST");
+      } else {
+        logoSEFallback(mH, 3, 12, true);
+      }
 
-      // Textos brancos
+      const txX = mH + lhW + 3;
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
-      doc.text("SE Agropecuária Nelore de Elite", mH + 14, 7.5);
+      doc.text("SE Agropecuária Nelore de Elite", txX, 7.5);
 
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      doc.text(titulo, mH + 14, 13.5);
+      doc.text(titulo, txX, 13.5);
 
       const agora   = new Date();
       const dataStr = agora.toLocaleDateString("pt-BR");
@@ -173,7 +201,6 @@ export function ExportarPDF({
 
     drawHeader();
 
-    // Subtítulo
     let startY = 14 + 12;
     if (subtitulo) {
       doc.setTextColor(80, 80, 80);
@@ -215,19 +242,12 @@ export function ExportarPDF({
         fontSize: 8,
         halign: "left",
       },
-      alternateRowStyles: {
-        fillColor: [VERDE_CLARO_R, VERDE_CLARO_G, VERDE_CLARO_B],
-      },
-      bodyStyles: {
-        fillColor: [255, 255, 255],
-      },
-      didDrawPage: (data) => {
-        // Reproduz cabeçalho em páginas 2+
+      alternateRowStyles: { fillColor: [VERDE_CLARO_R, VERDE_CLARO_G, VERDE_CLARO_B] },
+      bodyStyles:         { fillColor: [255, 255, 255] },
+      didDrawPage: () => {
         if ((doc as any).internal.getCurrentPageInfo().pageNumber > 1) {
           drawHeader();
         }
-
-        // Rodapé com número de página
         const pageCount = (doc as any).internal.getNumberOfPages();
         const pageNum   = (doc as any).internal.getCurrentPageInfo().pageNumber;
         doc.setFontSize(7);
@@ -240,49 +260,48 @@ export function ExportarPDF({
       },
     });
 
-    // ── Rodapé final: logo SE + "Criando tradição" ───────────────────────────
-    const finalY = ((doc as any).lastAutoTable?.finalY ?? startY) as number;
-    const spaceNeeded = 36;
+    // ── Rodapé final ─────────────────────────────────────────────────────────
+    const finalY     = ((doc as any).lastAutoTable?.finalY ?? startY) as number;
+    const lfH        = 20;                   // altura da logo no rodapé
+    const lfW        = lfH * LOGO_RATIO;     // ≈ 28.3 mm
+    const spaceNeeded = lfH + 14;
 
     let footerY: number;
     if (finalY + spaceNeeded > pageH - 16) {
       doc.addPage();
       drawHeader();
-      footerY = 30;
+      footerY = 32;
     } else {
       footerY = finalY + 12;
     }
 
-    // Linha separadora antes do rodapé
+    // Linha separadora
     doc.setDrawColor(200, 210, 205);
     doc.setLineWidth(0.3);
     doc.line(pageW / 2 - 25, footerY, pageW / 2 + 25, footerY);
-    footerY += 6;
+    footerY += 5;
 
-    // Logo "SE" em preto — sem caixa colorida
-    doc.setTextColor(30, 30, 30);
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("SE", pageW / 2, footerY + 9, { align: "center" });
+    // Logo original (escura) centralizada
+    if (logoEscura) {
+      doc.addImage(logoEscura, "PNG", pageW / 2 - lfW / 2, footerY, lfW, lfH, "logo-dark", "FAST");
+    } else {
+      logoSEFallback(pageW / 2 - 7, footerY, 14, false);
+      lfH; // keep reference
+    }
 
-    // Nome da fazenda
-    doc.setTextColor(60, 60, 60);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.text("Agropecuária Nelore de Elite", pageW / 2, footerY + 16, { align: "center" });
-
-    // Slogan
+    // "Criando tradição"
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(160, 160, 160);
-    doc.text("Criando tradição", pageW / 2, footerY + 22, { align: "center" });
+    doc.text("Criando tradição", pageW / 2, footerY + lfH + 5, { align: "center" });
 
-    // ── Salva ────────────────────────────────────────────────────────────────
+    // ── Salva ─────────────────────────────────────────────────────────────────
     const agora   = new Date();
     const dataStr = agora.toLocaleDateString("pt-BR");
     const arquivo = nomeArquivo ?? `${titulo.replace(/\s+/g, "_")}_${dataStr.replace(/\//g, "-")}.pdf`;
     doc.save(arquivo);
     setAberto(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colunas, dadosFiltrados, orientacao, selecionadas, titulo, subtitulo, nomeArquivo]);
 
   return (
@@ -302,7 +321,6 @@ export function ExportarPDF({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
-            {/* Header do modal */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-gray-900 text-base">Exportar PDF</h3>
@@ -313,9 +331,7 @@ export function ExportarPDF({
               </button>
             </div>
 
-            {/* Corpo */}
             <div className="px-6 py-4">
-              {/* Grupos */}
               {grupos && grupos.length > 0 && (
                 <div className="mb-5">
                   <div className="flex items-center justify-between mb-3">
@@ -353,7 +369,6 @@ export function ExportarPDF({
                 </div>
               )}
 
-              {/* Colunas */}
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Selecione as colunas ({selecionadas.size}/{colunas.length})
@@ -391,7 +406,6 @@ export function ExportarPDF({
               </p>
             </div>
 
-            {/* Rodapé do modal */}
             <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
               <button
                 onClick={() => setAberto(false)}
