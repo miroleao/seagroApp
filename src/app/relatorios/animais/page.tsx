@@ -30,20 +30,27 @@ function calcPonderal(
   records: WeightRecord[],
   nascimento: string | null | undefined
 ): number | null {
-  if (!nascimento || records.length === 0) return null;
   const sorted = sortedWeights(records);
+  if (sorted.length === 0) return null;
   const ultimo = sorted[sorted.length - 1];
-  const nascDate = new Date(nascimento + "T12:00:00");
-  const pesDate  = new Date(ultimo.data + "T12:00:00");
-  const dias = Math.round((pesDate.getTime() - nascDate.getTime()) / 86400000);
+
+  if (nascimento) {
+    // Com nascimento: peso_kg × 1000 ÷ dias de vida até a pesagem
+    const baseDate  = new Date(nascimento + "T12:00:00");
+    const finalDate = new Date(ultimo.data + "T12:00:00");
+    const dias = (finalDate.getTime() - baseDate.getTime()) / 86_400_000;
+    if (dias <= 0) return null;
+    return Math.round((ultimo.peso_kg * 1000) / dias);
+  }
+
+  // Sem nascimento: precisa de 2+ registros
+  if (sorted.length < 2) return null;
+  const primeiro  = sorted[0];
+  const baseDate  = new Date(primeiro.data + "T12:00:00");
+  const finalDate = new Date(ultimo.data   + "T12:00:00");
+  const dias = (finalDate.getTime() - baseDate.getTime()) / 86_400_000;
   if (dias <= 0) return null;
-  // g/dia = (peso_atual - peso_nascimento) / dias * 1000
-  // Sem peso_nascimento, usa o primeiro registro como referência
-  const primeiro = sorted[0];
-  const ganho    = ultimo.peso_kg - primeiro.peso_kg;
-  const diasGanho = Math.round((pesDate.getTime() - new Date(primeiro.data + "T12:00:00").getTime()) / 86400000);
-  if (diasGanho <= 0) return null;
-  return Math.round((ganho / diasGanho) * 1000);
+  return Math.round(((ultimo.peso_kg - primeiro.peso_kg) / dias) * 1000);
 }
 
 function classificacao(ponderal: number | null): string {
