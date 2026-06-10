@@ -64,10 +64,7 @@ export default async function MachosPage({
 
   const { data: machos } = await supabase
     .from("animals")
-    .select(
-      "id, nome, rgn, rgd, nascimento, pai_nome, mae_nome, avo_materna, localizacao, " +
-      "percentual_proprio, valor_parcela, exame_andrologico, circunferencia_escrotal, data_ce, para_pista, para_leilao, nascido_se_agro, status_rebanho"
-    )
+    .select("id, nome, rgn, rgd, nascimento, pai_nome, mae_nome, avo_materna, localizacao, percentual_proprio, valor_parcela, exame_andrologico, circunferencia_escrotal, data_ce, para_pista, para_leilao, nascido_se_agro, status_rebanho")
     .eq("farm_id", FARM_ID)
     .eq("tipo", "TOURO")
     .order("nome", { ascending: true });
