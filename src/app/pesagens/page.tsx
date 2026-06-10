@@ -188,15 +188,17 @@ export default async function PesagensPage({
                      comPesagem.filter(a => calcPonderal(a.weight_records ?? [], a.nascimento) === null).length;
 
   // PDF export data — sempre de TODOS os animais, ignorando o filtro ativo da UI
+  // Animais nascidos na SE (flag ou SMEF) formam grupo próprio "Nascido SE"
   const dadosPDF = animais.map((a) => {
     const records = a.weight_records ?? [];
     const sorted  = sortedWeights(records);
     const ultimo  = sorted[sorted.length - 1] ?? null;
     const pond    = calcPonderal(records, a.nascimento);
     const badge   = classificacaoBadge(pond);
+    const grupoTipo = isNascidoSE(a) ? "Nascido SE" : tipoLabelFn(a.tipo);
     return {
       nome:          a.nome ?? "—",
-      tipo:          tipoLabelFn(a.tipo),
+      tipo:          grupoTipo,
       rgn:           a.rgn ?? a.brinco ?? "—",
       nascimento:    a.nascimento ? fmtDate(a.nascimento) : "—",
       peso_atual:    ultimo?.peso_kg != null ? `${ultimo.peso_kg.toFixed(1)} kg` : "—",
@@ -224,11 +226,11 @@ export default async function PesagensPage({
           orientacao="landscape"
           nomeArquivo="SE_Pesagens.pdf"
           grupos={[
-            { key: "Doadora",    label: "Doadoras",    padrao: true  },
-            { key: "Touro",      label: "Touros",      padrao: true  },
-            { key: "Receptora",  label: "Receptoras",  padrao: true  },
-            { key: "Nascido",    label: "Nascidos",    padrao: true  },
-            { key: "Descarte",   label: "Descarte",    padrao: false },
+            { key: "Nascido SE", label: "Nascidos SE",  padrao: true  },
+            { key: "Doadora",    label: "Doadoras",     padrao: true  },
+            { key: "Touro",      label: "Touros",       padrao: true  },
+            { key: "Receptora",  label: "Receptoras",   padrao: true  },
+            { key: "Descarte",   label: "Descarte",     padrao: false },
           ]}
           campoGrupo="tipo"
           colunas={[
