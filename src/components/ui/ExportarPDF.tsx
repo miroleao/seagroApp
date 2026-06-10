@@ -10,14 +10,14 @@ import autoTable from "jspdf-autotable";
 export interface ColunaPDF {
   key: string;
   label: string;
-  padrao?: boolean; // true = marcada por padrão
-  largura?: number; // largura relativa (pontos jsPDF)
+  padrao?: boolean;
+  largura?: number;
 }
 
 export interface GrupoPDF {
-  key: string;       // valor que aparece em row[campoGrupo]
-  label: string;     // rótulo exibido no seletor
-  padrao?: boolean;  // true = marcado por padrão (default: true)
+  key: string;
+  label: string;
+  padrao?: boolean;
 }
 
 export interface ExportarPDFProps {
@@ -27,47 +27,33 @@ export interface ExportarPDFProps {
   dados: Record<string, unknown>[];
   orientacao?: "portrait" | "landscape";
   nomeArquivo?: string;
-  /** Se informado, exibe um seletor para filtrar `dados` por grupo. */
   grupos?: GrupoPDF[];
-  /** Nome do campo em `dados` que indica o grupo. Default: "grupo". */
   campoGrupo?: string;
 }
+
+// ─── Paleta SE ────────────────────────────────────────────────────────────────
+
+// Verde pastel suave — substitui o verde duro anterior (#166534)
+const VERDE_R = 80;
+const VERDE_G = 160;
+const VERDE_B = 115;
+
+const VERDE_CLARO_R = 237;
+const VERDE_CLARO_G = 248;
+const VERDE_CLARO_B = 243;
 
 // ─── Labels de status ─────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
-  // Doadoras
-  COLETANDO: "Coletando",
-  INSEMINADA: "Inseminada",
-  GESTANTE: "Prenha",
-  PARIDA: "Parida",
-  ABORTOU: "Abortou",
-  VAZIA: "Vazia",
-  SECA: "Seca",
-  DESCARTADA: "Descartada",
-  VENDIDA: "Vendida",
-  // Rebanho
-  PROTOCOLADA: "Protocolada",
-  IMPLANTADA: "Implantada c/ Embrião",
-  PRENHA: "Prenha",
-  PRENHA_EMBRIAO: "Prenha de Embrião",
-  MORTA: "Óbito",
-  DESCARTE: "Descarte",
-  // Machos
-  APTO: "Apto",
-  INAPTO: "Inapto",
-  PENDENTE: "Pendente",
-  // Embriões
-  DISPONIVEL: "Disponível",
-  IMPLANTADO: "Implantado",
-  DESCARTADO: "Descartado",
-  NAO_SEXADO: "Não Sexado",
-  MACHO: "Macho",
-  FEMEA: "Fêmea",
-  // Classificação
-  RECEPTORA: "Receptora",
-  RECRIA: "Recria",
-  OUTRO: "Outro",
+  COLETANDO: "Coletando", INSEMINADA: "Inseminada", GESTANTE: "Prenha",
+  PARIDA: "Parida", ABORTOU: "Abortou", VAZIA: "Vazia", SECA: "Seca",
+  DESCARTADA: "Descartada", VENDIDA: "Vendida", PROTOCOLADA: "Protocolada",
+  IMPLANTADA: "Implantada c/ Embrião", PRENHA: "Prenha",
+  PRENHA_EMBRIAO: "Prenha de Embrião", MORTA: "Óbito", DESCARTE: "Descarte",
+  APTO: "Apto", INAPTO: "Inapto", PENDENTE: "Pendente",
+  DISPONIVEL: "Disponível", IMPLANTADO: "Implantado", DESCARTADO: "Descartado",
+  NAO_SEXADO: "Não Sexado", MACHO: "Macho", FEMEA: "Fêmea",
+  RECEPTORA: "Receptora", RECRIA: "Recria", OUTRO: "Outro",
 };
 
 function formatarCelula(valor: unknown): string {
@@ -101,11 +87,8 @@ export function ExportarPDF({
   const toggleColuna = useCallback((key: string) => {
     setSelecionadas((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        if (next.size > 1) next.delete(key); // sempre manter ao menos 1
-      } else {
-        next.add(key);
-      }
+      if (next.has(key)) { if (next.size > 1) next.delete(key); }
+      else next.add(key);
       return next;
     });
   }, []);
@@ -119,20 +102,11 @@ export function ExportarPDF({
     });
   }, []);
 
-  const selecionarTodas = () =>
-    setSelecionadas(new Set(colunas.map((c) => c.key)));
+  const selecionarTodas    = () => setSelecionadas(new Set(colunas.map((c) => c.key)));
+  const limparSelecao      = () => { const p = colunas[0]?.key; if (p) setSelecionadas(new Set([p])); };
+  const selecionarTodosGrupos = () => setGruposSel(new Set((grupos ?? []).map((g) => g.key)));
+  const limparGrupos       = () => setGruposSel(new Set());
 
-  const limparSelecao = () => {
-    const primeira = colunas[0]?.key;
-    if (primeira) setSelecionadas(new Set([primeira]));
-  };
-
-  const selecionarTodosGrupos = () =>
-    setGruposSel(new Set((grupos ?? []).map((g) => g.key)));
-
-  const limparGrupos = () => setGruposSel(new Set());
-
-  // Filtra dados pelos grupos selecionados (se houver seletor de grupos)
   const dadosFiltrados =
     grupos && grupos.length > 0
       ? dados.filter((row) => {
@@ -143,120 +117,169 @@ export function ExportarPDF({
 
   const gerarPDF = useCallback(() => {
     const colsSel = colunas.filter((c) => selecionadas.has(c.key));
-    if (colsSel.length === 0) return;
-    if (dadosFiltrados.length === 0) return;
+    if (colsSel.length === 0 || dadosFiltrados.length === 0) return;
 
     const doc = new jsPDF({ orientation: orientacao, unit: "mm", format: "a4" });
 
-    // ── Dimensões A4 ──────────────────────────────────────────────────────────
-    const pageW = doc.internal.pageSize.getWidth();
-    const marginH = 14; // margem horizontal
-    const marginTop = 14;
-    const marginBottom = 12;
-    const tableWidth = pageW - marginH * 2;
+    const pageW  = doc.internal.pageSize.getWidth();
+    const pageH  = doc.internal.pageSize.getHeight();
+    const mH     = 14;   // margem horizontal
+    const mBottom = 14;
+    const tableW = pageW - mH * 2;
 
-    // ── Cabeçalho ─────────────────────────────────────────────────────────────
-    // Linha de fundo verde
-    doc.setFillColor(22, 101, 52); // verde escuro
-    doc.rect(0, 0, pageW, 18, "F");
+    // ── Helper: desenha logo "SE" ────────────────────────────────────────────
+    function logoSE(x: number, y: number, sz: number, invertido = false) {
+      if (invertido) {
+        // Fundo verde, texto branco (para o rodapé final)
+        doc.setFillColor(VERDE_R, VERDE_G, VERDE_B);
+        doc.roundedRect(x, y, sz, sz, 2, 2, "F");
+        doc.setTextColor(255, 255, 255);
+      } else {
+        // Fundo branco, texto verde (para o cabeçalho sobre o fundo verde)
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(x, y, sz, sz, 1.5, 1.5, "F");
+        doc.setTextColor(VERDE_R, VERDE_G, VERDE_B);
+      }
+      doc.setFontSize(sz * 0.54);
+      doc.setFont("helvetica", "bold");
+      doc.text("SE", x + sz / 2, y + sz * 0.68, { align: "center" });
+    }
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text("SE Agropecuária Nelore de Elite", marginH, 7.5);
+    // ── Cabeçalho (todas as páginas via didDrawPage) ──────────────────────────
+    // Desenhado na primeira página antes da tabela; reproduzido via didDrawPage
+    function drawHeader() {
+      doc.setFillColor(VERDE_R, VERDE_G, VERDE_B);
+      doc.rect(0, 0, pageW, 18, "F");
 
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(titulo, marginH, 13.5);
+      // Logo branco no canto esquerdo
+      logoSE(mH, 3, 12, false);
 
-    // Data de geração (canto direito)
-    const agora = new Date();
-    const dataStr = agora.toLocaleDateString("pt-BR");
-    const horaStr = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    doc.setFontSize(7.5);
-    doc.text(`Gerado em ${dataStr} às ${horaStr}`, pageW - marginH, 13.5, { align: "right" });
+      // Textos brancos
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("SE Agropecuária Nelore de Elite", mH + 14, 7.5);
 
-    // Subtítulo (se houver)
-    let startY = marginTop + 12;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(titulo, mH + 14, 13.5);
+
+      const agora   = new Date();
+      const dataStr = agora.toLocaleDateString("pt-BR");
+      const horaStr = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      doc.setFontSize(7.5);
+      doc.text(`Gerado em ${dataStr} às ${horaStr}`, pageW - mH, 13.5, { align: "right" });
+    }
+
+    drawHeader();
+
+    // Subtítulo
+    let startY = 14 + 12;
     if (subtitulo) {
       doc.setTextColor(80, 80, 80);
       doc.setFontSize(8);
       doc.setFont("helvetica", "italic");
-      doc.text(subtitulo, marginH, startY);
+      doc.text(subtitulo, mH, startY);
       startY += 5;
     }
 
-    // ── Larguras das colunas ──────────────────────────────────────────────────
-    // Distribui proporcionalmente dentro da largura disponível
+    // ── Larguras ─────────────────────────────────────────────────────────────
     const totalPeso = colsSel.reduce((acc, c) => acc + (c.largura ?? 1), 0);
-    const colWidths = colsSel.map((c) =>
-      Math.floor(((c.largura ?? 1) / totalPeso) * tableWidth)
-    );
+    const colWidths = colsSel.map((c) => Math.floor(((c.largura ?? 1) / totalPeso) * tableW));
 
-    // ── Dados da tabela ───────────────────────────────────────────────────────
     const head = [colsSel.map((c) => c.label)];
-    const body = dadosFiltrados.map((row) =>
-      colsSel.map((c) => formatarCelula(row[c.key]))
-    );
+    const body = dadosFiltrados.map((row) => colsSel.map((c) => formatarCelula(row[c.key])));
 
-    // ── autoTable ─────────────────────────────────────────────────────────────
+    // ── Tabela ───────────────────────────────────────────────────────────────
     autoTable(doc, {
       head,
       body,
       startY,
-      margin: { left: marginH, right: marginH, bottom: marginBottom },
-      tableWidth,
-      columnStyles: Object.fromEntries(
-        colWidths.map((w, i) => [i, { cellWidth: w }])
-      ),
+      margin: { left: mH, right: mH, bottom: mBottom },
+      tableWidth: tableW,
+      columnStyles: Object.fromEntries(colWidths.map((w, i) => [i, { cellWidth: w }])),
       styles: {
         fontSize: 7.5,
         cellPadding: { top: 2.5, bottom: 2.5, left: 3, right: 3 },
         overflow: "linebreak",
-        lineColor: [220, 220, 220],
+        lineColor: [200, 230, 215],
         lineWidth: 0.2,
         font: "helvetica",
         textColor: [40, 40, 40],
         valign: "middle",
       },
       headStyles: {
-        fillColor: [22, 101, 52],
+        fillColor: [VERDE_R, VERDE_G, VERDE_B],
         textColor: [255, 255, 255],
         fontStyle: "bold",
         fontSize: 8,
         halign: "left",
       },
       alternateRowStyles: {
-        fillColor: [245, 250, 246],
+        fillColor: [VERDE_CLARO_R, VERDE_CLARO_G, VERDE_CLARO_B],
       },
       bodyStyles: {
         fillColor: [255, 255, 255],
       },
-      // Rodapé com nº de página
       didDrawPage: (data) => {
+        // Reproduz cabeçalho em páginas 2+
+        if ((doc as any).internal.getCurrentPageInfo().pageNumber > 1) {
+          drawHeader();
+        }
+
+        // Rodapé com número de página
         const pageCount = (doc as any).internal.getNumberOfPages();
-        const pageNum = (doc as any).internal.getCurrentPageInfo().pageNumber;
+        const pageNum   = (doc as any).internal.getCurrentPageInfo().pageNumber;
         doc.setFontSize(7);
         doc.setTextColor(160, 160, 160);
         doc.setFont("helvetica", "normal");
-        doc.text(
-          `Página ${pageNum} de ${pageCount}`,
-          pageW / 2,
-          doc.internal.pageSize.getHeight() - 5,
-          { align: "center" }
-        );
-        // Linha separadora no rodapé
-        doc.setDrawColor(200, 200, 200);
+        doc.text(`Página ${pageNum} de ${pageCount}`, pageW / 2, pageH - 5, { align: "center" });
+        doc.setDrawColor(200, 225, 212);
         doc.setLineWidth(0.3);
-        doc.line(
-          marginH,
-          doc.internal.pageSize.getHeight() - 8,
-          pageW - marginH,
-          doc.internal.pageSize.getHeight() - 8
-        );
+        doc.line(mH, pageH - 8, pageW - mH, pageH - 8);
       },
     });
 
+    // ── Rodapé final: logo SE + "Criando tradição" ───────────────────────────
+    const finalY = ((doc as any).lastAutoTable?.finalY ?? startY) as number;
+    const spaceNeeded = 36;
+
+    let footerY: number;
+    if (finalY + spaceNeeded > pageH - 16) {
+      doc.addPage();
+      drawHeader();
+      footerY = 30;
+    } else {
+      footerY = finalY + 12;
+    }
+
+    // Linha separadora antes do rodapé
+    doc.setDrawColor(200, 210, 205);
+    doc.setLineWidth(0.3);
+    doc.line(pageW / 2 - 25, footerY, pageW / 2 + 25, footerY);
+    footerY += 6;
+
+    // Logo "SE" em preto — sem caixa colorida
+    doc.setTextColor(30, 30, 30);
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("SE", pageW / 2, footerY + 9, { align: "center" });
+
+    // Nome da fazenda
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("Agropecuária Nelore de Elite", pageW / 2, footerY + 16, { align: "center" });
+
+    // Slogan
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(160, 160, 160);
+    doc.text("Criando tradição", pageW / 2, footerY + 22, { align: "center" });
+
+    // ── Salva ────────────────────────────────────────────────────────────────
+    const agora   = new Date();
+    const dataStr = agora.toLocaleDateString("pt-BR");
     const arquivo = nomeArquivo ?? `${titulo.replace(/\s+/g, "_")}_${dataStr.replace(/\//g, "-")}.pdf`;
     doc.save(arquivo);
     setAberto(false);
@@ -264,7 +287,7 @@ export function ExportarPDF({
 
   return (
     <>
-      {/* ── Botão ────────────────────────────────────────────────────────────── */}
+      {/* ── Botão ─────────────────────────────────────────────────────────────── */}
       <button
         onClick={() => setAberto(true)}
         className="inline-flex items-center gap-1.5 text-sm border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-600 font-medium shrink-0"
@@ -274,27 +297,25 @@ export function ExportarPDF({
         <span className="hidden sm:inline">Exportar PDF</span>
       </button>
 
-      {/* ── Modal ────────────────────────────────────────────────────────────── */}
+      {/* ── Modal ─────────────────────────────────────────────────────────────── */}
       {aberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            {/* Header */}
+
+            {/* Header do modal */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-gray-900 text-base">Exportar PDF</h3>
                 <p className="text-xs text-gray-400 mt-0.5">{titulo}</p>
               </div>
-              <button
-                onClick={() => setAberto(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <button onClick={() => setAberto(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Corpo */}
             <div className="px-6 py-4">
-              {/* Seletor de grupos (opcional) */}
+              {/* Grupos */}
               {grupos && grupos.length > 0 && (
                 <div className="mb-5">
                   <div className="flex items-center justify-between mb-3">
@@ -302,18 +323,8 @@ export function ExportarPDF({
                       Selecione os grupos ({gruposSel.size}/{grupos.length})
                     </p>
                     <div className="flex gap-3">
-                      <button
-                        onClick={selecionarTodosGrupos}
-                        className="text-xs text-brand-600 hover:underline"
-                      >
-                        Todos
-                      </button>
-                      <button
-                        onClick={limparGrupos}
-                        className="text-xs text-gray-400 hover:underline"
-                      >
-                        Limpar
-                      </button>
+                      <button onClick={selecionarTodosGrupos} className="text-xs text-brand-600 hover:underline">Todos</button>
+                      <button onClick={limparGrupos} className="text-xs text-gray-400 hover:underline">Limpar</button>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -325,22 +336,14 @@ export function ExportarPDF({
                           key={g.key}
                           onClick={() => toggleGrupo(g.key)}
                           className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-xs text-left transition-colors border ${
-                            ativa
-                              ? "bg-brand-50 border-brand-200 text-brand-800 font-medium"
-                              : "bg-gray-50 border-gray-100 text-gray-500 hover:border-gray-200"
+                            ativa ? "bg-brand-50 border-brand-200 text-brand-800 font-medium" : "bg-gray-50 border-gray-100 text-gray-500 hover:border-gray-200"
                           }`}
                         >
                           <span className="flex items-center gap-2">
-                            {ativa ? (
-                              <CheckSquare className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-                            ) : (
-                              <Square className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                            )}
+                            {ativa ? <CheckSquare className="w-3.5 h-3.5 text-brand-600 shrink-0" /> : <Square className="w-3.5 h-3.5 text-gray-300 shrink-0" />}
                             {g.label}
                           </span>
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                            ativa ? "bg-brand-100 text-brand-700" : "bg-gray-200 text-gray-500"
-                          }`}>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${ativa ? "bg-brand-100 text-brand-700" : "bg-gray-200 text-gray-500"}`}>
                             {total}
                           </span>
                         </button>
@@ -350,26 +353,16 @@ export function ExportarPDF({
                 </div>
               )}
 
+              {/* Colunas */}
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Selecione as colunas ({selecionadas.size}/{colunas.length})
                 </p>
                 <div className="flex gap-3">
-                  <button
-                    onClick={selecionarTodas}
-                    className="text-xs text-brand-600 hover:underline"
-                  >
-                    Todas
-                  </button>
-                  <button
-                    onClick={limparSelecao}
-                    className="text-xs text-gray-400 hover:underline"
-                  >
-                    Limpar
-                  </button>
+                  <button onClick={selecionarTodas} className="text-xs text-brand-600 hover:underline">Todas</button>
+                  <button onClick={limparSelecao} className="text-xs text-gray-400 hover:underline">Limpar</button>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-1.5 max-h-64 overflow-y-auto pr-1">
                 {colunas.map((col) => {
                   const ativa = selecionadas.has(col.key);
@@ -378,16 +371,10 @@ export function ExportarPDF({
                       key={col.key}
                       onClick={() => toggleColuna(col.key)}
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs text-left transition-colors border ${
-                        ativa
-                          ? "bg-brand-50 border-brand-200 text-brand-800 font-medium"
-                          : "bg-gray-50 border-gray-100 text-gray-500 hover:border-gray-200"
+                        ativa ? "bg-brand-50 border-brand-200 text-brand-800 font-medium" : "bg-gray-50 border-gray-100 text-gray-500 hover:border-gray-200"
                       }`}
                     >
-                      {ativa ? (
-                        <CheckSquare className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-                      ) : (
-                        <Square className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                      )}
+                      {ativa ? <CheckSquare className="w-3.5 h-3.5 text-brand-600 shrink-0" /> : <Square className="w-3.5 h-3.5 text-gray-300 shrink-0" />}
                       {col.label}
                     </button>
                   );
@@ -404,7 +391,7 @@ export function ExportarPDF({
               </p>
             </div>
 
-            {/* Rodapé */}
+            {/* Rodapé do modal */}
             <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
               <button
                 onClick={() => setAberto(false)}
@@ -415,7 +402,8 @@ export function ExportarPDF({
               <button
                 onClick={gerarPDF}
                 disabled={selecionadas.size === 0 || dadosFiltrados.length === 0}
-                className="flex-1 inline-flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
+                style={{ backgroundColor: `rgb(${VERDE_R},${VERDE_G},${VERDE_B})` }}
+                className="flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-lg transition-opacity"
               >
                 <FileDown className="w-4 h-4" />
                 Gerar PDF
