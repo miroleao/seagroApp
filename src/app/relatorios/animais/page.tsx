@@ -74,9 +74,9 @@ const TIPO_LABEL: Record<string, string> = {
 
 const COLUNAS: ColunaPDF[] = [
   { key: "nome",           label: "Nome",          padrao: true,  largura: 2.5 },
-  { key: "rgn_brinco",     label: "RGN / Brinco",  padrao: true,  largura: 1.5 },
+  { key: "rgn_brinco",     label: "RGN / Brinco",  padrao: true,  largura: 1.1 },
   { key: "tipo_label",     label: "Tipo",          padrao: false, largura: 1.0 },
-  { key: "nascimento_fmt", label: "Nascimento",    padrao: true,  largura: 1.0 },
+  { key: "nascimento_fmt", label: "Nascimento",    padrao: true,  largura: 1.4 },
   { key: "idade",          label: "Idade",         padrao: true,  largura: 0.7 },
   { key: "localizacao",    label: "Localização",   padrao: true,  largura: 1.5 },
   { key: "status_label",   label: "Status",        padrao: true,  largura: 1.2 },
@@ -108,6 +108,7 @@ export default async function RelatorioAnimaisPage() {
       weight_records ( id, data, peso_kg )
     `)
     .eq("farm_id", FARM_ID)
+    .order("nascimento", { ascending: false, nullsFirst: false })
     .order("nome");
 
   // ── Monta dados para o PDF ──────────────────────────────────────────────────
