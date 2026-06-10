@@ -53,12 +53,15 @@ export default async function DoadorasPage({
 
   const { data: doadoras } = await supabase
     .from("animals")
-    .select("id, nome, rgn, nascimento, pai_nome, mae_nome, mae_id, avo_materna, localizacao, percentual_proprio, valor_parcela, status_reprodutivo, touro_prenhez, touro_ultimo_parto, data_inseminacao, para_pista, para_leilao, nascido_se_agro")
+    .select("id, nome, rgn, nascimento, pai_nome, mae_nome, mae_id, avo_materna, localizacao, percentual_proprio, valor_parcela, status_reprodutivo, touro_prenhez, touro_ultimo_parto, data_inseminacao, para_pista, para_leilao, nascido_se_agro, status_rebanho")
     .eq("farm_id", FARM_ID)
     .eq("tipo", "DOADORA")
     .order("nome", { ascending: true });
 
-  const all = doadoras ?? [];
+  // Exclui animais com desfecho registrado (óbito ou venda)
+  const all = (doadoras ?? []).filter(
+    (d) => d.status_rebanho !== "MORTA" && d.status_rebanho !== "VENDIDA"
+  );
 
   // Busca IDs de animais que têm premiações
   const { data: awardsData } = await supabase

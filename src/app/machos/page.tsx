@@ -66,13 +66,16 @@ export default async function MachosPage({
     .from("animals")
     .select(
       "id, nome, rgn, rgd, nascimento, pai_nome, mae_nome, avo_materna, localizacao, " +
-      "percentual_proprio, valor_parcela, exame_andrologico, circunferencia_escrotal, data_ce, para_pista, para_leilao, nascido_se_agro"
+      "percentual_proprio, valor_parcela, exame_andrologico, circunferencia_escrotal, data_ce, para_pista, para_leilao, nascido_se_agro, status_rebanho"
     )
     .eq("farm_id", FARM_ID)
     .eq("tipo", "TOURO")
     .order("nome", { ascending: true });
 
-  const all = machos ?? [];
+  // Exclui animais com desfecho registrado (óbito ou venda)
+  const all = (machos ?? []).filter(
+    (m) => m.status_rebanho !== "MORTA" && m.status_rebanho !== "VENDIDA"
+  );
 
   // Busca IDs de animais que têm premiações
   const { data: awardsData } = await supabase
