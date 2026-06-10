@@ -187,18 +187,25 @@ export default async function PesagensPage({
   const semDados   = animais.length - comPesagem.length +
                      comPesagem.filter(a => calcPonderal(a.weight_records ?? [], a.nascimento) === null).length;
 
-  // PDF export data — usa tipo real do animal para agrupamento (não o badge "Nascido SE")
-  const dadosPDF = rows.map((r) => ({
-    nome:          r.nome ?? "—",
-    tipo:          tipoLabelFn(r.tipo),
-    rgn:           r.rgn ?? r.brinco ?? "—",
-    nascimento:    r.nascimentoFormatado ?? "—",
-    peso_atual:    r.ultimoPeso != null ? `${r.ultimoPeso.toFixed(1)} kg` : "—",
-    data_pesagem:  r.ultimaDataFormatada ?? "—",
-    ponderal:      r.ponderal !== null ? `${r.ponderal} g/dia` : "—",
-    classificacao: r.badgeLabel ?? "—",
-    qtd_pesagens:  r.qtdPesagens > 0 ? `${r.qtdPesagens}` : "—",
-  }));
+  // PDF export data — sempre de TODOS os animais, ignorando o filtro ativo da UI
+  const dadosPDF = animais.map((a) => {
+    const records = a.weight_records ?? [];
+    const sorted  = sortedWeights(records);
+    const ultimo  = sorted[sorted.length - 1] ?? null;
+    const pond    = calcPonderal(records, a.nascimento);
+    const badge   = classificacaoBadge(pond);
+    return {
+      nome:          a.nome ?? "—",
+      tipo:          tipoLabelFn(a.tipo),
+      rgn:           a.rgn ?? a.brinco ?? "—",
+      nascimento:    a.nascimento ? fmtDate(a.nascimento) : "—",
+      peso_atual:    ultimo?.peso_kg != null ? `${ultimo.peso_kg.toFixed(1)} kg` : "—",
+      data_pesagem:  ultimo ? fmtDate(ultimo.data) : "—",
+      ponderal:      pond !== null ? `${pond} g/dia` : "—",
+      classificacao: badge?.label ?? "—",
+      qtd_pesagens:  records.length > 0 ? `${records.length}` : "—",
+    };
+  });
 
   return (
     <div className="p-6 space-y-6">
