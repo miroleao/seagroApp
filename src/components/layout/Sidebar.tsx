@@ -81,27 +81,43 @@ const navItems: NavItem[] = [
   { href: "/pista",      label: "Pista / Exposições", icon: Trophy },
   { href: "/leiloes",    label: "Leilões",            icon: Gavel },
   { href: "/pesagens",              label: "Pesagens",           icon: Scale },
-  { href: "/relatorios/animais",    label: "Relatórios",         icon: FileText },
+  {
+    label: "Relatórios",
+    icon: FileText,
+    children: [
+      { href: "/relatorios/animais",    label: "Animais",    icon: FileText },
+      { href: "/relatorios/financeiro", label: "Financeiro", icon: DollarSign },
+    ],
+  },
   { href: "/financeiro",            label: "Financeiro",         icon: DollarSign },
   { href: "/elitia",     label: "ElitIA (beta)",      icon: Sparkles },
 ];
 
 function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
-  // Reprodução group starts expanded if we're on any /reproducao route
-  const [reproOpen, setReproOpen] = useState(true);
+  // Estado genérico para grupos: { [label]: open }
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({
+    "Reprodução": true,
+    "Relatórios": pathname.startsWith("/relatorios"),
+  });
+
+  const toggleGroup = (label: string) =>
+    setGroupOpen((prev) => ({ ...prev, [label]: !prev[label] }));
 
   return (
     <nav className="flex-1 px-3 py-4 space-y-0.5">
       {navItems.map((item) => {
-        // ── Group item (Reprodução) ──────────────────────────────────────
+        // ── Group item ────────────────────────────────────────────────────
         if (item.children) {
-          const isGroupActive = pathname.startsWith("/reproducao") || pathname.startsWith("/semen");
+          const isGroupActive = item.children.some(
+            (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/")
+          );
+          const isOpen = groupOpen[item.label] ?? false;
           return (
             <div key={item.label}>
               {/* Group toggle button */}
               <button
                 type="button"
-                onClick={() => setReproOpen((v) => !v)}
+                onClick={() => toggleGroup(item.label)}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   isGroupActive
@@ -111,21 +127,17 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
               >
                 <item.icon className="w-4 h-4 shrink-0" />
                 <span className="flex-1 text-left">{item.label}</span>
-                {reproOpen
+                {isOpen
                   ? <ChevronDown className="w-3 h-3 opacity-60" />
                   : <ChevronRight className="w-3 h-3 opacity-60" />
                 }
               </button>
 
               {/* Sub-items */}
-              {reproOpen && (
+              {isOpen && (
                 <div className="ml-4 mt-0.5 space-y-0.5 border-l border-brand-100 pl-3">
                   {item.children.map((sub) => {
-                    const isSubActive =
-                      sub.href === "/reproducao"
-                        ? pathname === "/reproducao" || pathname.startsWith("/reproducao/opu")
-                        : pathname === sub.href || pathname.startsWith(sub.href + "/");
-
+                    const isSubActive = pathname === sub.href || pathname.startsWith(sub.href + "/");
                     const SubIcon = sub.icon;
                     return (
                       <Link
