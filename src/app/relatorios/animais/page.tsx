@@ -78,20 +78,20 @@ const COLUNAS: ColunaPDF[] = [
   { key: "tipo_label",     label: "Tipo",          padrao: false, largura: 1.0 },
   { key: "nascimento_fmt", label: "Nascimento",    padrao: true,  largura: 1.4 },
   { key: "idade",          label: "Idade",         padrao: true,  largura: 0.7 },
-  { key: "localizacao",    label: "Localização",   padrao: true,  largura: 1.5 },
+  { key: "localizacao",    label: "Localização",   padrao: false, largura: 1.5 },
   { key: "status_label",   label: "Status",        padrao: true,  largura: 1.2 },
   { key: "peso_atual",     label: "Peso (kg)",     padrao: true,  largura: 0.9 },
   { key: "data_pesagem",   label: "Data Pesagem",  padrao: false, largura: 1.0 },
-  { key: "ponderal",       label: "Ponderal",      padrao: false, largura: 0.9 },
+  { key: "ponderal",       label: "Ponderal",      padrao: true,  largura: 0.9 },
   { key: "classif",        label: "Classificação", padrao: false, largura: 1.0 },
-  { key: "pai_nome",       label: "Pai",           padrao: false, largura: 1.5 },
-  { key: "mae_nome",       label: "Mãe",           padrao: false, largura: 1.5 },
+  { key: "pai_nome",       label: "Pai",           padrao: true,  largura: 1.5 },
+  { key: "mae_nome",       label: "Mãe",           padrao: true,  largura: 1.5 },
 ];
 
 const GRUPOS: GrupoPDF[] = [
   { key: "DOADORA",   label: "Doadoras",   padrao: true  },
   { key: "TOURO",     label: "Machos",     padrao: true  },
-  { key: "RECEPTORA", label: "Receptoras", padrao: true  },
+  { key: "RECEPTORA", label: "Receptoras", padrao: false },
   { key: "DESCARTE",  label: "Descarte",   padrao: false },
 ];
 
