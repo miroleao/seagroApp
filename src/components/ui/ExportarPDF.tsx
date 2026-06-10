@@ -31,6 +31,8 @@ export interface ExportarPDFProps {
   campoGrupo?: string;
   /** Campo em `dados` cujo valor preenche automaticamente a 1ª coluna de Observações */
   obsPreFillField?: string;
+  /** Quantas colunas de obs já vêm selecionadas por padrão (0 = nenhuma) */
+  obsDefault?: 0 | 1 | 2;
 }
 
 // ─── Paleta SE ────────────────────────────────────────────────────────────────
@@ -95,6 +97,7 @@ export function ExportarPDF({
   grupos,
   campoGrupo = "grupo",
   obsPreFillField,
+  obsDefault = 0,
 }: ExportarPDFProps) {
   const [aberto, setAberto] = useState(false);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(
@@ -103,7 +106,7 @@ export function ExportarPDF({
   const [gruposSel, setGruposSel] = useState<Set<string>>(
     () => new Set((grupos ?? []).filter((g) => g.padrao !== false).map((g) => g.key))
   );
-  const [obsExtras, setObsExtras] = useState<0 | 1 | 2>(0);
+  const [obsExtras, setObsExtras] = useState<0 | 1 | 2>(obsDefault);
 
   const toggleColuna = useCallback((key: string) => {
     setSelecionadas((prev) => {

@@ -188,6 +188,7 @@ export default async function RelatorioAnimaisPage() {
           grupos={GRUPOS}
           campoGrupo="tipo"
           obsPreFillField="obs_auto"
+          obsDefault={1}
         />
       </div>
 
