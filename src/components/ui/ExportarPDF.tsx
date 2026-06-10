@@ -174,13 +174,13 @@ export function ExportarPDF({
       doc.rect(0, 0, pageW, 18, "F");
 
       // Logo branca no canto esquerdo da faixa cinza
-      const lhH = 14;                         // altura da logo no header
-      const lhW = lhH * LOGO_RATIO;           // ≈ 19.8 mm
+      const lhH = 16;                         // altura da logo no header
+      const lhW = lhH * LOGO_RATIO;           // ≈ 22.6 mm
       const lhY = (18 - lhH) / 2;            // centraliza verticalmente na faixa de 18mm
       if (logoBranca) {
         doc.addImage(logoBranca, "PNG", mH, lhY, lhW, lhH, "logo-white", "FAST");
       } else {
-        logoSEFallback(mH, lhY, 13, true);
+        logoSEFallback(mH, lhY, 15, true);
       }
 
       const txX = mH + lhW + 4;
@@ -223,7 +223,7 @@ export function ExportarPDF({
       head,
       body,
       startY,
-      margin: { left: mH, right: mH, bottom: mBottom },
+      margin: { left: mH, right: mH, bottom: mBottom, top: 21 },
       tableWidth: tableW,
       columnStyles: Object.fromEntries(colWidths.map((w, i) => [i, { cellWidth: w }])),
       styles: {
@@ -261,39 +261,26 @@ export function ExportarPDF({
       },
     });
 
-    // ── Rodapé final ─────────────────────────────────────────────────────────
-    const finalY     = ((doc as any).lastAutoTable?.finalY ?? startY) as number;
-    const lfH        = 30;                   // altura da logo no rodapé (maior)
-    const lfW        = lfH * LOGO_RATIO;     // ≈ 42.4 mm
-    const spaceNeeded = lfH + 16;
-
-    let footerY: number;
-    if (finalY + spaceNeeded > pageH - 16) {
-      doc.addPage();
-      drawHeader();
-      footerY = 32;
-    } else {
-      footerY = finalY + 12;
-    }
+    // ── Rodapé final — sempre na mesma página, nunca cria nova ──────────────
+    const finalY  = ((doc as any).lastAutoTable?.finalY ?? startY) as number;
+    const footerY = finalY + 8;
+    // Espaço disponível até a linha de rodapé de página (pageH - 10)
+    const availH  = pageH - 10 - footerY;
+    // Logo escala para caber, entre 12 e 30 mm de altura
+    const lfH     = Math.max(12, Math.min(30, availH - 2));
+    const lfW     = lfH * LOGO_RATIO;
 
     // Linha separadora
     doc.setDrawColor(200, 200, 202);
     doc.setLineWidth(0.3);
     doc.line(pageW / 2 - 30, footerY, pageW / 2 + 30, footerY);
-    footerY += 6;
 
     // Logo original (escura) centralizada
     if (logoEscura) {
-      doc.addImage(logoEscura, "PNG", pageW / 2 - lfW / 2, footerY, lfW, lfH, "logo-dark", "FAST");
+      doc.addImage(logoEscura, "PNG", pageW / 2 - lfW / 2, footerY + 4, lfW, lfH, "logo-dark", "FAST");
     } else {
-      logoSEFallback(pageW / 2 - 8, footerY, 16, false);
+      logoSEFallback(pageW / 2 - 8, footerY + 4, lfH, false);
     }
-
-    // "Criando tradição" — preta, colada na logo
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.setTextColor(30, 30, 30);
-    doc.text("Criando tradição", pageW / 2, footerY + lfH + 3, { align: "center" });
 
     // ── Salva ─────────────────────────────────────────────────────────────────
     const agora   = new Date();

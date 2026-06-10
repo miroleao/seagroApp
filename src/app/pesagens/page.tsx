@@ -187,10 +187,10 @@ export default async function PesagensPage({
   const semDados   = animais.length - comPesagem.length +
                      comPesagem.filter(a => calcPonderal(a.weight_records ?? [], a.nascimento) === null).length;
 
-  // PDF export data
+  // PDF export data — usa tipo real do animal para agrupamento (não o badge "Nascido SE")
   const dadosPDF = rows.map((r) => ({
     nome:          r.nome ?? "—",
-    tipo:          r.tipoLabel,
+    tipo:          tipoLabelFn(r.tipo),
     rgn:           r.rgn ?? r.brinco ?? "—",
     nascimento:    r.nascimentoFormatado ?? "—",
     peso_atual:    r.ultimoPeso != null ? `${r.ultimoPeso.toFixed(1)} kg` : "—",
@@ -217,7 +217,6 @@ export default async function PesagensPage({
           orientacao="landscape"
           nomeArquivo="SE_Pesagens.pdf"
           grupos={[
-            { key: "Nascido SE", label: "Nascidos SE", padrao: true  },
             { key: "Doadora",    label: "Doadoras",    padrao: true  },
             { key: "Touro",      label: "Touros",      padrao: true  },
             { key: "Receptora",  label: "Receptoras",  padrao: true  },
