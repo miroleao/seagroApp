@@ -8,6 +8,7 @@ import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 import { ExcluirMachoBtn } from "./ExcluirMachoBtn";
 import { EditarMachoInlineBtn } from "./EditarMachoInlineBtn";
+import { DesfechoBtn } from "@/components/ui/DesfechoBtn";
 import { FiltrosRapidos, type GrupoFiltro } from "@/components/ui/FiltrosRapidos";
 
 /** Calcula meses inteiros entre uma data ISO e hoje */
@@ -420,6 +421,11 @@ export default async function MachosPage({
                           percentualProprio={m.percentual_proprio ?? null}
                           localizacao={m.localizacao ?? null}
                           nascimento={m.nascimento ?? null}
+                        />
+                        <DesfechoBtn
+                          animalId={m.id}
+                          nome={m.nome ?? m.rgn ?? "—"}
+                          tipoAnimal="TOURO"
                         />
                         <ExcluirMachoBtn id={m.id} nome={m.nome} />
                       </div>

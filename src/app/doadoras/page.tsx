@@ -6,6 +6,7 @@ import { Star, Plus, Trophy, ChevronRight, Gavel } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { ExcluirDoadoraBtn } from "./ExcluirDoadoraBtn";
+import { DesfechoBtn } from "@/components/ui/DesfechoBtn";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 import { FiltrosRapidos, type GrupoFiltro } from "@/components/ui/FiltrosRapidos";
 
@@ -549,7 +550,14 @@ export default async function DoadorasPage({
                     {d.localizacao ?? "—"}
                   </td>
                   <td className="px-2 py-3">
-                    <ExcluirDoadoraBtn id={d.id} nome={d.nome} />
+                    <div className="flex items-center gap-1">
+                      <DesfechoBtn
+                        animalId={d.id}
+                        nome={d.nome ?? d.rgn ?? "—"}
+                        tipoAnimal="DOADORA"
+                      />
+                      <ExcluirDoadoraBtn id={d.id} nome={d.nome} />
+                    </div>
                   </td>
                 </tr>
               );
