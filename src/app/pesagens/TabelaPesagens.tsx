@@ -1,7 +1,8 @@
 "use client";
 
-import { Fragment, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Fragment, useState, useTransition } from "react";
+import { ChevronDown, Pencil, Check, X } from "lucide-react";
+import { atualizarCampoAnimal } from "./actions";
 
 type WeightRecord = { id: string; data: string; peso_kg: number };
 
@@ -13,7 +14,7 @@ export type PesagemRow = {
   tipoLabel: string;
   rgn: string | null;
   brinco: string | null;
-  nascimento: string | null;
+  nascimento: string | null;        // ISO yyyy-mm-dd (raw)
   nascimentoFormatado: string | null;
   animalHref: string | null;
   ultimoPeso: number | null;
@@ -28,6 +29,76 @@ export type PesagemRow = {
 function formatDate(d: string) {
   return new Date(d + "T12:00:00").toLocaleDateString("pt-BR");
 }
+
+// ── Célula de data com edição inline ──────────────────────────────────────────
+
+function CelulaDataNascimento({ row }: { row: PesagemRow }) {
+  const [editando, setEditando]      = useState(false);
+  const [valor, setValor]            = useState(row.nascimento ?? "");
+  const [isPending, startTransition] = useTransition();
+
+  function salvar() {
+    if (!valor) { setEditando(false); return; }
+    startTransition(async () => {
+      await atualizarCampoAnimal(row.id, "nascimento", valor);
+      setEditando(false);
+    });
+  }
+
+  function cancelar() {
+    setValor(row.nascimento ?? "");
+    setEditando(false);
+  }
+
+  if (editando) {
+    return (
+      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="date"
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          className="border border-brand-300 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400"
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === "Enter")  salvar();
+            if (e.key === "Escape") cancelar();
+          }}
+        />
+        <button
+          onClick={salvar}
+          disabled={isPending}
+          className="p-0.5 rounded text-green-600 hover:bg-green-50 disabled:opacity-40"
+          title="Salvar"
+        >
+          <Check className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={cancelar}
+          disabled={isPending}
+          className="p-0.5 rounded text-gray-400 hover:bg-gray-100"
+          title="Cancelar"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="group flex items-center gap-1 cursor-pointer"
+      onClick={(e) => { e.stopPropagation(); setEditando(true); }}
+      title="Clique para corrigir a data"
+    >
+      <span className={row.nascimentoFormatado ? "text-gray-500" : "text-gray-300"}>
+        {row.nascimentoFormatado ?? "—"}
+      </span>
+      <Pencil className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+    </div>
+  );
+}
+
+// ── Tabela principal ──────────────────────────────────────────────────────────
 
 export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -58,7 +129,10 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
               <th className="px-4 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Animal</th>
               <th className="px-4 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Tipo</th>
               <th className="px-4 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">RGN / Brinco</th>
-              <th className="px-4 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Nascimento</th>
+              <th className="px-4 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">
+                Nascimento
+                <span className="ml-1 text-[9px] text-gray-300 normal-case font-normal">✏ clique p/ editar</span>
+              </th>
               <th className="px-4 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Peso Atual</th>
               <th className="px-4 py-2.5 font-semibold text-gray-500 uppercase text-[10px]">Data Pesagem</th>
               <th className="px-4 py-2.5 font-semibold text-gray-500 uppercase text-[10px] text-right">Ponderal</th>
@@ -94,8 +168,8 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
                     <td className="px-4 py-3 text-gray-500 font-mono text-[11px]">
                       {r.rgn ?? r.brinco ?? <span className="text-gray-300">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {r.nascimentoFormatado ?? <span className="text-gray-300">—</span>}
+                    <td className="px-4 py-3">
+                      <CelulaDataNascimento row={r} />
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-gray-900">
                       {r.ultimoPeso != null
