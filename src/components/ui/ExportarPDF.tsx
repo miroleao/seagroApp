@@ -29,6 +29,8 @@ export interface ExportarPDFProps {
   nomeArquivo?: string;
   grupos?: GrupoPDF[];
   campoGrupo?: string;
+  /** Campo em `dados` cujo valor preenche automaticamente a 1ª coluna de Observações */
+  obsPreFillField?: string;
 }
 
 // ─── Paleta SE ────────────────────────────────────────────────────────────────
@@ -92,6 +94,7 @@ export function ExportarPDF({
   nomeArquivo,
   grupos,
   campoGrupo = "grupo",
+  obsPreFillField,
 }: ExportarPDFProps) {
   const [aberto, setAberto] = useState(false);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(
@@ -223,10 +226,16 @@ export function ExportarPDF({
     const colWidths = colsFinal.map((c) => Math.floor(((c.largura ?? 1) / totalPeso) * tableW));
 
     const head = [colsFinal.map((c) => c.label)];
+    const firstObsIndex = colsFinal.findIndex((c) => c.key.startsWith("__obs_"));
     const body = dadosFiltrados.map((row) =>
-      colsFinal.map((c) =>
-        c.key.startsWith("__obs_") ? "" : formatarCelula(row[c.key])
-      )
+      colsFinal.map((c, i) => {
+        if (!c.key.startsWith("__obs_")) return formatarCelula(row[c.key]);
+        // Primeira coluna de obs: preenche com campo automático se disponível
+        if (i === firstObsIndex && obsPreFillField) {
+          return (row[obsPreFillField] as string) || "";
+        }
+        return "";
+      })
     );
 
     // ── Tabela ───────────────────────────────────────────────────────────────
@@ -300,7 +309,7 @@ export function ExportarPDF({
     doc.save(arquivo);
     setAberto(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colunas, dadosFiltrados, orientacao, selecionadas, obsExtras, titulo, subtitulo, nomeArquivo]);
+  }, [colunas, dadosFiltrados, orientacao, selecionadas, obsExtras, obsPreFillField, titulo, subtitulo, nomeArquivo]);
 
   return (
     <>

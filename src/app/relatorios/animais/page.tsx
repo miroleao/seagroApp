@@ -127,9 +127,17 @@ export default async function RelatorioAnimaisPage() {
     const classif = classificacao(pond);
     const idade   = idadeEmMeses(a.nascimento);
 
+    // Anotação automática de desfecho para a coluna de Observações
+    const obs_auto =
+      a.status_rebanho === "MORTA"   ? "Óbito"   :
+      a.status_rebanho === "VENDIDA" ? "Vendida" : "";
+
     return {
       // campos usados como chave de grupo
       tipo: a.tipo as string,
+
+      // pré-preenchimento da coluna de Observações
+      obs_auto,
 
       // colunas
       nome:           a.nome ?? "—",
@@ -179,6 +187,7 @@ export default async function RelatorioAnimaisPage() {
           nomeArquivo="Relatorio_Animais.pdf"
           grupos={GRUPOS}
           campoGrupo="tipo"
+          obsPreFillField="obs_auto"
         />
       </div>
 
