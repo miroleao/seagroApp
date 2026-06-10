@@ -33,13 +33,13 @@ export interface ExportarPDFProps {
 
 // ─── Paleta SE ────────────────────────────────────────────────────────────────
 
-const VERDE_R = 80;
-const VERDE_G = 160;
-const VERDE_B = 115;
+const VERDE_R = 115;
+const VERDE_G = 118;
+const VERDE_B = 125;
 
-const VERDE_CLARO_R = 237;
-const VERDE_CLARO_G = 248;
-const VERDE_CLARO_B = 243;
+const VERDE_CLARO_R = 244;
+const VERDE_CLARO_G = 244;
+const VERDE_CLARO_B = 246;
 
 // ─── Helper: carrega imagem como data URL ─────────────────────────────────────
 
@@ -173,16 +173,17 @@ export function ExportarPDF({
       doc.setFillColor(VERDE_R, VERDE_G, VERDE_B);
       doc.rect(0, 0, pageW, 18, "F");
 
-      // Logo branca no canto esquerdo da faixa verde
-      const lhH = 12;                         // altura da logo no header
-      const lhW = lhH * LOGO_RATIO;           // ≈ 17 mm
+      // Logo branca no canto esquerdo da faixa cinza
+      const lhH = 14;                         // altura da logo no header
+      const lhW = lhH * LOGO_RATIO;           // ≈ 19.8 mm
+      const lhY = (18 - lhH) / 2;            // centraliza verticalmente na faixa de 18mm
       if (logoBranca) {
-        doc.addImage(logoBranca, "PNG", mH, 3, lhW, lhH, "logo-white", "FAST");
+        doc.addImage(logoBranca, "PNG", mH, lhY, lhW, lhH, "logo-white", "FAST");
       } else {
-        logoSEFallback(mH, 3, 12, true);
+        logoSEFallback(mH, lhY, 13, true);
       }
 
-      const txX = mH + lhW + 3;
+      const txX = mH + lhW + 4;
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
@@ -254,7 +255,7 @@ export function ExportarPDF({
         doc.setTextColor(160, 160, 160);
         doc.setFont("helvetica", "normal");
         doc.text(`Página ${pageNum} de ${pageCount}`, pageW / 2, pageH - 5, { align: "center" });
-        doc.setDrawColor(200, 225, 212);
+        doc.setDrawColor(210, 210, 212);
         doc.setLineWidth(0.3);
         doc.line(mH, pageH - 8, pageW - mH, pageH - 8);
       },
@@ -262,9 +263,9 @@ export function ExportarPDF({
 
     // ── Rodapé final ─────────────────────────────────────────────────────────
     const finalY     = ((doc as any).lastAutoTable?.finalY ?? startY) as number;
-    const lfH        = 20;                   // altura da logo no rodapé
-    const lfW        = lfH * LOGO_RATIO;     // ≈ 28.3 mm
-    const spaceNeeded = lfH + 14;
+    const lfH        = 30;                   // altura da logo no rodapé (maior)
+    const lfW        = lfH * LOGO_RATIO;     // ≈ 42.4 mm
+    const spaceNeeded = lfH + 16;
 
     let footerY: number;
     if (finalY + spaceNeeded > pageH - 16) {
@@ -276,24 +277,23 @@ export function ExportarPDF({
     }
 
     // Linha separadora
-    doc.setDrawColor(200, 210, 205);
+    doc.setDrawColor(200, 200, 202);
     doc.setLineWidth(0.3);
-    doc.line(pageW / 2 - 25, footerY, pageW / 2 + 25, footerY);
-    footerY += 5;
+    doc.line(pageW / 2 - 30, footerY, pageW / 2 + 30, footerY);
+    footerY += 6;
 
     // Logo original (escura) centralizada
     if (logoEscura) {
       doc.addImage(logoEscura, "PNG", pageW / 2 - lfW / 2, footerY, lfW, lfH, "logo-dark", "FAST");
     } else {
-      logoSEFallback(pageW / 2 - 7, footerY, 14, false);
-      lfH; // keep reference
+      logoSEFallback(pageW / 2 - 8, footerY, 16, false);
     }
 
-    // "Criando tradição"
-    doc.setFontSize(7.5);
+    // "Criando tradição" — preta, colada na logo
+    doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
-    doc.setTextColor(160, 160, 160);
-    doc.text("Criando tradição", pageW / 2, footerY + lfH + 5, { align: "center" });
+    doc.setTextColor(30, 30, 30);
+    doc.text("Criando tradição", pageW / 2, footerY + lfH + 3, { align: "center" });
 
     // ── Salva ─────────────────────────────────────────────────────────────────
     const agora   = new Date();
