@@ -419,6 +419,7 @@ export default async function MachosPage({
                           valorParcela={m.valor_parcela ?? null}
                           percentualProprio={m.percentual_proprio ?? null}
                           localizacao={m.localizacao ?? null}
+                          nascimento={m.nascimento ?? null}
                         />
                         <ExcluirMachoBtn id={m.id} nome={m.nome} />
                       </div>

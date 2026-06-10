@@ -10,6 +10,7 @@ interface Props {
   valorParcela: number | null;
   percentualProprio: number | null;
   localizacao: string | null;
+  nascimento: string | null;
 }
 
 export function EditarMachoInlineBtn({
@@ -18,6 +19,7 @@ export function EditarMachoInlineBtn({
   valorParcela,
   percentualProprio,
   localizacao,
+  nascimento,
 }: Props) {
   const [open, setOpen]       = useState(false);
   const [isPending, start]    = useTransition();
@@ -28,6 +30,7 @@ export function EditarMachoInlineBtn({
     percentualProprio != null ? (percentualProprio * 100).toFixed(0) : ""
   );
   const [local, setLocal]     = useState(localizacao ?? "");
+  const [nasc, setNasc]       = useState(nascimento ?? "");
 
   function handleSubmit() {
     setErro(null);
@@ -36,6 +39,7 @@ export function EditarMachoInlineBtn({
     fd.append("valor_parcela", parcela);
     fd.append("percentual_proprio", perc);
     fd.append("localizacao", local);
+    fd.append("nascimento", nasc);
 
     start(async () => {
       const res = await atualizarCamposMacho(fd);
@@ -113,6 +117,18 @@ export function EditarMachoInlineBtn({
                   />
                   <span className="text-sm text-gray-500">%</span>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-gray-500 uppercase tracking-wide mb-1 block">
+                  Data de Nascimento
+                </label>
+                <input
+                  type="date"
+                  value={nasc}
+                  onChange={(e) => setNasc(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+                />
               </div>
 
               <div>

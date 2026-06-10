@@ -13,12 +13,13 @@ export async function atualizarCamposMacho(formData: FormData): Promise<{ ok: bo
   const id = formData.get("id") as string;
   if (!id) return { ok: false, erro: "ID inválido" };
 
-  const parcelaRaw = formData.get("valor_parcela") as string;
-  const percRaw    = formData.get("percentual_proprio") as string;
+  const parcelaRaw  = formData.get("valor_parcela") as string;
+  const percRaw     = formData.get("percentual_proprio") as string;
   const localizacao = (formData.get("localizacao") as string)?.trim() || null;
+  const nascimento  = (formData.get("nascimento")  as string)?.trim() || null;
 
-  const valor_parcela       = parcelaRaw ? parseFloat(parcelaRaw) : null;
-  const percentual_proprio  = percRaw   ? parseFloat(percRaw) / 100 : null;
+  const valor_parcela      = parcelaRaw ? parseFloat(parcelaRaw) : null;
+  const percentual_proprio = percRaw    ? parseFloat(percRaw) / 100 : null;
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -27,6 +28,7 @@ export async function atualizarCamposMacho(formData: FormData): Promise<{ ok: bo
       valor_parcela:      valor_parcela != null && !isNaN(valor_parcela) ? valor_parcela : null,
       percentual_proprio: percentual_proprio != null && !isNaN(percentual_proprio) ? percentual_proprio : null,
       localizacao,
+      nascimento,
     })
     .eq("id", id)
     .eq("farm_id", FARM_ID);
@@ -34,5 +36,6 @@ export async function atualizarCamposMacho(formData: FormData): Promise<{ ok: bo
   if (error) return { ok: false, erro: error.message };
 
   revalidatePath("/machos");
+  revalidatePath("/pesagens");
   return { ok: true };
 }
