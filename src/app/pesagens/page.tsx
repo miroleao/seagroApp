@@ -188,8 +188,16 @@ export default async function PesagensPage({
                      comPesagem.filter(a => calcPonderal(a.weight_records ?? [], a.nascimento) === null).length;
 
   // PDF export data — sempre de TODOS os animais, ignorando o filtro ativo da UI
+  // Ordenado: mais novo primeiro (nascimento desc). Sem data vai ao final.
   // Animais nascidos na SE (flag ou SMEF) formam grupo próprio "Nascido SE"
-  const dadosPDF = animais.map((a) => {
+  const dadosPDF = [...animais]
+    .sort((a, b) => {
+      if (!a.nascimento && !b.nascimento) return 0;
+      if (!a.nascimento) return 1;
+      if (!b.nascimento) return -1;
+      return b.nascimento.localeCompare(a.nascimento); // yyyy-mm-dd → desc
+    })
+    .map((a) => {
     const records = a.weight_records ?? [];
     const sorted  = sortedWeights(records);
     const ultimo  = sorted[sorted.length - 1] ?? null;
