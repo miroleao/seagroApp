@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, FARM_ID } from "@/lib/utils";
-import { Trophy, CalendarDays, Star, Plus, Scale, Baby, Heart } from "lucide-react";
+import { Trophy, CalendarDays, Star, Plus, Scale } from "lucide-react";
 import { criarExposicao } from "./actions";
 import { ExcluirExposicaoBtn } from "./ExcluirExposicaoBtn";
 import { ResultadoCell } from "./ResultadoCell";
@@ -94,69 +94,15 @@ function PrêmioBadge({ tipo }: { tipo: string }) {
 }
 
 // ─── Situação Reprodutiva (server component helper) ───────────────────────────
-function SituacaoReprodutivaCell({ animal, prenhezes, crias, hoje }: {
-  animal: any;
-  prenhezes: { data_previsao_parto: string | null }[];
-  crias: any[];
-  hoje: Date;
-}) {
-  const isMacho = animal.tipo === "TOURO";
-  const st = animal.status_rebanho as string | null;
-  const info = st ? STATUS_REPRO[st] : null;
+function SituacaoReprodutivaCell({ animal }: { animal: any }) {
+  const prenha =
+    animal.status_rebanho === "PRENHA_EMBRIAO" ||
+    animal.status_rebanho === "PRENHA_NATURAL";
 
-  // Crias ao pé = crias < 9 meses
-  const criasAoPe = crias.filter(c => {
-    if (!c.nascimento) return true; // assume ao pé se sem data
-    const { meses } = idadeExata(c.nascimento, hoje);
-    return meses < 9;
-  });
-
-  // Prenhez ativa mais próxima do parto
-  const proxParto = prenhezes
-    .filter(p => p.data_previsao_parto)
-    .sort((a, b) => new Date(a.data_previsao_parto!).getTime() - new Date(b.data_previsao_parto!).getTime())[0];
+  if (!prenha) return <span className="text-gray-300 text-xs">—</span>;
 
   return (
-    <div className="space-y-1 min-w-[140px]">
-      {/* Badge status */}
-      {info ? (
-        <span className={`badge text-[10px] ${info.cls}`}>{info.label}</span>
-      ) : (
-        !isMacho && <span className="text-gray-300 text-xs">—</span>
-      )}
-
-      {/* Previsão de parto (para prenhas) */}
-      {!isMacho && proxParto?.data_previsao_parto && (
-        <p className="text-[10px] text-blue-600 font-medium flex items-center gap-0.5">
-          <Baby className="w-3 h-3 shrink-0" />
-          Parto: {formatDate(proxParto.data_previsao_parto)}
-        </p>
-      )}
-
-      {/* Cria ao pé */}
-      {!isMacho && criasAoPe.length > 0 && (
-        <div className="space-y-0.5">
-          {criasAoPe.map((c: any) => {
-            const { meses } = idadeExata(c.nascimento, hoje);
-            return (
-              <p key={c.id} className="text-[10px] text-purple-700 font-medium flex items-center gap-0.5">
-                <Heart className="w-3 h-3 shrink-0" />
-                {c.nome}
-                {c.sexo === "M" ? " ♂" : " ♀"}
-                {meses != null ? ` (${meses}m)` : ""}
-              </p>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Crias maiores (desmamadas) — indicativo */}
-      {!isMacho && crias.length > 0 && criasAoPe.length === 0 && (
-        <p className="text-[10px] text-gray-400">
-          {crias.length} cria{crias.length > 1 ? "s" : ""} registrada{crias.length > 1 ? "s" : ""}
-        </p>
-      )}
-    </div>
+    <span className="badge bg-blue-100 text-blue-700 font-semibold text-xs">P+</span>
   );
 }
 
@@ -328,30 +274,21 @@ export default async function PistaPage() {
             { key: "localizacao", label: "Localização",   padrao: false, largura: 1.0 },
             { key: "premios",     label: "Premiações",    padrao: false, largura: 2.0 },
           ] satisfies ColunaPDF[]}
-          dados={animaisEnriquecidos.map((a: any) => {
-            const pr = prenhezesPorDoadora[a.id] ?? [];
-            const cr = criasPorMae[a.id] ?? [];
-            const proxParto = pr.find(p => p.data_previsao_parto);
-            return {
-              nome:        a.nome ?? "—",
-              rgn:         a.rgn ?? "—",
-              rgd:         a.rgd ?? "—",
-              nascimento:  a.nascimento ? formatDate(a.nascimento) : "—",
-              idade:       a.meses != null ? `${a.meses}m` : "—",
-              sexo:        a.sexo === "M" ? "Macho" : "Fêmea",
-              grupo:       a.grupo?.nome ?? "Fora de faixa",
-              peso:        a.peso_atual != null ? String(a.peso_atual) : "—",
-              peso_pista:  a.peso_pista != null ? `${a.peso_pista} kg` : "—",
-              sit_repro:   [
-                a.status_rebanho ? STATUS_REPRO[a.status_rebanho]?.label ?? a.status_rebanho : null,
-                proxParto?.data_previsao_parto ? `Parto: ${formatDate(proxParto.data_previsao_parto)}` : null,
-                cr.length > 0 ? `${cr.length} cria(s)` : null,
-              ].filter(Boolean).join(" · ") || "—",
-              st_peso:     ({ IDEAL: "Ideal", ABAIXO: "Abaixo", ACIMA: "Acima", SEM_DADOS: "—" })[a.stPeso as string] ?? "—",
-              localizacao: a.localizacao ?? "—",
-              premios:     (premiosPorAnimal[a.id] ?? []).map((p: any) => p.tipo_premio?.replace(/_/g, " ")).join(", ") || "—",
-            };
-          })}
+          dados={animaisEnriquecidos.map((a: any) => ({
+            nome:        a.nome ?? "—",
+            rgn:         a.rgn ?? "—",
+            rgd:         a.rgd ?? "—",
+            nascimento:  a.nascimento ? formatDate(a.nascimento) : "—",
+            idade:       a.meses != null ? `${a.meses}m` : "—",
+            sexo:        a.sexo === "M" ? "Macho" : "Fêmea",
+            grupo:       a.grupo?.nome ?? "Fora de faixa",
+            peso:        a.peso_atual != null ? String(a.peso_atual) : "—",
+            peso_pista:  a.peso_pista != null ? `${a.peso_pista} kg` : "—",
+            sit_repro:   (a.status_rebanho === "PRENHA_EMBRIAO" || a.status_rebanho === "PRENHA_NATURAL") ? "P+" : "—",
+            st_peso:     ({ IDEAL: "Ideal", ABAIXO: "Abaixo", ACIMA: "Acima", SEM_DADOS: "—" })[a.stPeso as string] ?? "—",
+            localizacao: a.localizacao ?? "—",
+            premios:     (premiosPorAnimal[a.id] ?? []).map((p: any) => p.tipo_premio?.replace(/_/g, " ")).join(", ") || "—",
+          }))}
         />
       </div>
 
@@ -560,8 +497,6 @@ export default async function PistaPage() {
                     const reg = isMacho ? (a.rgd ?? a.rgn) : a.rgn;
                     const premiosAnimal = premiosPorAnimal[a.id] ?? [];
                     const temPremio = premiosAnimal.length > 0;
-                    const prenhezes = prenhezesPorDoadora[a.id] ?? [];
-                    const crias = criasPorMae[a.id] ?? [];
                     return (
                       <tr key={a.id} className={`table-row-hover ${!apto ? "opacity-50" : ""}`}>
                         {/* Animal */}
@@ -610,12 +545,7 @@ export default async function PistaPage() {
                         </td>
                         {/* Situação Reprodutiva */}
                         <td className="px-4 py-3">
-                          <SituacaoReprodutivaCell
-                            animal={a}
-                            prenhezes={prenhezes}
-                            crias={crias}
-                            hoje={hoje}
-                          />
+                          <SituacaoReprodutivaCell animal={a} />
                         </td>
                         {/* Local */}
                         <td className="px-4 py-3 text-gray-400 text-xs">{a.localizacao ?? "—"}</td>
