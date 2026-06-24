@@ -96,6 +96,7 @@ function PrêmioBadge({ tipo }: { tipo: string }) {
 // ─── Situação Reprodutiva (server component helper) ───────────────────────────
 function SituacaoReprodutivaCell({ animal }: { animal: any }) {
   const prenha =
+    animal.status_rebanho === "PRENHA" ||
     animal.status_rebanho === "PRENHA_EMBRIAO" ||
     animal.status_rebanho === "PRENHA_NATURAL";
 
@@ -237,7 +238,9 @@ export default async function PistaPage() {
 
   // Contadores reprodutivos para o card de resumo
   const totalPrenhas = animaisEnriquecidos.filter(a =>
-    a.status_rebanho === "PRENHA_EMBRIAO" || a.status_rebanho === "PRENHA_NATURAL"
+    a.status_rebanho === "PRENHA" ||
+    a.status_rebanho === "PRENHA_EMBRIAO" ||
+    a.status_rebanho === "PRENHA_NATURAL"
   ).length;
   const totalCriasAoPe = Object.values(criasPorMae).flat().filter((c: any) => {
     if (!c.nascimento) return true;
@@ -284,7 +287,7 @@ export default async function PistaPage() {
             grupo:       a.grupo?.nome ?? "Fora de faixa",
             peso:        a.peso_atual != null ? String(a.peso_atual) : "—",
             peso_pista:  a.peso_pista != null ? `${a.peso_pista} kg` : "—",
-            sit_repro:   (a.status_rebanho === "PRENHA_EMBRIAO" || a.status_rebanho === "PRENHA_NATURAL") ? "P+" : "—",
+            sit_repro:   (a.status_rebanho === "PRENHA" || a.status_rebanho === "PRENHA_EMBRIAO" || a.status_rebanho === "PRENHA_NATURAL") ? "P+" : "—",
             st_peso:     ({ IDEAL: "Ideal", ABAIXO: "Abaixo", ACIMA: "Acima", SEM_DADOS: "—" })[a.stPeso as string] ?? "—",
             localizacao: a.localizacao ?? "—",
             premios:     (premiosPorAnimal[a.id] ?? []).map((p: any) => p.tipo_premio?.replace(/_/g, " ")).join(", ") || "—",
