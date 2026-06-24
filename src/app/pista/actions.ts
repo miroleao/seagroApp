@@ -46,6 +46,31 @@ export async function excluirExposicao(formData: FormData) {
   redirect("/pista");
 }
 
+// ─── Salvar Peso Oficial (pesagem de pista/exposição) ─────────────────────────
+export async function salvarPesoPista(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
+  const supabase = await createClient();
+  const animal_id = formData.get("animal_id") as string;
+  const raw       = formData.get("peso_pista") as string;
+
+  if (!animal_id) return { ok: false, erro: "Animal não identificado" };
+
+  const peso = raw ? parseFloat(raw.replace(",", ".")) : null;
+  if (raw && (isNaN(peso!) || peso! <= 0)) {
+    return { ok: false, erro: "Peso inválido" };
+  }
+
+  const { error } = await supabase
+    .from("animals")
+    .update({ peso_pista: peso })
+    .eq("id", animal_id)
+    .eq("farm_id", FARM_ID);
+
+  if (error) return { ok: false, erro: error.message };
+
+  revalidatePath("/pista");
+  return { ok: true };
+}
+
 // ─── Criar Premiação ──────────────────────────────────────────────────────────
 export async function criarPremiacao(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
   const supabase = await createClient();
