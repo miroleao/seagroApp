@@ -95,7 +95,10 @@ function PrêmioBadge({ tipo }: { tipo: string }) {
 
 // ─── Situação Reprodutiva (server component helper) ───────────────────────────
 function SituacaoReprodutivaCell({ animal }: { animal: any }) {
+  // Doadoras: campo status_reprodutivo = "GESTANTE"
+  // Receptoras/outros: campo status_rebanho = "PRENHA" | "PRENHA_EMBRIAO" | "PRENHA_NATURAL"
   const prenha =
+    animal.status_reprodutivo === "GESTANTE" ||
     animal.status_rebanho === "PRENHA" ||
     animal.status_rebanho === "PRENHA_EMBRIAO" ||
     animal.status_rebanho === "PRENHA_NATURAL";
@@ -132,7 +135,7 @@ export default async function PistaPage() {
 
   const { data: candidatos } = await supabase
     .from("animals")
-    .select("id, nome, rgn, rgd, nascimento, sexo, tipo, localizacao, para_pista, peso_atual, peso_pista, status_rebanho")
+    .select("id, nome, rgn, rgd, nascimento, sexo, tipo, localizacao, para_pista, peso_atual, peso_pista, status_rebanho, status_reprodutivo")
     .eq("farm_id", FARM_ID)
     .in("tipo", ["DOADORA", "NASCIDO", "TOURO"])
     .eq("para_pista", true)
@@ -237,11 +240,13 @@ export default async function PistaPage() {
   );
 
   // Contadores reprodutivos para o card de resumo
-  const totalPrenhas = animaisEnriquecidos.filter(a =>
+  const isPrenha = (a: any) =>
+    a.status_reprodutivo === "GESTANTE" ||
     a.status_rebanho === "PRENHA" ||
     a.status_rebanho === "PRENHA_EMBRIAO" ||
-    a.status_rebanho === "PRENHA_NATURAL"
-  ).length;
+    a.status_rebanho === "PRENHA_NATURAL";
+
+  const totalPrenhas = animaisEnriquecidos.filter(isPrenha).length;
   const totalCriasAoPe = Object.values(criasPorMae).flat().filter((c: any) => {
     if (!c.nascimento) return true;
     const { meses } = idadeExata(c.nascimento, hoje);
@@ -287,7 +292,7 @@ export default async function PistaPage() {
             grupo:       a.grupo?.nome ?? "Fora de faixa",
             peso:        a.peso_atual != null ? String(a.peso_atual) : "—",
             peso_pista:  a.peso_pista != null ? `${a.peso_pista} kg` : "—",
-            sit_repro:   (a.status_rebanho === "PRENHA" || a.status_rebanho === "PRENHA_EMBRIAO" || a.status_rebanho === "PRENHA_NATURAL") ? "P+" : "—",
+            sit_repro:   isPrenha(a) ? "P+" : "—",
             st_peso:     ({ IDEAL: "Ideal", ABAIXO: "Abaixo", ACIMA: "Acima", SEM_DADOS: "—" })[a.stPeso as string] ?? "—",
             localizacao: a.localizacao ?? "—",
             premios:     (premiosPorAnimal[a.id] ?? []).map((p: any) => p.tipo_premio?.replace(/_/g, " ")).join(", ") || "—",
