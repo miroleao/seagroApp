@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useVendaSync } from "./VendaSyncContext";
 
 interface Props {
   metaParcela: number | null;
   defaultComprador?: string;
   defaultParcela?: number;
   defaultNParcelas?: number;
+  defaultPercentual?: number;
 }
 
 function fmt(value: number) {
@@ -19,16 +21,32 @@ export default function VendaLeilaoSection({
   defaultComprador = "",
   defaultParcela,
   defaultNParcelas,
+  defaultPercentual,
 }: Props) {
   const [comprador, setComprador]   = useState(defaultComprador);
   const [parcela, setParcela]       = useState(defaultParcela?.toString() ?? "");
   const [nParcelas, setNParcelas]   = useState(defaultNParcelas?.toString() ?? "30");
+  const [percentual, setPercentual] = useState(defaultPercentual?.toString() ?? "100");
 
   const parcelaNum  = parseFloat(parcela.replace(",", ".")) || 0;
   const nParcelasNum = parseInt(nParcelas) || 1;
+  const percentualNum = parseFloat(percentual.replace(",", ".")) || 100;
 
   const vendaTotal  = parcelaNum > 0 ? parcelaNum * nParcelasNum : null;
   const metaTotal   = metaParcela ? metaParcela * 30 : null;
+
+  // ── Publica o valor de venda definitivo para o form "Registrar Venda" ──
+  const vendaSync = useVendaSync();
+  useEffect(() => {
+    vendaSync?.setData({
+      comprador,
+      valorParcela: parcelaNum > 0 ? parcelaNum : null,
+      nParcelas: nParcelasNum,
+      valorTotal: vendaTotal,
+      percentual: percentualNum,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comprador, parcelaNum, nParcelasNum, percentualNum, vendaTotal]);
 
   // Comparativo
   type Status = "acima" | "abaixo" | "meta" | null;
@@ -93,6 +111,26 @@ export default function VendaLeilaoSection({
           />
         </div>
 
+        {/* % Vendido */}
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">% Vendido</label>
+          <div className="relative">
+            <input
+              name="venda_percentual"
+              type="number"
+              min="1"
+              max="100"
+              step="1"
+              value={percentual}
+              onChange={(e) => setPercentual(e.target.value)}
+              placeholder="Ex: 100, 50, 33"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 pr-7 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span>
+          </div>
+          <p className="mt-0.5 text-xs text-gray-400">% do animal vendido nesta negociação</p>
+        </div>
+
         {/* Total calculado */}
         <div className="flex items-end pb-0.5">
           {vendaTotal ? (
@@ -100,12 +138,19 @@ export default function VendaLeilaoSection({
               Total:{" "}
               <span className="font-bold text-gray-900">{fmt(vendaTotal)}</span>
               <span className="text-xs text-gray-400 ml-1">(× {nParcelas})</span>
+              {percentualNum !== 100 && (
+                <span className="text-xs text-amber-600 ml-1">· {percentualNum}% vendido</span>
+              )}
             </p>
           ) : (
             <p className="text-xs text-gray-400 italic">Total = parcela × nº parcelas</p>
           )}
         </div>
       </div>
+
+      <p className="mt-2 text-xs text-amber-600 italic">
+        Este valor é usado automaticamente para pré-preencher a seção &quot;Registrar Venda&quot; acima.
+      </p>
 
       {/* ── Comparativo com Meta ── */}
       {(vendaTotal || metaTotal) && (

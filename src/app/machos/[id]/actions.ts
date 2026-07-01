@@ -59,11 +59,13 @@ export async function salvarInfoLeilaoMacho(formData: FormData) {
   const venda_comprador       = (formData.get("venda_comprador") as string)?.trim() || null;
   const venda_parcela_raw     = formData.get("venda_valor_parcela") as string;
   const venda_n_parcelas_raw  = formData.get("venda_n_parcelas") as string;
+  const venda_percentual_raw  = formData.get("venda_percentual") as string;
 
   const compra_valor_parcela  = compra_parcela_raw   ? parseFloat(compra_parcela_raw)   : null;
   const meta_valor_parcela    = meta_parcela_raw     ? parseFloat(meta_parcela_raw)     : null;
   const venda_valor_parcela   = venda_parcela_raw    ? parseFloat(venda_parcela_raw)    : null;
   const venda_n_parcelas      = venda_n_parcelas_raw ? parseInt(venda_n_parcelas_raw)   : null;
+  const venda_percentual      = venda_percentual_raw ? parseFloat(venda_percentual_raw) : null;
 
   if (!animal_id) return;
 
@@ -80,6 +82,7 @@ export async function salvarInfoLeilaoMacho(formData: FormData) {
     venda_comprador,
     venda_valor_parcela:  (venda_valor_parcela  != null && !isNaN(venda_valor_parcela))  ? venda_valor_parcela  : null,
     venda_n_parcelas:     (venda_n_parcelas     != null && !isNaN(venda_n_parcelas))     ? venda_n_parcelas     : null,
+    venda_percentual:     (venda_percentual     != null && !isNaN(venda_percentual))     ? venda_percentual     : null,
     atualizado_em: new Date().toISOString(),
   };
 
@@ -377,4 +380,104 @@ export async function atualizarGenealogiaTouro(formData: FormData) {
   revalidatePath(`/machos/${id}`);
   revalidatePath("/machos");
   redirect(`/machos/${id}`);
+}
+
+/** Registra uma venda na tabela transactions, pré-vinculando este touro */
+export async function registrarVendaMacho(formData: FormData) {
+  const touro_id       = (formData.get("touro_id")       as string)?.trim();
+  const tipo_detalhado = (formData.get("tipo_detalhado") as string) || "VENDA_ANIMAL";
+  const contraparte    = (formData.get("contraparte")    as string) || null;
+  const valorRaw       = formData.get("valor_total")     as string;
+  const nParcelasRaw   = formData.get("n_parcelas")      as string;
+  const dataRaw        = (formData.get("data")           as string) || null;
+  const observacoes    = (formData.get("observacoes")    as string) || null;
+  const percentualRaw  = formData.get("percentual_vendido") as string;
+
+  if (!touro_id) redirect("/machos");
+
+  const valor_total = parseFloat(valorRaw);
+  const n_parcelas  = parseInt(nParcelasRaw) || 30;
+  const percentual_vendido_num = parseFloat(percentualRaw);
+  const percentual_vendido = (!isNaN(percentual_vendido_num) && percentual_vendido_num > 0)
+    ? percentual_vendido_num
+    : 100;
+
+  if (isNaN(valor_total) || valor_total <= 0) redirect(`/machos/${touro_id}`);
+
+  const supabase = await createClient();
+
+  const prefixoMap: Record<string, string> = {
+    VENDA_ANIMAL: "",
+    VENDA_SEMEN:  "Sêmen ",
+  };
+  const prefixo = prefixoMap[tipo_detalhado] ?? "";
+
+  // Nome canônico do touro
+  const { data: animal } = await supabase
+    .from("animals")
+    .select("nome")
+    .eq("id", touro_id)
+    .single();
+
+  const animal_nome = animal?.nome
+    ? `${prefixo}${animal.nome}`.trim()
+    : null;
+
+  const txPayloadBase = {
+    farm_id: FARM_ID,
+    tipo: "VENDA",
+    categoria: "TOURO",
+    animal_nome,
+    doadora_id: touro_id, // coluna genérica de vínculo (usada também para touros)
+    contraparte,
+    valor_total,
+    n_parcelas,
+    data: dataRaw || new Date().toISOString().split("T")[0],
+    observacoes,
+  };
+
+  let { data: tx, error: txErr } = await supabase
+    .from("transactions")
+    .insert({ ...txPayloadBase, percentual_vendido })
+    .select("id")
+    .single();
+
+  // Fallback: coluna percentual_vendido ainda não existe (migração não rodada)
+  if (txErr) {
+    const retry = await supabase
+      .from("transactions")
+      .insert(txPayloadBase)
+      .select("id")
+      .single();
+    tx = retry.data;
+    txErr = retry.error;
+  }
+
+  if (txErr || !tx) {
+    console.error("Erro ao registrar venda:", txErr);
+    redirect(`/machos/${touro_id}`);
+    return;
+  }
+
+  // Gera parcelas mensais
+  const valorParcela = valor_total / n_parcelas;
+  const hoje = dataRaw ? new Date(dataRaw + "T12:00:00") : new Date();
+  const parcelas = Array.from({ length: n_parcelas }, (_, i) => {
+    const venc = new Date(hoje);
+    venc.setMonth(venc.getMonth() + i + 1);
+    return {
+      farm_id: FARM_ID,
+      transaction_id: tx!.id,
+      numero: i + 1,
+      vencimento: venc.toISOString().split("T")[0],
+      valor: parseFloat(valorParcela.toFixed(2)),
+      status: "PENDENTE" as const,
+    };
+  });
+
+  await supabase.from("installments").insert(parcelas);
+
+  revalidatePath(`/machos/${touro_id}`);
+  revalidatePath("/financeiro");
+  redirect(`/machos/${touro_id}`);
 }

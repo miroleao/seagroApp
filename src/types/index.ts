@@ -187,6 +187,8 @@ export interface Transaction {
   valor_total: number;
   n_parcelas?: number;
   observacoes?: string;
+  /** % do animal vendido nesta transação (100, 50, 33...) — informativo, não altera valor_total */
+  percentual_vendido?: number;
   auction?: Auction;
 }
 

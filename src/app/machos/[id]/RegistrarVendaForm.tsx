@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { ShoppingCart, RefreshCw } from "lucide-react";
-import { registrarVendaDoadora } from "./actions";
+import { registrarVendaMacho } from "./actions";
 import { useVendaSync } from "@/components/VendaSyncContext";
 
-type Props = { doadoraId: string };
+type Props = { touroId: string };
 
-export default function RegistrarVendaForm({ doadoraId }: Props) {
+export default function RegistrarVendaForm({ touroId }: Props) {
   const [comprador,   setComprador]   = useState("");
   const [parcela,     setParcela]     = useState("");
   const [numParcelas, setNumParcelas] = useState("30");
@@ -45,8 +45,8 @@ export default function RegistrarVendaForm({ doadoraId }: Props) {
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <form action={registrarVendaDoadora} className="space-y-4">
-      <input type="hidden" name="doadora_id" value={doadoraId} />
+    <form action={registrarVendaMacho} className="space-y-4">
+      <input type="hidden" name="touro_id" value={touroId} />
       {/* Hidden total calculado */}
       <input type="hidden" name="valor_total" value={total?.toFixed(2) ?? ""} />
       {/* % do animal vendido nesta transação (vem da Realização da Venda / Leilão) */}
@@ -69,8 +69,7 @@ export default function RegistrarVendaForm({ doadoraId }: Props) {
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
           >
             <option value="VENDA_ANIMAL">Animal</option>
-            <option value="VENDA_PRENHEZ">Prenhez</option>
-            <option value="VENDA_ASPIRACAO">Aspiração</option>
+            <option value="VENDA_SEMEN">Sêmen</option>
           </select>
         </div>
 

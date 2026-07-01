@@ -7,6 +7,7 @@ import EditarGenealogyForm from "@/components/EditarGenealogyForm";
 import AnimalFotoUpload from "@/components/AnimalFotoUpload";
 import AnimalDocumentosUpload from "@/components/AnimalDocumentosUpload";
 import VendaLeilaoSection from "@/components/VendaLeilaoSection";
+import { VendaSyncProvider } from "@/components/VendaSyncContext";
 import { FormPremiacao } from "./FormPremiacao";
 import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
@@ -737,6 +738,7 @@ export default async function DoadoraDetalhePage({
   const totalDisponiveis = embrioes.filter(e => e.status === "DISPONIVEL").length;
 
   return (
+    <VendaSyncProvider>
     <div className="p-6 space-y-6">
       {/* Voltar */}
       <Link href="/doadoras" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
@@ -1816,6 +1818,7 @@ export default async function DoadoraDetalhePage({
               defaultComprador={(leilaoInfo as any)?.venda_comprador ?? ""}
               defaultParcela={(leilaoInfo as any)?.venda_valor_parcela ?? undefined}
               defaultNParcelas={(leilaoInfo as any)?.venda_n_parcelas ?? undefined}
+              defaultPercentual={(leilaoInfo as any)?.venda_percentual ?? undefined}
             />
 
             <button type="submit"
@@ -2008,5 +2011,6 @@ export default async function DoadoraDetalhePage({
         </div>
       )}
     </div>
+    </VendaSyncProvider>
   );
 }
