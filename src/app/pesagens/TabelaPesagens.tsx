@@ -1,8 +1,9 @@
 "use client";
 
 import { Fragment, useState, useTransition } from "react";
-import { ChevronDown, Pencil, Check, X } from "lucide-react";
-import { atualizarCampoAnimal } from "./actions";
+import { useRouter } from "next/navigation";
+import { ChevronDown, Pencil, Check, X, Plus, Loader2 } from "lucide-react";
+import { atualizarCampoAnimal, salvarPesagens } from "./actions";
 
 type WeightRecord = { id: string; data: string; peso_kg: number };
 
@@ -98,6 +99,87 @@ function CelulaDataNascimento({ row }: { row: PesagemRow }) {
   );
 }
 
+// ── Lançamento rápido dentro do histórico ─────────────────────────────────────
+
+function NovaPesagemInline({ row }: { row: PesagemRow }) {
+  const hoje = new Date().toISOString().split("T")[0];
+  const [data, setData]      = useState(hoje);
+  const [peso, setPeso]      = useState("");
+  const [erro, setErro]      = useState<string | null>(null);
+  const [isPending, start]   = useTransition();
+  const router = useRouter();
+
+  const num  = parseFloat(peso.replace(",", "."));
+  const diff = isFinite(num) && num > 0 && row.ultimoPeso != null
+    ? num - row.ultimoPeso
+    : null;
+
+  function salvar() {
+    setErro(null);
+    if (!isFinite(num) || num <= 0) { setErro("Peso inválido"); return; }
+    start(async () => {
+      const res = await salvarPesagens([
+        { animal_id: row.id, data, peso_kg: num },
+      ]);
+      if (!res.ok)          { setErro(res.erro ?? "Erro ao salvar"); return; }
+      if (res.salvas === 0) { setErro("Essa pesagem já estava registrada"); return; }
+      setPeso("");
+      setData(hoje);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">
+        Nova pesagem
+      </span>
+      <input
+        type="date"
+        value={data}
+        max={hoje}
+        onChange={(e) => setData(e.target.value)}
+        className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-300"
+      />
+      <input
+        type="number"
+        step="0.1"
+        min="0"
+        inputMode="decimal"
+        value={peso}
+        placeholder="kg"
+        onChange={(e) => setPeso(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") salvar();
+          if (e.key === "Escape") { setPeso(""); setErro(null); }
+        }}
+        className="w-20 border border-gray-200 rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-1 focus:ring-brand-300"
+      />
+      {diff != null && (
+        <span className={`text-[10px] font-semibold ${
+          diff > 0 ? "text-green-600" : diff < 0 ? "text-red-500" : "text-gray-400"
+        }`}>
+          {diff > 0 ? "+" : ""}{diff.toFixed(1)} kg
+        </span>
+      )}
+      <button
+        onClick={salvar}
+        disabled={isPending || !(isFinite(num) && num > 0)}
+        className="inline-flex items-center gap-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs px-3 py-1 rounded transition-colors"
+      >
+        {isPending
+          ? <Loader2 className="w-3 h-3 animate-spin" />
+          : <Plus className="w-3 h-3" />}
+        Add
+      </button>
+      {erro && <span className="text-[10px] text-red-600">{erro}</span>}
+    </div>
+  );
+}
+
 // ── Tabela principal ──────────────────────────────────────────────────────────
 
 export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
@@ -147,14 +229,13 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
                 <Fragment key={r.id}>
                   {/* ── Linha principal ── */}
                   <tr
-                    onClick={() => r.qtdPesagens > 0 && toggle(r.id)}
-                    className={`transition-colors ${r.qtdPesagens > 0 ? "cursor-pointer hover:bg-gray-50" : ""} ${isOpen ? "bg-brand-50/30" : ""}`}
+                    onClick={() => toggle(r.id)}
+                    title="Clique para ver o histórico e lançar uma pesagem"
+                    className={`transition-colors cursor-pointer hover:bg-gray-50 ${isOpen ? "bg-brand-50/30" : ""}`}
                   >
                     <td className="px-4 py-3 font-medium text-gray-900">
                       <div className="flex items-center gap-2">
-                        {r.qtdPesagens > 0 && (
-                          <ChevronDown className={`w-3.5 h-3.5 text-gray-300 transition-transform shrink-0 ${isOpen ? "rotate-180" : ""}`} />
-                        )}
+                        <ChevronDown className={`w-3.5 h-3.5 text-gray-300 transition-transform shrink-0 ${isOpen ? "rotate-180" : ""}`} />
                         {r.animalHref
                           ? <a href={r.animalHref} onClick={(e) => e.stopPropagation()} className="hover:text-brand-600 hover:underline transition-colors">{r.nome}</a>
                           : <span>{r.nome}</span>}
@@ -197,12 +278,17 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
                   </tr>
 
                   {/* ── Histórico (expande ao clicar) ── */}
-                  {isOpen && r.historico.length > 0 && (
+                  {isOpen && (
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <td colSpan={9} className="px-8 py-3">
                         <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-2">
                           Histórico — {r.nome}
                         </p>
+                        {r.historico.length === 0 && (
+                          <p className="text-xs text-gray-400">
+                            Nenhuma pesagem registrada ainda.
+                          </p>
+                        )}
                         <div className="flex flex-wrap gap-2">
                           {r.historico.map((w, idx) => {
                             const prev = idx > 0 ? r.historico[idx - 1] : null;
@@ -220,6 +306,8 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
                             );
                           })}
                         </div>
+
+                        <NovaPesagemInline row={r} />
                       </td>
                     </tr>
                   )}
