@@ -10,6 +10,7 @@ import BotaoExcluirTransacao from "./BotaoExcluirTransacao";
 import BotaoEditarTransacao from "./BotaoEditarTransacao";
 import { Suspense } from "react";
 import BuscaFinanceiro from "./BuscaFinanceiro";
+import { ParcelasInline } from "./ParcelasInline";
 import { ViewToggle } from "./ViewToggle";
 import FiltroFinanceiro from "./FiltroFinanceiro";
 
@@ -110,34 +111,72 @@ function totalDe(list: any[]): number {
 }
 
 // ── Situação das parcelas (pagas vs pendentes) ────────────────────────────────
-// Lógica simples: 1 parcela a cada 30 dias a partir da data da transação.
-// Não depende da tabela installments nem do campo vencimento.
+//
+// PRECEDÊNCIA (a primeira que existir manda):
+//   1º  transactions.parcelas_pagas_manual  — informado na mão pelo usuário
+//   2º  COUNT(installments WHERE status = 'PAGO')
+//   3º  estimativa por tempo decorrido: 1 parcela a cada 30 dias desde a data
+//
+// `origem` diz de onde veio o número, para a UI sinalizar o que é estimativa.
 
-function calcParcelaStats(t: any, hojeStr: string) {
+type OrigemParcelas = "MANUAL" | "INSTALLMENTS" | "ESTIMADO" | "SEM_DADOS";
+
+type ParcelaStats = {
+  pagas: number;
+  pendentes: number;
+  valorPago: number;
+  valorPendente: number;
+  nTotal: number;
+  temRegistros: boolean;
+  origem: OrigemParcelas;
+};
+
+function calcParcelaStats(t: any, hojeStr: string): ParcelaStats {
   const nTotal = Math.max(t.n_parcelas ?? 1, 1);
   const valorParcela = t.valor_total != null ? t.valor_total / nTotal : 0;
-  const dataStr: string | null = t.data ?? (t.auction as any)?.data ?? null;
 
-  if (!dataStr) {
-    // Sem data — não calcula
-    return { pagas: 0, pendentes: nTotal, valorPago: 0, valorPendente: t.valor_total ?? 0, nTotal, temRegistros: false };
+  const montar = (pagasRaw: number, origem: OrigemParcelas, temRegistros = true): ParcelaStats => {
+    const pagas     = Math.min(Math.max(pagasRaw, 0), nTotal);
+    const pendentes = nTotal - pagas;
+    return {
+      pagas,
+      pendentes,
+      valorPago:     parseFloat((pagas     * valorParcela).toFixed(2)),
+      valorPendente: parseFloat((pendentes * valorParcela).toFixed(2)),
+      nTotal,
+      temRegistros,
+      origem,
+    };
+  };
+
+  // 1º — valor informado manualmente
+  const manual = t.parcelas_pagas_manual;
+  if (manual !== null && manual !== undefined && Number.isFinite(Number(manual))) {
+    return montar(Number(manual), "MANUAL");
   }
 
-  const dataMs  = Date.parse(dataStr + "T12:00:00Z");
-  const hojeMs  = Date.parse(hojeStr  + "T12:00:00Z");
+  // 2º — parcelas efetivamente marcadas como PAGO
+  const inst: any[] = t.installments ?? [];
+  const pagasInst = inst.filter((p: any) => p?.status === "PAGO").length;
+  if (pagasInst > 0) {
+    return montar(pagasInst, "INSTALLMENTS");
+  }
+
+  // 3º — estimativa por tempo decorrido
+  const dataStr: string | null = t.data ?? (t.auction as any)?.data ?? null;
+  if (!dataStr) {
+    return {
+      pagas: 0, pendentes: nTotal, valorPago: 0,
+      valorPendente: t.valor_total ?? 0, nTotal,
+      temRegistros: false, origem: "SEM_DADOS",
+    };
+  }
+
+  const dataMs = Date.parse(dataStr + "T12:00:00Z");
+  const hojeMs = Date.parse(hojeStr + "T12:00:00Z");
   const diasDecorridos = (hojeMs - dataMs) / 86_400_000;
 
-  const pagas    = Math.min(Math.max(Math.floor(diasDecorridos / 30), 0), nTotal);
-  const pendentes = nTotal - pagas;
-
-  return {
-    pagas,
-    pendentes,
-    valorPago:      parseFloat((pagas     * valorParcela).toFixed(2)),
-    valorPendente:  parseFloat((pendentes * valorParcela).toFixed(2)),
-    nTotal,
-    temRegistros: true,
-  };
+  return montar(Math.floor(diasDecorridos / 30), "ESTIMADO");
 }
 
 function agregaStats(txList: any[], hojeStr: string) {
@@ -187,29 +226,41 @@ export default async function FinanceiroPage({
   const query = (q ?? "").toLowerCase().trim();
   const supabase = await createClient();
 
-  const { data: doadoras } = await supabase
+  // Todos os animais cadastrados — o vínculo financeiro vale para qualquer tipo,
+  // não só doadoras. É o que faz o lançamento aparecer na ficha do animal.
+  const { data: todosAnimais } = await supabase
     .from("animals")
-    .select("id, nome, rgn, percentual_proprio")
+    .select("id, nome, rgn, brinco, tipo, percentual_proprio")
     .eq("farm_id", FARM_ID)
-    .eq("tipo", "DOADORA")
+    .in("tipo", ["DOADORA", "TOURO", "RECEPTORA", "NASCIDO", "DESCARTE"])
     .order("nome");
 
-  const { data: touros } = await supabase
-    .from("animals")
-    .select("id, nome, rgn")
-    .eq("farm_id", FARM_ID)
-    .eq("tipo", "TOURO")
-    .order("nome");
+  const animaisAll = (todosAnimais ?? []) as any[];
+  const doadoras   = animaisAll.filter((a) => a.tipo === "DOADORA");
+  const touros     = animaisAll.filter((a) => a.tipo === "TOURO");
 
-  const animaisVincularLista = [
-    ...(doadoras ?? []),
-    ...(touros ?? []),
-  ]
-    .map((a: any) => ({ id: a.id as string, nome: a.nome as string, rgn: (a.rgn ?? null) as string | null }))
+  const TIPO_LABEL: Record<string, string> = {
+    DOADORA: "Doadora", TOURO: "Touro", RECEPTORA: "Receptora",
+    NASCIDO: "Nascido", DESCARTE: "Descarte",
+  };
+
+  const animaisVincularLista = animaisAll
+    .map((a: any) => ({
+      id:   a.id   as string,
+      nome: a.nome as string,
+      rgn:  (a.rgn ?? a.brinco ?? null) as string | null,
+      tipo: (a.tipo ?? "") as string,
+      tipoLabel: TIPO_LABEL[a.tipo] ?? a.tipo ?? "",
+    }))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-  const doadoraIds = new Set((doadoras ?? []).map((d: any) => d.id as string));
-  const touroIds   = new Set((touros   ?? []).map((t: any) => t.id as string));
+  const doadoraIds  = new Set(doadoras.map((d: any) => d.id as string));
+  const touroIds    = new Set(touros.map((t: any) => t.id as string));
+  const rebanhoIds  = new Set(
+    animaisAll
+      .filter((a) => ["RECEPTORA", "NASCIDO", "DESCARTE"].includes(a.tipo))
+      .map((a: any) => a.id as string)
+  );
 
   const { data: leiloesRaw } = await supabase
     .from("auctions")
@@ -221,7 +272,8 @@ export default async function FinanceiroPage({
   const { data: transactions, error } = await supabase
     .from("transactions")
     .select(`
-      id, tipo, categoria, animal_nome, doadora_id, contraparte, valor_total, n_parcelas, observacoes, data,
+      id, tipo, categoria, animal_nome, doadora_id, contraparte, valor_total, n_parcelas,
+      parcelas_pagas_manual, observacoes, data,
       auction:auctions ( id, nome, data, local ),
       installments ( numero, vencimento, valor, status ),
       transaction_animals ( animal_id, animal:animals ( id, nome, rgn ) )
@@ -386,6 +438,8 @@ export default async function FinanceiroPage({
             { key: "contraparte",   label: "Comprador/Vendedor", padrao: true,  largura: 1.8 },
             { key: "valor_parcela", label: "Valor Parcela",      padrao: true,  largura: 1.0 },
             { key: "n_parcelas",    label: "Parcelas",           padrao: true,  largura: 0.7 },
+            { key: "pagas",         label: "Pagas/Receb.",       padrao: true,  largura: 0.9 },
+            { key: "saldo",         label: "Saldo Devedor",      padrao: true,  largura: 1.1 },
             { key: "valor_total",   label: "Valor Total",        padrao: true,  largura: 1.1 },
             { key: "observacoes",   label: "Observações",        padrao: false, largura: 2.0 },
           ] satisfies ColunaPDF[]}
@@ -416,6 +470,7 @@ export default async function FinanceiroPage({
               else if (isPrenhez(t))   grupo = "VENDA_PRENHEZ";
               else if (isAspiracao(t)) grupo = "VENDA_ASPIRACAO";
             }
+            const stPDF = calcParcelaStats(t, hojeStr);
             return {
               grupo,
               data:          dataRef ? new Date(dataRef + "T12:00:00").toLocaleDateString("pt-BR") : "—",
@@ -426,6 +481,8 @@ export default async function FinanceiroPage({
               contraparte:   t.contraparte ?? "—",
               valor_parcela: valorParcela != null ? formatCurrency(valorParcela) : "—",
               n_parcelas:    `${nParcelas}×`,
+              pagas:         `${stPDF.pagas}/${stPDF.nTotal}${stPDF.origem === "ESTIMADO" ? " ~" : ""}`,
+              saldo:         stPDF.pendentes > 0 ? formatCurrency(stPDF.valorPendente) : "Quitado",
               valor_total:   t.valor_total != null ? formatCurrency(t.valor_total) : "—",
               observacoes:   t.observacoes ?? "—",
             };
@@ -673,7 +730,9 @@ export default async function FinanceiroPage({
         <div className="card overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100">
             <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Situação das Parcelas</h3>
-            <p className="text-[10px] text-gray-400 mt-0.5">Vencimento até hoje = pago · Vencimento futuro = a pagar</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              Usa o número informado na coluna Parcelas quando houver · caso contrário estima por tempo decorrido
+            </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
 
@@ -771,7 +830,7 @@ export default async function FinanceiroPage({
             <h2 className="font-semibold text-gray-900">Registrar Nova Transação</h2>
             <ChevronDown className="w-4 h-4 text-gray-400 ml-auto" />
           </summary>
-          <NovaTransacaoForm doadoras={doadoras ?? []} />
+          <NovaTransacaoForm animais={animaisVincularLista} />
         </details>
       </div>
 
@@ -902,6 +961,7 @@ export default async function FinanceiroPage({
                       const animalHref = linkedId
                         ? doadoraIds.has(linkedId) ? `/doadoras/${linkedId}`
                         : touroIds.has(linkedId)   ? `/machos/${linkedId}`
+                        : rebanhoIds.has(linkedId) ? `/rebanho/${linkedId}`
                         : null
                         : null;
 
@@ -941,17 +1001,14 @@ export default async function FinanceiroPage({
                           <td className="px-3 py-2.5 text-right whitespace-nowrap">
                             {(() => {
                               const st = calcParcelaStats(t, hojeStr);
-                              if (!st.temRegistros) return <span className="text-gray-600 font-medium">{nParcelas}×</span>;
-                              const pct = st.nTotal > 0 ? (st.pagas / st.nTotal) * 100 : 0;
-                              const cor = st.pendentes === 0 ? "text-green-600" : "text-amber-600";
-                              const barCor = st.pendentes === 0 ? "bg-green-500" : "bg-amber-400";
                               return (
-                                <div>
-                                  <div className={`text-xs font-semibold ${cor}`}>{st.pagas}/{st.nTotal}</div>
-                                  <div className="mt-0.5 h-1 rounded-full bg-gray-100 w-10 ml-auto">
-                                    <div className={`h-1 rounded-full ${barCor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-                                  </div>
-                                </div>
+                                <ParcelasInline
+                                  txId={t.id}
+                                  pagas={st.pagas}
+                                  nTotal={st.nTotal}
+                                  origem={st.origem}
+                                  tipo={isCompra ? "COMPRA" : "VENDA"}
+                                />
                               );
                             })()}
                           </td>
@@ -1163,6 +1220,7 @@ export default async function FinanceiroPage({
                           const mLkHref = mLkId
                             ? doadoraIds.has(mLkId) ? `/doadoras/${mLkId}`
                             : touroIds.has(mLkId)   ? `/machos/${mLkId}`
+                            : rebanhoIds.has(mLkId) ? `/rebanho/${mLkId}`
                             : null : null;
                           return (
                             <div key={t.id} className="px-4 py-3">
@@ -1225,6 +1283,7 @@ export default async function FinanceiroPage({
                             const lkHref = lkId
                               ? doadoraIds.has(lkId) ? `/doadoras/${lkId}`
                               : touroIds.has(lkId)   ? `/machos/${lkId}`
+                              : rebanhoIds.has(lkId) ? `/rebanho/${lkId}`
                               : null : null;
                             return (
                               <tr key={t.id} className="hover:bg-gray-50 transition-colors">

@@ -30,7 +30,12 @@ export async function criarTransacao(formData: FormData) {
   const tipo_detalhado  = formData.get("tipo_detalhado") as string;
   const animal_nome_raw = (formData.get("animal_nome") as string) || "";
   const animal_rgn_raw  = ((formData.get("animal_rgn") as string) || "").trim();
-  const doadora_id_raw  = (formData.get("doadora_id") as string) || "";
+  // Animais cadastrados vinculados a este lançamento (SeletorAnimais).
+  // Fallback: `doadora_id` do formato antigo.
+  const animalIds = formData.getAll("animal_ids")
+    .map(v => String(v).trim())
+    .filter(Boolean);
+  const doadora_id_raw  = animalIds[0] ?? ((formData.get("doadora_id") as string) || "");
   const contraparte     = (formData.get("contraparte") as string) || null;
   const valorRaw        = formData.get("valor_total") as string;
   const nParcelasRaw    = formData.get("n_parcelas") as string;
@@ -50,24 +55,44 @@ export async function criarTransacao(formData: FormData) {
   const supabase = await createClient();
   const { tipo, prefixo, categoria: catBase } = parseTipoDetalhado(tipo_detalhado);
 
-  // Se doadora foi selecionada no dropdown, busca o nome canônico dela
-  let doadora_id: string | null = doadora_id_raw || null;
+  // Se animais cadastrados foram selecionados, usa os nomes canônicos deles
+  const idsVinculo = animalIds.length > 0
+    ? animalIds
+    : (doadora_id_raw ? [doadora_id_raw] : []);
+
+  const doadora_id: string | null = idsVinculo[0] ?? null;
   let nomeBase = animal_nome_raw;
-  if (doadora_id) {
-    const { data: animal } = await supabase
+  let tipoPrincipal: string | null = null;
+
+  if (idsVinculo.length > 0) {
+    const { data: animaisSel } = await supabase
       .from("animals")
-      .select("nome")
-      .eq("id", doadora_id)
-      .single();
-    if (animal?.nome) nomeBase = animal.nome;
+      .select("id, nome, tipo")
+      .in("id", idsVinculo)
+      .eq("farm_id", FARM_ID);
+
+    if (animaisSel && animaisSel.length > 0) {
+      // Preserva a ordem de seleção do formulário
+      const byId = new Map(animaisSel.map((a: any) => [a.id as string, a]));
+      const ordenados = idsVinculo.map(id => byId.get(id)).filter(Boolean) as any[];
+      if (ordenados.length > 0) {
+        nomeBase = ordenados.map(a => a.nome).join(" + ");
+        tipoPrincipal = ordenados[0].tipo ?? null;
+      }
+    }
   }
 
   const animal_nome = nomeBase
     ? `${prefixo}${nomeBase}`.trim()
     : null;
 
-  // Categoria: derivada do tipo_detalhado; se for animal + tem doadora_id → DOADORA
-  const categoria = catBase ?? (doadora_id ? "DOADORA" : null);
+  // Categoria: derivada do tipo_detalhado; senão, do tipo do animal vinculado
+  const CAT_POR_TIPO: Record<string, string> = {
+    DOADORA: "DOADORA", TOURO: "TOURO",
+    RECEPTORA: "RECEPTORA", NASCIDO: "ANIMAL", DESCARTE: "RECEPTORA",
+  };
+  const categoria = catBase
+    ?? (tipoPrincipal ? (CAT_POR_TIPO[tipoPrincipal] ?? "ANIMAL") : null);
 
   const { data: tx, error: txErr } = await supabase
     .from("transactions")
@@ -77,6 +102,7 @@ export async function criarTransacao(formData: FormData) {
       categoria,
       animal_nome,
       doadora_id,
+      animal_id: doadora_id,   // coluna legada — mantida em sincronia
       contraparte,
       valor_total,
       n_parcelas,
@@ -89,6 +115,14 @@ export async function criarTransacao(formData: FormData) {
   if (txErr || !tx) {
     console.error("Erro ao criar transação:", txErr);
     redirect("/financeiro");
+  }
+
+  // Vínculo com os animais — é o que faz o lançamento aparecer na ficha
+  if (idsVinculo.length > 0) {
+    const { error: vinculoErr } = await supabase
+      .from("transaction_animals")
+      .insert(idsVinculo.map(animal_id => ({ transaction_id: tx.id, animal_id })));
+    if (vinculoErr) console.error("Erro ao vincular animais à transação:", vinculoErr);
   }
 
   // Gera parcelas mensais automaticamente
@@ -110,6 +144,14 @@ export async function criarTransacao(formData: FormData) {
   await supabase.from("installments").insert(parcelas);
 
   revalidatePath("/financeiro");
+  revalidatePath("/doadoras");
+  revalidatePath("/machos");
+  revalidatePath("/rebanho");
+  for (const animalId of idsVinculo) {
+    revalidatePath(`/doadoras/${animalId}`);
+    revalidatePath(`/machos/${animalId}`);
+    revalidatePath(`/rebanho/${animalId}`);
+  }
   redirect("/financeiro");
 }
 
@@ -182,26 +224,134 @@ export async function editarTransacao(formData: FormData): Promise<{ ok: boolean
 
   if (error) return { ok: false, erro: error.message };
 
-  // Regenera parcelas com os novos valores
+  // ── Regenera parcelas PRESERVANDO o que já foi marcado como pago ───────────
+  // Antes esta rotina apagava tudo e recriava como PENDENTE, o que zerava
+  // qualquer marcação de pagamento a cada edição.
+  const { data: antigas } = await supabase
+    .from("installments")
+    .select("numero, status, data_pagamento")
+    .eq("transaction_id", tx_id);
+
+  const statusAnterior = new Map<number, { status: string; data_pagamento: string | null }>(
+    (antigas ?? []).map((p: any) => [p.numero as number, { status: p.status, data_pagamento: p.data_pagamento ?? null }])
+  );
+
+  // Se há um número manual de parcelas pagas, ele tem precedência
+  const { data: txAtual } = await supabase
+    .from("transactions")
+    .select("parcelas_pagas_manual")
+    .eq("id", tx_id)
+    .maybeSingle();
+  const pagasManual = (txAtual as any)?.parcelas_pagas_manual as number | null | undefined;
+
   await supabase.from("installments").delete().eq("transaction_id", tx_id);
+
   const dataBase = data ? new Date(data + "T12:00:00") : new Date();
   const novasParcelas = Array.from({ length: n_parcelas }, (_, i) => {
+    const numero = i + 1;
     const venc = new Date(dataBase);
-    venc.setMonth(venc.getMonth() + i + 1);
+    venc.setMonth(venc.getMonth() + numero);
+
+    const anterior = statusAnterior.get(numero);
+    const pagaPorManual = pagasManual != null && numero <= pagasManual;
+    const paga = pagaPorManual || anterior?.status === "PAGO";
+
     return {
       farm_id: FARM_ID,
       transaction_id: tx_id,
-      numero: i + 1,
+      numero,
       vencimento: venc.toISOString().split("T")[0],
       valor: parseFloat(valor_parcela.toFixed(2)),
-      status: "PENDENTE" as const,
+      status: paga ? ("PAGO" as const) : ("PENDENTE" as const),
+      data_pagamento: paga ? (anterior?.data_pagamento ?? venc.toISOString().split("T")[0]) : null,
     };
   });
   if (novasParcelas.length > 0) {
     await supabase.from("installments").insert(novasParcelas);
   }
 
+  // Se o nº de parcelas encolheu abaixo do manual, ajusta o manual
+  if (pagasManual != null && pagasManual > n_parcelas) {
+    await supabase
+      .from("transactions")
+      .update({ parcelas_pagas_manual: n_parcelas })
+      .eq("id", tx_id)
+      .eq("farm_id", FARM_ID);
+  }
+
   revalidatePath("/financeiro");
+  return { ok: true };
+}
+
+/**
+ * Define manualmente quantas parcelas já foram pagas (compra) ou recebidas (venda).
+ *
+ * - `pagas = null`  → volta ao cálculo automático
+ * - `pagas = 0..n`  → trava o número informado
+ *
+ * Também sincroniza a tabela `installments`: as N primeiras viram PAGO,
+ * as demais voltam para PENDENTE. Assim o número manual e as parcelas
+ * individuais nunca divergem.
+ */
+export async function definirParcelasPagas(
+  tx_id: string,
+  pagas: number | null,
+): Promise<{ ok: boolean; erro?: string }> {
+  if (!tx_id) return { ok: false, erro: "Transação inválida" };
+
+  const supabase = await createClient();
+
+  const { data: tx, error: txErr } = await supabase
+    .from("transactions")
+    .select("id, n_parcelas")
+    .eq("id", tx_id)
+    .eq("farm_id", FARM_ID)
+    .maybeSingle();
+
+  if (txErr)  return { ok: false, erro: txErr.message };
+  if (!tx)    return { ok: false, erro: "Transação não encontrada" };
+
+  const nTotal = Math.max((tx as any).n_parcelas ?? 1, 1);
+
+  let valor: number | null = null;
+  if (pagas !== null) {
+    if (!Number.isFinite(pagas) || pagas < 0) {
+      return { ok: false, erro: "Quantidade inválida" };
+    }
+    if (pagas > nTotal) {
+      return { ok: false, erro: `A transação tem apenas ${nTotal} parcela(s).` };
+    }
+    valor = Math.floor(pagas);
+  }
+
+  const { error } = await supabase
+    .from("transactions")
+    .update({ parcelas_pagas_manual: valor })
+    .eq("id", tx_id)
+    .eq("farm_id", FARM_ID);
+
+  if (error) return { ok: false, erro: error.message };
+
+  // Sincroniza installments com o número informado
+  if (valor !== null) {
+    const hoje = new Date().toISOString().split("T")[0];
+    await supabase
+      .from("installments")
+      .update({ status: "PAGO", data_pagamento: hoje })
+      .eq("transaction_id", tx_id)
+      .lte("numero", valor);
+
+    await supabase
+      .from("installments")
+      .update({ status: "PENDENTE", data_pagamento: null })
+      .eq("transaction_id", tx_id)
+      .gt("numero", valor);
+  }
+
+  revalidatePath("/financeiro");
+  revalidatePath("/doadoras");
+  revalidatePath("/machos");
+  revalidatePath("/rebanho");
   return { ok: true };
 }
 

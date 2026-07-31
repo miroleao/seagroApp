@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Info } from "lucide-react";
 import { criarTransacao } from "./actions";
-
-type Doadora = { id: string; nome: string; rgn: string | null };
+import { SeletorAnimais, type AnimalOpt } from "./SeletorAnimais";
 
 const inputCls =
   "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-300";
@@ -17,10 +16,11 @@ const ITEM_LABEL: Record<string, string> = {
   COMPRA_ASPIRACAO: "Nova Aspiração",
 };
 
-export default function NovaTransacaoForm({ doadoras }: { doadoras: Doadora[] }) {
+export default function NovaTransacaoForm({ animais }: { animais: AnimalOpt[] }) {
   const [tipo,       setTipo]       = useState("");
   const [parcela,    setParcela]    = useState("");
   const [nParcelas,  setNParcelas]  = useState("30");
+  const [vinculados, setVinculados] = useState<string[]>([]);
 
   const isVenda  = tipo.startsWith("VENDA");
   const isCompra = tipo.startsWith("COMPRA");
@@ -38,7 +38,7 @@ export default function NovaTransacaoForm({ doadoras }: { doadoras: Doadora[] })
       {/* Valor total calculado (hidden → server action) */}
       <input type="hidden" name="valor_total" value={total?.toFixed(2) ?? ""} />
 
-      {/* ── Linha 1: Tipo | Item | Nome | RGN ──────────────────────── */}
+      {/* ── Linha 1: Tipo | Animal vinculado | Nome | RGN ──────────── */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Tipo */}
         <div>
@@ -64,36 +64,26 @@ export default function NovaTransacaoForm({ doadoras }: { doadoras: Doadora[] })
           </select>
         </div>
 
-        {/* Item — dropdown para vendas, badge informativo para compras */}
+        {/* Animal vinculado — vale para compra E venda, qualquer tipo de animal */}
         <div>
-          <label className={labelCls}>Item</label>
-          {isVenda ? (
-            <select name="doadora_id" className={inputCls}>
-              <option value="">— Selecione a doadora —</option>
-              {doadoras.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nome}{d.rgn ? ` (${d.rgn})` : ""}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <div
-              className={`${inputCls} ${
-                isCompra ? "text-gray-500" : "text-gray-300"
-              } cursor-default select-none`}
-            >
-              {isCompra ? ITEM_LABEL[tipo] : "— selecione o tipo —"}
-            </div>
-          )}
+          <label className={labelCls}>Animal cadastrado</label>
+          <SeletorAnimais animais={animais} onChange={setVinculados} />
         </div>
 
-        {/* Nome */}
+        {/* Nome livre — só quando o animal ainda não está cadastrado */}
         <div>
-          <label className={labelCls}>Nome</label>
+          <label className={labelCls}>
+            Nome {vinculados.length > 0 && <span className="text-gray-300 normal-case">(opcional)</span>}
+          </label>
           <input
             name="animal_nome"
-            placeholder={isCompra ? (ITEM_LABEL[tipo] ?? "Nome") : "Nome do animal"}
-            className={inputCls}
+            disabled={vinculados.length > 0}
+            placeholder={
+              vinculados.length > 0
+                ? "usa o nome do animal vinculado"
+                : isCompra ? (ITEM_LABEL[tipo] ?? "Nome") : "Nome do animal"
+            }
+            className={`${inputCls} disabled:bg-gray-50 disabled:text-gray-400`}
           />
         </div>
 
@@ -182,12 +172,21 @@ export default function NovaTransacaoForm({ doadoras }: { doadoras: Doadora[] })
         />
       </div>
 
-      <button
-        type="submit"
-        className="inline-flex items-center gap-2 bg-brand-600 text-white text-sm px-5 py-2.5 rounded-lg hover:bg-brand-700 transition-colors font-medium cursor-pointer"
-      >
-        <Plus className="w-4 h-4" /> Registrar Transação
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          className="inline-flex items-center gap-2 bg-brand-600 text-white text-sm px-5 py-2.5 rounded-lg hover:bg-brand-700 transition-colors font-medium cursor-pointer"
+        >
+          <Plus className="w-4 h-4" /> Registrar Transação
+        </button>
+        {vinculados.length > 0 && (
+          <p className="text-[11px] text-gray-500 flex items-center gap-1.5">
+            <Info className="w-3 h-3 text-brand-500 shrink-0" />
+            Este lançamento vai aparecer na ficha
+            {vinculados.length > 1 ? ` dos ${vinculados.length} animais vinculados` : " do animal vinculado"}.
+          </p>
+        )}
+      </div>
     </form>
   );
 }

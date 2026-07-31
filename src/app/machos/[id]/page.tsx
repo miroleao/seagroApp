@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { FinanceiroAnimalSection } from "@/components/FinanceiroAnimalSection";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import {
@@ -963,6 +964,9 @@ export default async function MachoDetalhePage({
           </form>
         </section>
       )}
+
+      {/* ── Lançamentos financeiros vinculados ───────────────── */}
+      <FinanceiroAnimalSection animalId={macho.id} animalNome={macho.nome} />
 
       {/* ── Parcela mensal do macho ──────────────────────────── */}
       <div className="card p-5">

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { FinanceiroAnimalSection } from "@/components/FinanceiroAnimalSection";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, FARM_ID } from "@/lib/utils";
@@ -62,7 +63,7 @@ export default async function FichaRebanhoPage({
 
   // ── Pesagens ─────────────────────────────────────────────────────────────────
   const { data: pesagens } = await supabase
-    .from("pesagens")
+    .from("weight_records")
     .select("id, data, peso_kg, observacoes, criado_em")
     .eq("animal_id", id)
     .eq("farm_id", FARM_ID)
@@ -206,14 +207,6 @@ export default async function FichaRebanhoPage({
   } catch {
     // migration ainda não rodada — ignora silenciosamente
   }
-
-  // ── Transações da receptora (vendas) ─────────────────────────────────────────
-  const { data: transacoes } = await supabase
-    .from("transactions")
-    .select("id, tipo, contraparte, valor_total, data, observacoes")
-    .eq("farm_id", FARM_ID)
-    .eq("animal_id", id)
-    .order("data", { ascending: false });
 
   // Helper: acha o bezerro de uma data de parição
   function filhoteDaParicao(dataDesfecho: string, doadoraId: string | null) {
@@ -729,45 +722,9 @@ export default async function FichaRebanhoPage({
         )}
       </section>
 
-      {/* ── Transações / Venda ──────────────────────────────────────────────── */}
-      {transacoes && transacoes.length > 0 && (
-        <section className="card overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-            <span className="text-lg">💰</span>
-            <h2 className="font-semibold text-gray-900">Transações</h2>
-            <span className="badge bg-gray-100 text-gray-500 ml-auto">{transacoes.length}</span>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {transacoes.map((tx: any) => (
-              <div key={tx.id} className="px-5 py-3 flex items-start gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      tx.tipo === "VENDA" ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"
-                    }`}>
-                      {tx.tipo === "VENDA" ? "Venda" : "Compra"}
-                    </span>
-                    {tx.contraparte && (
-                      <span className="text-sm text-gray-700 font-medium">{tx.contraparte}</span>
-                    )}
-                  </div>
-                  {tx.observacoes && (
-                    <p className="text-xs text-gray-400 mt-0.5 italic">{tx.observacoes}</p>
-                  )}
-                </div>
-                <div className="text-right shrink-0">
-                  {tx.valor_total && (
-                    <p className="text-sm font-bold text-gray-900">
-                      {Number(tx.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-400">{formatDate(tx.data)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* ── Financeiro ──────────────────────────────────────────────────────── */}
+      <FinanceiroAnimalSection animalId={animal.id} animalNome={animal.nome} />
+
     </div>
   );
 }
