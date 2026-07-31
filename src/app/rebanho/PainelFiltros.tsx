@@ -58,6 +58,7 @@ export function PainelFiltros({
   const [pos, setPos] = useState({ top: 0, right: 0 });
   const wrapRef = useRef<HTMLDivElement>(null);
   const btnRef  = useRef<HTMLButtonElement>(null);
+  const painelRef = useRef<HTMLDivElement>(null);
 
   // O card do rebanho tem `overflow-hidden`, que recortava o painel absoluto.
   // Posicionamento fixo calculado a partir do botão resolve — mesmo padrão
@@ -178,6 +179,7 @@ export function PainelFiltros({
 
       {aberto && (
         <div
+          ref={painelRef}
           style={{ position: "fixed", top: pos.top, right: pos.right, zIndex: 9999 }}
           className="w-[min(92vw,34rem)] max-h-[80vh] flex flex-col bg-white border border-gray-200 rounded-xl shadow-xl"
         >
