@@ -75,7 +75,9 @@ export async function cadastrarAnimal(formData: FormData) {
     .single();
 
   if (!error && animal && peso_inicial) {
-    await supabase.from("pesagens").insert({
+    // weight_records é a tabela canônica de pesagens (lida por /pesagens,
+    // /doadoras/[id], /machos/[id] e /relatorios).
+    await supabase.from("weight_records").insert({
       farm_id:  FARM_ID,
       animal_id: animal.id,
       data:     data_entrada || new Date().toISOString().split("T")[0],

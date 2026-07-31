@@ -126,21 +126,34 @@ export async function adicionarPesagem(formData: FormData): Promise<{ ok: boolea
   const peso_kg = parseFloat(peso_kg_raw);
   if (isNaN(peso_kg) || peso_kg <= 0) return { ok: false, erro: "Peso inválido" };
 
-  const { error } = await supabase.from("pesagens").insert({
+  // weight_records é a tabela canônica de pesagens — a mesma lida por
+  // /pesagens, /doadoras/[id], /machos/[id] e /relatorios.
+  const { error } = await supabase.from("weight_records").insert({
     farm_id: FARM_ID, animal_id, data, peso_kg, observacoes,
   });
 
   if (error) return { ok: false, erro: error.message };
 
-  // Atualiza peso_atual para o mais recente
+  // Atualiza peso_atual com a pesagem MAIS RECENTE (não necessariamente esta —
+  // o usuário pode estar lançando uma pesagem retroativa).
+  const { data: maisRecente } = await supabase
+    .from("weight_records")
+    .select("peso_kg")
+    .eq("animal_id", animal_id)
+    .eq("farm_id", FARM_ID)
+    .order("data", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   await supabase
     .from("animals")
-    .update({ peso_atual: peso_kg })
+    .update({ peso_atual: (maisRecente as any)?.peso_kg ?? peso_kg })
     .eq("id", animal_id)
     .eq("farm_id", FARM_ID);
 
   revalidatePath(`/rebanho/${animal_id}`);
   revalidatePath("/rebanho");
+  revalidatePath("/pesagens");
   return { ok: true };
 }
 

@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import BuscaPesagens from "./BuscaPesagens";
 import FiltroPesagens from "./FiltroPesagens";
 import TabelaPesagens, { type PesagemRow } from "./TabelaPesagens";
+import NovaPesagemModal, { type AnimalOpt } from "./NovaPesagemModal";
 
 export const revalidate = 0;
 
@@ -179,6 +180,24 @@ export default async function PesagensPage({
     };
   });
 
+  // Opções para o modal de lançamento — sempre TODOS os animais, sem filtro.
+  // "NASCIDO" aqui segue a mesma regra visual da tabela (flag ou RGN SMEF).
+  const opcoesAnimais: AnimalOpt[] = animais.map((a) => {
+    const sorted = sortedWeights(a.weight_records ?? []);
+    const ultimo = sorted[sorted.length - 1] ?? null;
+    const nascidoSE = isNascidoSE(a);
+    return {
+      id:         a.id,
+      nome:       a.nome,
+      tipo:       nascidoSE ? "NASCIDO" : a.tipo,
+      tipoLabel:  nascidoSE ? "Nascido SE" : tipoLabelFn(a.tipo),
+      rgn:        a.rgn ?? null,
+      brinco:     a.brinco ?? null,
+      ultimoPeso: ultimo?.peso_kg ?? null,
+      ultimaData: ultimo?.data ?? null,
+    };
+  });
+
   // Cards resumo (sempre do total geral, ignora filtros)
   const comPesagem = animais.filter(a => (a.weight_records ?? []).length > 0);
   const excelentes = comPesagem.filter(a => { const p = calcPonderal(a.weight_records ?? [], a.nascimento); return p !== null && p >= 800; });
@@ -228,6 +247,8 @@ export default async function PesagensPage({
             {animais.length} animais · {comPesagem.length} com pesagem registrada
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <NovaPesagemModal animais={opcoesAnimais} />
         <ExportarPDF
           titulo="Relatório de Pesagens"
           subtitulo="SE Agropecuária Nelore de Elite"
@@ -254,6 +275,7 @@ export default async function PesagensPage({
           ] satisfies ColunaPDF[]}
           dados={dadosPDF}
         />
+        </div>
       </div>
 
       {/* ── Cards resumo ───────────────────────────────────────────────── */}
