@@ -55,7 +55,20 @@ export function PainelFiltros({
   const router = useRouter();
   const params = useSearchParams();
   const [aberto, setAberto] = useState(false);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
   const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef  = useRef<HTMLButtonElement>(null);
+
+  // O card do rebanho tem `overflow-hidden`, que recortava o painel absoluto.
+  // Posicionamento fixo calculado a partir do botão resolve — mesmo padrão
+  // já usado no VincularDropdown do financeiro.
+  function abrir() {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+    }
+    setAberto(o => !o);
+  }
 
   const valorAtual = (c: Campo) => params.get(c) ?? "";
   const [rascunho, setRascunho] = useState<Record<Campo, string>>(
@@ -72,14 +85,40 @@ export function PainelFiltros({
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [aberto]);
 
-  // Fecha ao clicar fora
+  // Fecha ao clicar fora ou com Esc
   useEffect(() => {
     if (!aberto) return;
-    function handler(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setAberto(false);
+    function clique(e: MouseEvent) {
+      const alvo = e.target as Node;
+      if (wrapRef.current?.contains(alvo)) return;
+      if (painelRef.current?.contains(alvo)) return;   // painel vive fora do wrapper
+      setAberto(false);
     }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    function tecla(e: KeyboardEvent) {
+      if (e.key === "Escape") setAberto(false);
+    }
+    document.addEventListener("mousedown", clique);
+    document.addEventListener("keydown", tecla);
+    return () => {
+      document.removeEventListener("mousedown", clique);
+      document.removeEventListener("keydown", tecla);
+    };
+  }, [aberto]);
+
+  // Painel é `fixed`: reposiciona junto com scroll e resize
+  useEffect(() => {
+    if (!aberto) return;
+    function reposicionar() {
+      if (!btnRef.current) return;
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+    }
+    window.addEventListener("scroll", reposicionar, true);
+    window.addEventListener("resize", reposicionar);
+    return () => {
+      window.removeEventListener("scroll", reposicionar, true);
+      window.removeEventListener("resize", reposicionar);
+    };
   }, [aberto]);
 
   const ativos = CAMPOS.filter(c => !!valorAtual(c)).length;
@@ -106,9 +145,10 @@ export function PainelFiltros({
   }
 
   return (
-    <div ref={wrapRef} className="relative">
+    <div ref={wrapRef} className="flex items-center gap-1.5">
       <button
-        onClick={() => setAberto(o => !o)}
+        ref={btnRef}
+        onClick={abrir}
         className={`inline-flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 transition-colors ${
           ativos > 0
             ? "border-brand-300 bg-brand-50 text-brand-700 font-medium"
@@ -124,9 +164,24 @@ export function PainelFiltros({
         )}
       </button>
 
+      {/* Limpar sem precisar abrir o painel */}
+      {ativos > 0 && (
+        <button
+          onClick={limparTudo}
+          title="Limpar todos os filtros"
+          className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-600 border border-transparent hover:border-red-200 rounded-lg px-2 py-1.5 transition-colors"
+        >
+          <X className="w-3.5 h-3.5 shrink-0" />
+          <span className="hidden sm:inline">Limpar</span>
+        </button>
+      )}
+
       {aberto && (
-        <div className="absolute right-0 z-30 mt-2 w-[min(92vw,34rem)] bg-white border border-gray-200 rounded-xl shadow-xl">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+        <div
+          style={{ position: "fixed", top: pos.top, right: pos.right, zIndex: 9999 }}
+          className="w-[min(92vw,34rem)] max-h-[80vh] flex flex-col bg-white border border-gray-200 rounded-xl shadow-xl"
+        >
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 shrink-0">
             <Filter className="w-3.5 h-3.5 text-brand-600 shrink-0" />
             <span className="text-sm font-semibold text-gray-900">Filtrar rebanho</span>
             <button onClick={() => setAberto(false)}
@@ -135,7 +190,7 @@ export function PainelFiltros({
             </button>
           </div>
 
-          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto">
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto flex-1 min-h-0">
             <div>
               <label className={labelCls}>Situação reprodutiva</label>
               <select value={rascunho.st} onChange={e => set("st", e.target.value)} className={selCls}>
@@ -213,7 +268,7 @@ export function PainelFiltros({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-100">
+          <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-100 shrink-0 bg-white rounded-b-xl">
             <button
               onClick={limparTudo}
               className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"

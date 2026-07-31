@@ -230,12 +230,23 @@ export function ExportarPDF({
 
     drawHeader();
 
+    // Subtítulo: quando a tela oferece escopo (filtrado x tudo), a linha é
+    // montada aqui — só este ponto sabe quantos registros de fato saíram e
+    // sob qual filtro. O `subtitulo` recebido vira apenas fallback.
+    const linhaSubtitulo = podeAlternarEscopo
+      ? (exportarTudo
+          ? `${dadosFiltrados.length} registros — sem filtro`
+          : [`${dadosFiltrados.length} de ${dadosCompletos!.length} registros`,
+             descricaoFiltro && descricaoFiltro !== "sem filtro" ? descricaoFiltro : null,
+            ].filter(Boolean).join(" · "))
+      : subtitulo;
+
     let startY = 14 + 12;
-    if (subtitulo) {
+    if (linhaSubtitulo) {
       doc.setTextColor(80, 80, 80);
       doc.setFontSize(8);
       doc.setFont("helvetica", "italic");
-      doc.text(subtitulo, mH, startY);
+      doc.text(linhaSubtitulo, mH, startY);
       startY += 5;
     }
 
@@ -327,7 +338,8 @@ export function ExportarPDF({
     doc.save(arquivo);
     setAberto(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colunas, dadosFiltrados, orientacao, selecionadas, obsExtras, obsPreFillField, titulo, subtitulo, nomeArquivo]);
+  }, [colunas, dadosFiltrados, orientacao, selecionadas, obsExtras, obsPreFillField, titulo,
+      subtitulo, nomeArquivo, podeAlternarEscopo, exportarTudo, dadosCompletos, descricaoFiltro]);
 
   return (
     <>
