@@ -2,14 +2,13 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, FARM_ID } from "@/lib/utils";
-import { Plus, Search, Filter, X } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { PrenhasAtivasSection, type PrenhaAnimal } from "./PrenhasAtivasSection";
 import { StatusReceptorasSection, type StatusItem } from "./StatusReceptorasSection";
 import { cadastrarAnimal, cadastrarLote } from "./actions";
-import { FiltroStatus } from "./FiltroStatus";
 import { FiltroClassificacao } from "./FiltroClassificacao";
 import { HeaderOrdenavel } from "./HeaderOrdenavel";
-import { FiltroDataTE } from "./FiltroDataTE";
+import { PainelFiltros } from "./PainelFiltros";
 import { EditReprodutivoInline } from "./EditReprodutivoInline";
 import { EditPesoInline } from "./EditPesoInline";
 import { EditPrenheInline } from "./EditPrenheInline";
@@ -67,9 +66,14 @@ export default async function RebanhoPage({
   searchParams: Promise<{
     q?: string; cls?: string; st?: string; modal?: string; erro?: string;
     sort?: string; dir?: string; teDe?: string; teAte?: string;
+    doadora?: string; touro?: string; local?: string; sex?: string;
+    ppDe?: string; ppAte?: string;
   }>;
 }) {
-  const { q, cls, st, modal, erro, sort, dir, teDe, teAte } = await searchParams;
+  const {
+    q, cls, st, modal, erro, sort, dir, teDe, teAte,
+    doadora: fDoadora, touro: fTouro, local: fLocal, sex: fSex, ppDe, ppAte,
+  } = await searchParams;
   const supabase = await createClient();
 
   // Animais do rebanho (RECEPTORA + DESCARTE, inclui RECRIA via classificacao)
@@ -266,10 +270,24 @@ export default async function RebanhoPage({
   const countImplantadas  = countStatus["IMPLANTADA"] ?? 0;
   const countParidas      = countStatus["PARIDA"] ?? 0;
 
-  // ── Data de T.E. de cada animal (prenhez ativa ou histórico de parição) ─────
-  function dataTEDe(a: any): string | null {
-    return prenhezesMapa.get(a.id)?.dataTe ?? paridasMapa.get(a.id)?.dataTe ?? null;
+  // ── Dados da prenhez de cada animal (ativa ou histórico de parição) ────────
+  function infoPrenhez(a: any) {
+    return prenhezesMapa.get(a.id) ?? paridasMapa.get(a.id) ?? null;
   }
+  function dataTEDe(a: any): string | null   { return infoPrenhez(a)?.dataTe ?? null; }
+  function doadoraDe(a: any): string | null  { return infoPrenhez(a)?.doadoraNome ?? null; }
+  function touroDe(a: any): string | null    { return infoPrenhez(a)?.touroNome ?? null; }
+  function sexagemDe(a: any): string | null  { return infoPrenhez(a)?.sexagem ?? null; }
+  function previsaoDe(a: any): string | null { return prenhezesMapa.get(a.id)?.previsao ?? null; }
+
+  // Opções dos selects — só o que realmente existe nos dados
+  const listaUnica = (vals: (string | null)[]) =>
+    [...new Set(vals.filter((v): v is string => !!v && v.trim() !== ""))]
+      .sort((x, y) => x.localeCompare(y, "pt-BR"));
+
+  const optDoadoras     = listaUnica(animais.map(doadoraDe));
+  const optTouros       = listaUnica(animais.map(touroDe));
+  const optLocalizacoes = listaUnica(animais.map((a: any) => a.localizacao ?? null));
 
   // Filtro
   const filtered = animais.filter(a => {
@@ -286,7 +304,18 @@ export default async function RebanhoPage({
       const d = dataTEDe(a);
       passaTE = !!d && (!teDe || d >= teDe) && (!teAte || d <= teAte);
     }
-    return passaTermo && passaCls && passaSt && passaTE;
+    // Período de previsão de parto
+    let passaPP = true;
+    if (ppDe || ppAte) {
+      const d = previsaoDe(a);
+      passaPP = !!d && (!ppDe || d >= ppDe) && (!ppAte || d <= ppAte);
+    }
+    const passaDoadora = !fDoadora || doadoraDe(a) === fDoadora;
+    const passaTouro   = !fTouro   || touroDe(a)   === fTouro;
+    const passaLocal   = !fLocal   || (a.localizacao ?? "") === fLocal;
+    const passaSex     = !fSex     || sexagemDe(a) === fSex;
+    return passaTermo && passaCls && passaSt && passaTE && passaPP
+        && passaDoadora && passaTouro && passaLocal && passaSex;
   });
 
 
@@ -357,6 +386,11 @@ export default async function RebanhoPage({
     st  ? "situação filtrada" : null,
     cls ? "classificação filtrada" : null,
     (teDe || teAte) ? `T.E. ${teDe || "…"} a ${teAte || "…"}` : null,
+    (ppDe || ppAte) ? `parto ${ppDe || "…"} a ${ppAte || "…"}` : null,
+    fDoadora ? `doadora ${fDoadora}` : null,
+    fTouro   ? `touro ${fTouro}`     : null,
+    fLocal   ? `local ${fLocal}`     : null,
+    fSex     ? `sexagem ${fSex}`     : null,
   ].filter(Boolean).join(" · ") || "sem filtro";
 
   function linhaPDFRebanho(a: any) {
@@ -698,25 +732,27 @@ export default async function RebanhoPage({
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <form method="get">
-              {cls && <input type="hidden" name="cls" value={cls} />}
-              {st  && <input type="hidden" name="st"  value={st}  />}
+              {/* Preserva todo o resto do estado ao submeter a busca —
+                  sem isso, buscar zerava filtros e ordenação. */}
+              {Object.entries({
+                cls, st, sort, dir, teDe, teAte, ppDe, ppAte,
+                doadora: fDoadora, touro: fTouro, local: fLocal, sex: fSex,
+              }).map(([nome, valor]) =>
+                valor ? <input key={nome} type="hidden" name={nome} value={valor} /> : null
+              )}
               <input name="q" defaultValue={q} placeholder="Buscar brinco, nome…"
                 className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg w-48 focus:outline-none focus:ring-1 focus:ring-brand-300" />
             </form>
           </div>
 
-          {/* Filtro status */}
-          <div className="flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5 text-gray-400" />
-            <FiltroStatus q={q} cls={cls} st={st} />
-            {st && (
-              <Link href={`?${cls ? `cls=${cls}` : ""}${q ? `&q=${q}` : ""}`}
-                className="text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></Link>
-            )}
-          </div>
-
-          {/* Filtro por período de T.E. */}
-          <Suspense fallback={null}><FiltroDataTE /></Suspense>
+          {/* Painel de filtros */}
+          <Suspense fallback={null}>
+            <PainelFiltros
+              doadoras={optDoadoras}
+              touros={optTouros}
+              localizacoes={optLocalizacoes}
+            />
+          </Suspense>
 
           <span className="badge bg-gray-100 text-gray-600 ml-auto">{ordenados.length}</span>
         </div>
@@ -733,7 +769,7 @@ export default async function RebanhoPage({
                 </th>
                 <th className="px-2 py-3 text-xs font-medium text-gray-500 w-28">
                   <HeaderOrdenavel campo="classificacao">Classificação</HeaderOrdenavel>
-                  <FiltroClassificacao q={q} cls={cls} st={st} />
+                  <Suspense fallback={null}><FiltroClassificacao /></Suspense>
                 </th>
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-40">
                   <HeaderOrdenavel campo="status">Reprodutivo</HeaderOrdenavel>
