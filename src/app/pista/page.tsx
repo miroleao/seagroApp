@@ -6,35 +6,13 @@ import { ExcluirExposicaoBtn } from "./ExcluirExposicaoBtn";
 import { ResultadoCell } from "./ResultadoCell";
 import { PesoOficialInline } from "./PesoOficialInline";
 import {
-  idadeExata, pesoMinimo, pesoMaximo, statusPeso, StatusPeso,
+  idadeExata, pesoMinimo, pesoMaximo, statusPeso, StatusPeso, grupoNaData,
 } from "@/lib/acnb";
+import { SimuladorCategoria } from "./SimuladorCategoria";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
 
-// ─── Grupos ABCZ (Regulamento ExpZebu 2025/2026 — Art. 29°) ─────────────────
-const GRUPOS_NELORE = [
-  { nome: "Bezerra Menor",  sexo: "F", min:  6, max:  9 },
-  { nome: "Bezerra Maior",  sexo: "F", min:  9, max: 12 },
-  { nome: "Novilha Menor",  sexo: "F", min: 12, max: 16 },
-  { nome: "Novilha",        sexo: "F", min: 16, max: 20 },
-  { nome: "Novilha Maior",  sexo: "F", min: 20, max: 24 },
-  { nome: "Vaca Jovem",     sexo: "F", min: 24, max: 30 },
-  { nome: "Vaca",           sexo: "F", min: 30, max: 36 },
-  { nome: "Vaca Adulta",    sexo: "F", min: 36, max: 42 },
-  { nome: "Bezerro Menor",  sexo: "M", min:  6, max:  9 },
-  { nome: "Bezerro Maior",  sexo: "M", min:  9, max: 12 },
-  { nome: "Júnior Menor",   sexo: "M", min: 12, max: 16 },
-  { nome: "Júnior",         sexo: "M", min: 16, max: 20 },
-  { nome: "Júnior Maior",   sexo: "M", min: 20, max: 24 },
-  { nome: "Touro Jovem",    sexo: "M", min: 24, max: 30 },
-  { nome: "Touro Sênior",   sexo: "M", min: 30, max: 36 },
-];
-
-function grupoNaData(nasc: string | null, sexo: string | null, ref: Date) {
-  if (!nasc) return null;
-  const { meses } = idadeExata(nasc, ref);
-  const s = sexo === "M" ? "M" : "F";
-  return GRUPOS_NELORE.find(g => g.sexo === s && meses >= g.min && meses < g.max) ?? null;
-}
+// Grupos ABCZ e `grupoNaData` vivem em @/lib/acnb — compartilhados entre
+// esta página (server) e o simulador (client).
 
 // ─── Status rebanho → label + cor ─────────────────────────────────────────────
 const STATUS_REPRO: Record<string, { label: string; cls: string }> = {
@@ -330,6 +308,15 @@ export default async function PistaPage() {
           </p>
         </div>
       </div>
+
+      {/* ── Simulador de categoria ───────────────────────── */}
+      <SimuladorCategoria
+        exposicoes={expos.map((e: any) => ({
+          id: e.id,
+          nome: e.nome,
+          data_base: e.data_base ?? null,
+        }))}
+      />
 
       {/* ── Alertas de peso ──────────────────────────────── */}
       {alertasPeso.length > 0 && (
