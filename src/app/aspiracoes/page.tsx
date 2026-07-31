@@ -5,6 +5,7 @@ import Link from "next/link";
 import { registrarOPU, alternarTipoSessao } from "./actions";
 import { DoadoraCardWrapper } from "./DoadoraCardWrapper";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
+import { RelatoriosAspiracoes, type DadosRelatorios, type LinhaRelatorio } from "./RelatoriosAspiracoes";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 type AspItem = {
@@ -61,9 +62,9 @@ export default async function AspiracoesPage() {
         embryos:embryos!embryos_aspiration_id_fkey (
           id, sexagem, status, numero_cdc_fiv, numero_adt_te,
           transfers:transfers!transfers_embryo_id_fkey (
-            id,
+            id, data_te, receptora_brinco,
             receptora:animals!transfers_receptora_id_fkey ( nome, brinco ),
-            pregnancy_diagnoses ( resultado, data_previsao_parto )
+            pregnancy_diagnoses ( resultado, data_previsao_parto, tipo_desfecho, data_desfecho )
           )
         )
       )
@@ -130,6 +131,129 @@ export default async function AspiracoesPage() {
       // Ordenar pelo nome
       return a.doadoraNome.localeCompare(b.doadoraNome, "pt-BR");
     });
+
+
+  // ── Datasets dos relatórios ─────────────────────────────────────────────
+  //   Percorre sessão → aspiração → embrião → transferência → DG, montando
+  //   uma linha já formatada por relatório. Campos com prefixo "_" servem só
+  //   para filtrar no cliente e não aparecem no PDF.
+
+  const SEX_LABEL: Record<string, string> = {
+    FEMEA: "Fêmea", MACHO: "Macho", NAO_SEXADO: "Não Sexado",
+  };
+  const STATUS_EMB_LABEL: Record<string, string> = {
+    DISPONIVEL: "Disponível", IMPLANTADO: "Implantado", DESCARTADO: "Descartado",
+  };
+
+  function resultadoLabel(dg: any): string {
+    if (!dg) return "Sem DG";
+    if (dg.tipo_desfecho === "PARIDA")  return "Pariu";
+    if (dg.tipo_desfecho === "ABORTOU") return "Abortou";
+    if (dg.tipo_desfecho)               return String(dg.tipo_desfecho);
+    if (dg.resultado === "POSITIVO")    return "P+";
+    if (dg.resultado === "NEGATIVO")    return "Vazia";
+    if (dg.resultado === "AGUARDANDO")  return "Aguardando";
+    return dg.resultado ?? "Sem DG";
+  }
+
+  const relPrenhezes: LinhaRelatorio[] = [];
+  const relEmbrioes:  LinhaRelatorio[] = [];
+  const relProducao:  LinhaRelatorio[] = [];
+
+  for (const sessao of all) {
+    const s: any = sessao;
+    const tipoOrigem = s.tipo === "REALIZADA" ? "OPU" : "Adquirida";
+    const dataOPU    = s.data ?? null;
+    const dataOPUFmt = dataOPU ? formatDate(dataOPU) : "—";
+
+    for (const asp of (s.aspirations as any[])) {
+      const doadoraNome = (asp.doadora as any)?.nome ?? asp.doadora_nome ?? "—";
+      const touroNome   = asp.touro_nome ?? "—";
+      const embrioes    = (asp.embryos as any[]) ?? [];
+
+      let implantados = 0;
+
+      for (const e of embrioes) {
+        if (e.status === "IMPLANTADO") implantados++;
+
+        relEmbrioes.push({
+          doadora:  doadoraNome,
+          touro:    touroNome,
+          sexagem:  SEX_LABEL[e.sexagem] ?? (e.sexagem ?? "—"),
+          status:   STATUS_EMB_LABEL[e.status] ?? (e.status ?? "—"),
+          cdc_fiv:  e.numero_cdc_fiv ?? "—",
+          adt_te:   e.numero_adt_te ?? "—",
+          data_opu: dataOPUFmt,
+          tipo:     tipoOrigem,
+          lab:      s.laboratorio ?? "—",
+          _doadora: doadoraNome,
+          _touro:   touroNome,
+          _data:    dataOPU ?? "",
+          _status:  STATUS_EMB_LABEL[e.status] ?? (e.status ?? "—"),
+          _tipo:    tipoOrigem,
+        });
+
+        for (const tr of ((e.transfers as any[]) ?? [])) {
+          const dgs = (tr.pregnancy_diagnoses as any[]) ?? [];
+          // DG mais relevante: o que já tem desfecho, senão o primeiro
+          const dg = dgs.find((d: any) => d.tipo_desfecho) ?? dgs[0] ?? null;
+          const receptora =
+            (tr.receptora as any)?.nome ??
+            (tr.receptora as any)?.brinco ??
+            tr.receptora_brinco ?? "—";
+          const resultado = resultadoLabel(dg);
+
+          relPrenhezes.push({
+            doadora:   doadoraNome,
+            touro:     touroNome,
+            receptora,
+            data_te:   tr.data_te ? formatDate(tr.data_te) : "—",
+            resultado,
+            previsao:  dg?.data_previsao_parto ? formatDate(dg.data_previsao_parto) : "—",
+            sexagem:   SEX_LABEL[e.sexagem] ?? (e.sexagem ?? "—"),
+            cdc_fiv:   e.numero_cdc_fiv ?? "—",
+            adt_te:    e.numero_adt_te ?? "—",
+            data_opu:  dataOPUFmt,
+            _doadora:   doadoraNome,
+            _touro:     touroNome,
+            _data:      tr.data_te ?? "",
+            _resultado: resultado,
+            _sexagem:   SEX_LABEL[e.sexagem] ?? (e.sexagem ?? "—"),
+          });
+        }
+      }
+
+      const oo   = asp.oocitos_viaveis ?? null;
+      const cong = asp.embryos_congelados ?? null;
+      const conversao = oo && oo > 0 && cong != null
+        ? `${((cong / oo) * 100).toFixed(0)}%`
+        : "—";
+
+      relProducao.push({
+        data_opu:    dataOPUFmt,
+        tipo:        tipoOrigem,
+        doadora:     doadoraNome,
+        touro:       touroNome,
+        oocitos:     oo != null ? String(oo) : "—",
+        embrioes:    cong != null ? String(cong) : "—",
+        conversao,
+        implantados: String(implantados),
+        lab:         s.laboratorio ?? "—",
+        local:       s.local ?? "—",
+        responsavel: s.responsavel ?? "—",
+        _doadora: doadoraNome,
+        _touro:   touroNome,
+        _data:    dataOPU ?? "",
+        _tipo:    tipoOrigem,
+      });
+    }
+  }
+
+  const dadosRelatorios: DadosRelatorios = {
+    prenhezes: relPrenhezes,
+    embrioes:  relEmbrioes,
+    producao:  relProducao,
+  };
 
   // ── Stats globais ────────────────────────────────────────────────────────
   const sessoesOPU   = all; // já filtrado na query: apenas REALIZADA e ADQUIRIDA
@@ -268,6 +392,9 @@ export default async function AspiracoesPage() {
           <p className="text-sm text-gray-500 mt-1">Embriões produzidos</p>
         </div>
       </div>
+
+      {/* ── Relatórios ────────────────────────────────────────────── */}
+      <RelatoriosAspiracoes dados={dadosRelatorios} />
 
       {/* ── Dashboard por Doadora ────────────────────────────────── */}
       <section className="space-y-3">

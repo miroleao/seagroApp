@@ -8,6 +8,8 @@ import { StatusReceptorasSection, type StatusItem } from "./StatusReceptorasSect
 import { cadastrarAnimal, cadastrarLote } from "./actions";
 import { FiltroStatus } from "./FiltroStatus";
 import { FiltroClassificacao } from "./FiltroClassificacao";
+import { HeaderOrdenavel } from "./HeaderOrdenavel";
+import { FiltroDataTE } from "./FiltroDataTE";
 import { EditReprodutivoInline } from "./EditReprodutivoInline";
 import { EditPesoInline } from "./EditPesoInline";
 import { EditPrenheInline } from "./EditPrenheInline";
@@ -62,9 +64,12 @@ export const revalidate = 0;
 export default async function RebanhoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; cls?: string; st?: string; modal?: string; erro?: string }>;
+  searchParams: Promise<{
+    q?: string; cls?: string; st?: string; modal?: string; erro?: string;
+    sort?: string; dir?: string; teDe?: string; teAte?: string;
+  }>;
 }) {
-  const { q, cls, st, modal, erro } = await searchParams;
+  const { q, cls, st, modal, erro, sort, dir, teDe, teAte } = await searchParams;
   const supabase = await createClient();
 
   // Animais do rebanho (RECEPTORA + DESCARTE, inclui RECRIA via classificacao)
@@ -261,6 +266,11 @@ export default async function RebanhoPage({
   const countImplantadas  = countStatus["IMPLANTADA"] ?? 0;
   const countParidas      = countStatus["PARIDA"] ?? 0;
 
+  // ── Data de T.E. de cada animal (prenhez ativa ou histórico de parição) ─────
+  function dataTEDe(a: any): string | null {
+    return prenhezesMapa.get(a.id)?.dataTe ?? paridasMapa.get(a.id)?.dataTe ?? null;
+  }
+
   // Filtro
   const filtered = animais.filter(a => {
     const term = (q ?? "").toLowerCase();
@@ -270,8 +280,15 @@ export default async function RebanhoPage({
     const passaSt = st
       ? a.status_rebanho === st
       : a.status_rebanho !== "MORTA" && a.status_rebanho !== "VENDIDA";
-    return passaTermo && passaCls && passaSt;
+    // Período de T.E. — animal sem T.E. sai da lista quando o filtro está ativo
+    let passaTE = true;
+    if (teDe || teAte) {
+      const d = dataTEDe(a);
+      passaTE = !!d && (!teDe || d >= teDe) && (!teAte || d <= teAte);
+    }
+    return passaTermo && passaCls && passaSt && passaTE;
   });
+
 
   const prenhas = animais
     .filter(a => a.status_rebanho === "PRENHA" || a.status_rebanho === "PRENHA_EMBRIAO")
@@ -300,6 +317,87 @@ export default async function RebanhoPage({
       ?? (t.receptora_brinco ? brincoToId.get(t.receptora_brinco) : undefined);
     if (!receptoraId) continue;
     partosMap.set(receptoraId, (partosMap.get(receptoraId) ?? 0) + 1);
+  }
+
+  // ── Ordenação (URL: ?sort=&dir=) ───────────────────────────────────────────
+  const acessores: Record<string, (a: any) => string | number | null> = {
+    brinco:        a => (a.brinco ?? a.nome ?? "").toLowerCase(),
+    rgn:           a => (a.rgn ?? "").toLowerCase(),
+    classificacao: a => (a.classificacao ?? "").toLowerCase(),
+    status:        a => (a.status_rebanho ?? "").toLowerCase(),
+    partos:        a => partosMap.get(a.id) ?? 0,
+    peso:          a => a.peso_atual ?? null,
+    doadora:       a => (prenhezesMapa.get(a.id)?.doadoraNome ?? paridasMapa.get(a.id)?.doadoraNome ?? "").toLowerCase(),
+    sexagem:       a => (prenhezesMapa.get(a.id)?.sexagem ?? paridasMapa.get(a.id)?.sexagem ?? "").toLowerCase(),
+    te:            a => dataTEDe(a),
+    previsao:      a => prenhezesMapa.get(a.id)?.previsao ?? null,
+    local:         a => (a.localizacao ?? "").toLowerCase(),
+  };
+
+  const ordenados = (() => {
+    const acessor = sort ? acessores[sort] : undefined;
+    if (!acessor) return filtered;
+    const sinal = dir === "desc" ? -1 : 1;
+    return [...filtered].sort((a, b) => {
+      const va = acessor(a), vb = acessor(b);
+      // Vazios sempre ao final, independente da direção
+      const aVazio = va === null || va === undefined || va === "";
+      const bVazio = vb === null || vb === undefined || vb === "";
+      if (aVazio && bVazio) return 0;
+      if (aVazio) return 1;
+      if (bVazio) return -1;
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * sinal;
+      return String(va).localeCompare(String(vb), "pt-BR") * sinal;
+    });
+  })();
+
+  // Resumo do filtro ativo — exibido no diálogo de exportação
+  const descricaoFiltro = [
+    q   ? `busca "${q}"` : null,
+    st  ? "situação filtrada" : null,
+    cls ? "classificação filtrada" : null,
+    (teDe || teAte) ? `T.E. ${teDe || "…"} a ${teAte || "…"}` : null,
+  ].filter(Boolean).join(" · ") || "sem filtro";
+
+  function linhaPDFRebanho(a: any) {
+              const p = prenhezesMapa.get(a.id);
+              const STATUS_LABELS_LOCAL: Record<string, string> = {
+                PROTOCOLADA: "Protocolada", INSEMINADA: "Inseminada",
+                IMPLANTADA: "Implantada c/ Embrião", PRENHA: "Prenha",
+                PRENHA_EMBRIAO: "Prenha de Embrião", PARIDA: "Parida",
+                VAZIA: "Vazia", DESCARTE: "Descarte", MORTA: "Óbito", VENDIDA: "Vendida",
+              };
+              const CLASS_LABELS_LOCAL: Record<string, string> = {
+                RECEPTORA: "Receptora", RECRIA: "Recria", DESCARTE: "Descarte", OUTRO: "Outro",
+              };
+              const SEX_LABELS: Record<string, string> = {
+                NAO_SEXADO: "—", MACHO: "Macho", FEMEA: "Fêmea",
+              };
+              // Define o grupo do registro a partir do status / classificação
+              const status = a.status_rebanho ?? "";
+              const cls = a.classificacao ?? "";
+              let grupo: string;
+              if (status === "PRENHA" || status === "PRENHA_EMBRIAO" || status === "IMPLANTADA") grupo = "PRENHAS";
+              else if (status === "PROTOCOLADA") grupo = "PROTOCOLADAS";
+              else if (status === "INSEMINADA") grupo = "INSEMINADAS";
+              else if (status === "PARIDA") grupo = "PARIDAS";
+              else if (status === "VAZIA") grupo = "VAZIAS";
+              else if (status === "DESCARTE" || cls === "DESCARTE" || a.tipo === "DESCARTE") grupo = "DESCARTE";
+              else grupo = "OUTROS";
+
+              return {
+                grupo,
+                brinco:         a.brinco ?? a.nome ?? "—",
+                classificacao:  CLASS_LABELS_LOCAL[a.classificacao ?? ""] ?? (a.classificacao ?? "—"),
+                status_rebanho: STATUS_LABELS_LOCAL[a.status_rebanho ?? ""] ?? (a.status_rebanho ?? "—"),
+                doadora_nome:   p?.doadoraNome ?? "—",
+                touro_nome:     p?.touroNome ?? "—",
+                sexagem:        SEX_LABELS[p?.sexagem ?? ""] ?? (p?.sexagem ?? "—"),
+                data_te:        p?.dataTe ? formatDate(p.dataTe) : "—",
+                previsao_parto: p?.previsao ? formatDate(p.previsao) : "—",
+                peso_atual:     a.peso_atual != null ? `${a.peso_atual} kg` : "—",
+                localizacao:    a.localizacao ?? "—",
+              };
   }
 
   // Serializar dados para o componente cliente da seção de prenhes
@@ -453,46 +551,9 @@ export default async function RebanhoPage({
               { key: "peso_atual",     label: "Peso (kg)",      padrao: false, largura: 0.9 },
               { key: "localizacao",    label: "Localização",    padrao: false, largura: 1.0 },
             ] satisfies ColunaPDF[]}
-            dados={animais.map((a: any) => {
-              const p = prenhezesMapa.get(a.id);
-              const STATUS_LABELS_LOCAL: Record<string, string> = {
-                PROTOCOLADA: "Protocolada", INSEMINADA: "Inseminada",
-                IMPLANTADA: "Implantada c/ Embrião", PRENHA: "Prenha",
-                PRENHA_EMBRIAO: "Prenha de Embrião", PARIDA: "Parida",
-                VAZIA: "Vazia", DESCARTE: "Descarte", MORTA: "Óbito", VENDIDA: "Vendida",
-              };
-              const CLASS_LABELS_LOCAL: Record<string, string> = {
-                RECEPTORA: "Receptora", RECRIA: "Recria", DESCARTE: "Descarte", OUTRO: "Outro",
-              };
-              const SEX_LABELS: Record<string, string> = {
-                NAO_SEXADO: "—", MACHO: "Macho", FEMEA: "Fêmea",
-              };
-              // Define o grupo do registro a partir do status / classificação
-              const status = a.status_rebanho ?? "";
-              const cls = a.classificacao ?? "";
-              let grupo: string;
-              if (status === "PRENHA" || status === "PRENHA_EMBRIAO" || status === "IMPLANTADA") grupo = "PRENHAS";
-              else if (status === "PROTOCOLADA") grupo = "PROTOCOLADAS";
-              else if (status === "INSEMINADA") grupo = "INSEMINADAS";
-              else if (status === "PARIDA") grupo = "PARIDAS";
-              else if (status === "VAZIA") grupo = "VAZIAS";
-              else if (status === "DESCARTE" || cls === "DESCARTE" || a.tipo === "DESCARTE") grupo = "DESCARTE";
-              else grupo = "OUTROS";
-
-              return {
-                grupo,
-                brinco:         a.brinco ?? a.nome ?? "—",
-                classificacao:  CLASS_LABELS_LOCAL[a.classificacao ?? ""] ?? (a.classificacao ?? "—"),
-                status_rebanho: STATUS_LABELS_LOCAL[a.status_rebanho ?? ""] ?? (a.status_rebanho ?? "—"),
-                doadora_nome:   p?.doadoraNome ?? "—",
-                touro_nome:     p?.touroNome ?? "—",
-                sexagem:        SEX_LABELS[p?.sexagem ?? ""] ?? (p?.sexagem ?? "—"),
-                data_te:        p?.dataTe ? formatDate(p.dataTe) : "—",
-                previsao_parto: p?.previsao ? formatDate(p.previsao) : "—",
-                peso_atual:     a.peso_atual != null ? `${a.peso_atual} kg` : "—",
-                localizacao:    a.localizacao ?? "—",
-              };
-            })}
+            dados={ordenados.map(linhaPDFRebanho)}
+            dadosCompletos={animais.map(linhaPDFRebanho)}
+            descricaoFiltro={descricaoFiltro}
           />
           <Link href="?modal=lote"
             className="inline-flex items-center gap-1.5 text-xs border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-600">
@@ -654,38 +715,61 @@ export default async function RebanhoPage({
             )}
           </div>
 
-          <span className="badge bg-gray-100 text-gray-600 ml-auto">{filtered.length}</span>
+          {/* Filtro por período de T.E. */}
+          <Suspense fallback={null}><FiltroDataTE /></Suspense>
+
+          <span className="badge bg-gray-100 text-gray-600 ml-auto">{ordenados.length}</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left">
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">Brinco</th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-28"># ABCZ</th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">
+                  <HeaderOrdenavel campo="brinco">Brinco</HeaderOrdenavel>
+                </th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-28">
+                  <HeaderOrdenavel campo="rgn"># ABCZ</HeaderOrdenavel>
+                </th>
                 <th className="px-2 py-3 text-xs font-medium text-gray-500 w-28">
-                  <span>Classificação</span>
+                  <HeaderOrdenavel campo="classificacao">Classificação</HeaderOrdenavel>
                   <FiltroClassificacao q={q} cls={cls} st={st} />
                 </th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-40">Reprodutivo</th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-16 text-center">Partos</th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">Peso</th>
-                <th className="px-4 py-3 text-xs font-medium text-gray-500">Embrião</th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-20">Sexagem</th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">Data T.E.</th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-28">Prev. Parto</th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">Localização</th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-40">
+                  <HeaderOrdenavel campo="status">Reprodutivo</HeaderOrdenavel>
+                </th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-16 text-center">
+                  <HeaderOrdenavel campo="partos" alinhamento="center">Partos</HeaderOrdenavel>
+                </th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">
+                  <HeaderOrdenavel campo="peso">Peso</HeaderOrdenavel>
+                </th>
+                <th className="px-4 py-3 text-xs font-medium text-gray-500">
+                  <HeaderOrdenavel campo="doadora">Embrião</HeaderOrdenavel>
+                </th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-20">
+                  <HeaderOrdenavel campo="sexagem">Sexagem</HeaderOrdenavel>
+                </th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">
+                  <HeaderOrdenavel campo="te">Data T.E.</HeaderOrdenavel>
+                </th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-28">
+                  <HeaderOrdenavel campo="previsao">Prev. Parto</HeaderOrdenavel>
+                </th>
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">
+                  <HeaderOrdenavel campo="local">Localização</HeaderOrdenavel>
+                </th>
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-20">Desfecho</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filtered.length === 0 ? (
+              {ordenados.length === 0 ? (
                 <tr>
                   <td colSpan={12} className="px-4 py-10 text-center text-gray-400 text-sm">
                     Nenhum animal encontrado{q ? ` para "${q}"` : ""}.
                   </td>
                 </tr>
-              ) : filtered.map((a: any) => {
+              ) : ordenados.map((a: any) => {
                 const p = prenhezesMapa.get(a.id);
                 // Para animais PARIDA: busca dados históricos do embrião/doadora
                 const h = a.status_rebanho === "PARIDA" ? paridasMapa.get(a.id) : null;

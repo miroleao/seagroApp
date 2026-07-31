@@ -33,6 +33,14 @@ export interface ExportarPDFProps {
   obsPreFillField?: string;
   /** Quantas colunas de obs já vêm selecionadas por padrão (0 = nenhuma) */
   obsDefault?: 0 | 1 | 2;
+  /**
+   * Conjunto completo, ignorando os filtros ativos na tela.
+   * Quando informado, o diálogo oferece alternar entre "somente o filtrado"
+   * (padrão) e "tudo". Sem esta prop o comportamento é o de sempre.
+   */
+  dadosCompletos?: Record<string, unknown>[];
+  /** Descrição curta do filtro ativo, mostrada no diálogo e no rodapé do PDF. */
+  descricaoFiltro?: string;
 }
 
 // ─── Paleta SE ────────────────────────────────────────────────────────────────
@@ -98,8 +106,15 @@ export function ExportarPDF({
   campoGrupo = "grupo",
   obsPreFillField,
   obsDefault = 0,
+  dadosCompletos,
+  descricaoFiltro,
 }: ExportarPDFProps) {
   const [aberto, setAberto] = useState(false);
+  // Só faz sentido oferecer a escolha quando o filtro realmente muda o resultado
+  const podeAlternarEscopo =
+    !!dadosCompletos && dadosCompletos.length !== dados.length;
+  const [exportarTudo, setExportarTudo] = useState(false);
+  const dadosBase = exportarTudo && dadosCompletos ? dadosCompletos : dados;
   const [selecionadas, setSelecionadas] = useState<Set<string>>(
     () => new Set(colunas.filter((c) => c.padrao !== false).map((c) => c.key))
   );
@@ -133,11 +148,11 @@ export function ExportarPDF({
 
   const dadosFiltrados =
     grupos && grupos.length > 0
-      ? dados.filter((row) => {
+      ? dadosBase.filter((row) => {
           const g = row[campoGrupo];
           return typeof g === "string" && gruposSel.has(g);
         })
-      : dados;
+      : dadosBase;
 
   // Aspect ratio real: 3508 × 2481
   const LOGO_RATIO = 3508 / 2481; // ≈ 1.414
@@ -380,6 +395,45 @@ export function ExportarPDF({
                 </div>
               )}
 
+              {/* ── Escopo: filtrado x tudo ── */}
+              {podeAlternarEscopo && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    O que exportar
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    <button
+                      onClick={() => setExportarTudo(false)}
+                      className={`px-3 py-2.5 rounded-lg border text-xs text-left transition-colors ${
+                        !exportarTudo
+                          ? "bg-brand-50 border-brand-300 text-brand-800 font-medium"
+                          : "bg-gray-50 border-gray-100 text-gray-500 hover:border-gray-200"
+                      }`}
+                    >
+                      <span className="block">Apenas o filtrado ({dados.length})</span>
+                      {descricaoFiltro && (
+                        <span className="block text-[10px] font-normal opacity-70 mt-0.5 truncate">
+                          {descricaoFiltro}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setExportarTudo(true)}
+                      className={`px-3 py-2.5 rounded-lg border text-xs text-left transition-colors ${
+                        exportarTudo
+                          ? "bg-brand-50 border-brand-300 text-brand-800 font-medium"
+                          : "bg-gray-50 border-gray-100 text-gray-500 hover:border-gray-200"
+                      }`}
+                    >
+                      <span className="block">Tudo ({dadosCompletos!.length})</span>
+                      <span className="block text-[10px] font-normal opacity-70 mt-0.5">
+                        ignora os filtros da tela
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* ── Colunas ── */}
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -441,8 +495,13 @@ export function ExportarPDF({
             <div className="px-6 py-4 border-t border-gray-100">
               <p className="text-[11px] text-gray-400 mb-3">
                 {dadosFiltrados.length} {dadosFiltrados.length === 1 ? "registro" : "registros"}
-                {grupos && grupos.length > 0 && dadosFiltrados.length !== dados.length && (
-                  <span className="text-gray-300"> de {dados.length}</span>
+                {dadosFiltrados.length !== dadosBase.length && (
+                  <span className="text-gray-300"> de {dadosBase.length}</span>
+                )}
+                {podeAlternarEscopo && (
+                  <span className={exportarTudo ? "text-gray-400" : "text-brand-500"}>
+                    {" "}· {exportarTudo ? "sem filtro da tela" : "filtro da tela aplicado"}
+                  </span>
                 )}
                 {" "}· A4{" "}
                 {orientacao === "landscape" ? "paisagem" : "retrato"}
