@@ -7,6 +7,9 @@ import BuscaPesagens from "./BuscaPesagens";
 import FiltroPesagens from "./FiltroPesagens";
 import TabelaPesagens, { type PesagemRow } from "./TabelaPesagens";
 import NovaPesagemModal, { type AnimalOpt } from "./NovaPesagemModal";
+import {
+  ordenarPesagens, ponderalDoHistorico, classificarPonderalSimples,
+} from "@/lib/ponderal";
 
 export const revalidate = 0;
 
@@ -14,45 +17,13 @@ export const revalidate = 0;
 
 type WeightRecord = { id: string; data: string; peso_kg: number };
 
-function sortedWeights(records: WeightRecord[]): WeightRecord[] {
-  return [...records].sort((a, b) => a.data.localeCompare(b.data));
-}
+const sortedWeights = ordenarPesagens<WeightRecord>;
 
-function calcPonderal(
-  records: WeightRecord[],
-  nascimento?: string | null
-): number | null {
-  const sorted = sortedWeights(records);
-  if (sorted.length === 0) return null;
+// Cálculo canônico em @/lib/ponderal — desconta o peso de nascimento,
+// conforme a regra da seção 8 do CLAUDE.md.
+const calcPonderal = ponderalDoHistorico;
 
-  const ultimo = sorted[sorted.length - 1];
-
-  if (nascimento) {
-    // Com data de nascimento: peso atual total ÷ dias de vida até a pesagem
-    // Fórmula: peso_kg × 1000 / dias  →  gramas por dia desde o nascimento
-    const baseDate  = new Date(nascimento + "T12:00:00");
-    const finalDate = new Date(ultimo.data + "T12:00:00");
-    const dias = (finalDate.getTime() - baseDate.getTime()) / 86_400_000;
-    if (dias <= 0) return null;
-    return Math.round((ultimo.peso_kg * 1000) / dias);
-  }
-
-  // Sem data de nascimento: precisa de 2+ registros (ganho entre pesagens)
-  if (sorted.length < 2) return null;
-  const primeiro  = sorted[0];
-  const baseDate  = new Date(primeiro.data + "T12:00:00");
-  const finalDate = new Date(ultimo.data   + "T12:00:00");
-  const dias = (finalDate.getTime() - baseDate.getTime()) / 86_400_000;
-  if (dias <= 0) return null;
-  return Math.round(((ultimo.peso_kg - primeiro.peso_kg) / dias) * 1000);
-}
-
-function classificacaoBadge(ponderal: number | null) {
-  if (ponderal === null) return null;
-  if (ponderal >= 800) return { label: "Excelente", cls: "bg-green-100 text-green-700" };
-  if (ponderal >= 600) return { label: "Bom",       cls: "bg-blue-100 text-blue-700"  };
-  return                      { label: "Abaixo",    cls: "bg-red-100 text-red-600"    };
-}
+const classificacaoBadge = classificarPonderalSimples;
 
 function tipoLabelFn(tipo: string) {
   const map: Record<string, string> = {
@@ -96,7 +67,7 @@ export default async function PesagensPage({
   const { data: animaisRaw } = await supabase
     .from("animals")
     .select(`
-      id, nome, tipo, rgn, brinco, nascimento, nascido_se_agro,
+      id, nome, tipo, rgn, brinco, nascimento, nascido_se_agro, peso_nascimento,
       weight_records ( id, data, peso_kg )
     `)
     .eq("farm_id", FARM_ID)
@@ -111,6 +82,7 @@ export default async function PesagensPage({
     brinco?: string | null;
     nascimento?: string | null;
     nascido_se_agro?: boolean | null;
+    peso_nascimento?: number | null;
     weight_records: WeightRecord[];
   }>;
 
@@ -144,7 +116,7 @@ export default async function PesagensPage({
     const records   = a.weight_records ?? [];
     const sorted    = sortedWeights(records);
     const ultimo    = sorted[sorted.length - 1] ?? null;
-    const ponderal  = calcPonderal(records, a.nascimento);
+    const ponderal  = calcPonderal(records, a.nascimento, a.peso_nascimento);
     const badge     = classificacaoBadge(ponderal);
 
     const animalHref =
@@ -200,11 +172,11 @@ export default async function PesagensPage({
 
   // Cards resumo (sempre do total geral, ignora filtros)
   const comPesagem = animais.filter(a => (a.weight_records ?? []).length > 0);
-  const excelentes = comPesagem.filter(a => { const p = calcPonderal(a.weight_records ?? [], a.nascimento); return p !== null && p >= 800; });
-  const bons       = comPesagem.filter(a => { const p = calcPonderal(a.weight_records ?? [], a.nascimento); return p !== null && p >= 600 && p < 800; });
-  const abaixo     = comPesagem.filter(a => { const p = calcPonderal(a.weight_records ?? [], a.nascimento); return p !== null && p < 600; });
+  const excelentes = comPesagem.filter(a => { const p = calcPonderal(a.weight_records ?? [], a.nascimento, a.peso_nascimento); return p !== null && p >= 800; });
+  const bons       = comPesagem.filter(a => { const p = calcPonderal(a.weight_records ?? [], a.nascimento, a.peso_nascimento); return p !== null && p >= 600 && p < 800; });
+  const abaixo     = comPesagem.filter(a => { const p = calcPonderal(a.weight_records ?? [], a.nascimento, a.peso_nascimento); return p !== null && p < 600; });
   const semDados   = animais.length - comPesagem.length +
-                     comPesagem.filter(a => calcPonderal(a.weight_records ?? [], a.nascimento) === null).length;
+                     comPesagem.filter(a => calcPonderal(a.weight_records ?? [], a.nascimento, a.peso_nascimento) === null).length;
 
   // PDF export data — sempre de TODOS os animais, ignorando o filtro ativo da UI
   // Ordenado: mais novo primeiro (nascimento desc). Sem data vai ao final.
@@ -220,7 +192,7 @@ export default async function PesagensPage({
     const records = a.weight_records ?? [];
     const sorted  = sortedWeights(records);
     const ultimo  = sorted[sorted.length - 1] ?? null;
-    const pond    = calcPonderal(records, a.nascimento);
+    const pond    = calcPonderal(records, a.nascimento, a.peso_nascimento);
     const badge   = classificacaoBadge(pond);
     const grupoTipo = isNascidoSE(a) ? "Nascido SE" : tipoLabelFn(a.tipo);
     return {

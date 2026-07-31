@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ponderalGDia } from "@/lib/ponderal";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeft, FlaskConical, Baby, Star, Trophy, Scale, Plus, TrendingUp, TrendingDown, ShoppingCart, Edit2, Gavel, Heart, ChevronRight } from "lucide-react";
@@ -49,11 +50,8 @@ function diasEntre(dataInicio: string | null, dataFim: string | null): number | 
 }
 
 /** Ponderal (g/dia) = peso_kg × 1000 ÷ dias_de_vida */
-function calcPonderal(pesoKg: number, nascimento: string | null, dataPesagem: string): number | null {
-  const dias = diasEntre(nascimento, dataPesagem);
-  if (!dias || dias <= 0) return null;
-  return (pesoKg * 1000) / dias;
-}
+// Cálculo canônico em @/lib/ponderal (desconta o peso de nascimento).
+const calcPonderal = ponderalGDia;
 
 // ─── Grupos ABCZ — Regulamento ExpZebu 2025/2026 (Art. 29°) ─────────────────
 const GRUPOS_ABCZ: { nome: string; sexo: "F" | "M"; min: number; max: number }[] = [
@@ -1885,7 +1883,7 @@ export default async function DoadoraDetalhePage({
                   const prox     = pesagens[i + 1];
                   const variacao = prox ? p.peso_kg - prox.peso_kg : null;
                   const mesesP   = mesesEntre(doadora.nascimento ?? null, p.data);
-                  const ponderal = calcPonderal(p.peso_kg, doadora.nascimento ?? null, p.data);
+                  const ponderal = calcPonderal(p.peso_kg, doadora.nascimento ?? null, p.data, (doadora as any).peso_nascimento);
                   const classPond = ponderal != null && mesesP != null
                     ? classificarPonderal(ponderal, mesesP)
                     : null;

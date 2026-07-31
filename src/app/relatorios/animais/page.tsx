@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ordenarPesagens, ponderalDoHistorico } from "@/lib/ponderal";
 import { FARM_ID } from "@/lib/utils";
 import { ExportarPDF, type ColunaPDF, type GrupoPDF } from "@/components/ui/ExportarPDF";
 import { FileText } from "lucide-react";
@@ -22,36 +23,10 @@ function fmtDate(iso: string | null | undefined): string {
 
 type WeightRecord = { id: string; data: string; peso_kg: number };
 
-function sortedWeights(records: WeightRecord[]) {
-  return [...records].sort((a, b) => a.data.localeCompare(b.data));
-}
+const sortedWeights = ordenarPesagens<WeightRecord>;
 
-function calcPonderal(
-  records: WeightRecord[],
-  nascimento: string | null | undefined
-): number | null {
-  const sorted = sortedWeights(records);
-  if (sorted.length === 0) return null;
-  const ultimo = sorted[sorted.length - 1];
-
-  if (nascimento) {
-    // Com nascimento: peso_kg × 1000 ÷ dias de vida até a pesagem
-    const baseDate  = new Date(nascimento + "T12:00:00");
-    const finalDate = new Date(ultimo.data + "T12:00:00");
-    const dias = (finalDate.getTime() - baseDate.getTime()) / 86_400_000;
-    if (dias <= 0) return null;
-    return Math.round((ultimo.peso_kg * 1000) / dias);
-  }
-
-  // Sem nascimento: precisa de 2+ registros
-  if (sorted.length < 2) return null;
-  const primeiro  = sorted[0];
-  const baseDate  = new Date(primeiro.data + "T12:00:00");
-  const finalDate = new Date(ultimo.data   + "T12:00:00");
-  const dias = (finalDate.getTime() - baseDate.getTime()) / 86_400_000;
-  if (dias <= 0) return null;
-  return Math.round(((ultimo.peso_kg - primeiro.peso_kg) / dias) * 1000);
-}
+// Cálculo canônico em @/lib/ponderal (desconta o peso de nascimento).
+const calcPonderal = ponderalDoHistorico;
 
 function classificacao(ponderal: number | null): string {
   if (ponderal === null) return "";
@@ -112,6 +87,7 @@ export default async function RelatorioAnimaisPage() {
     .select(`
       id, nome, rgn, brinco, tipo, nascimento, localizacao,
       status_rebanho, nascido_se_agro, pai_nome, mae_nome,
+      peso_nascimento,
       weight_records ( id, data, peso_kg )
     `)
     .eq("farm_id", FARM_ID)
@@ -123,7 +99,7 @@ export default async function RelatorioAnimaisPage() {
     const wrs     = (a.weight_records ?? []) as WeightRecord[];
     const sorted  = sortedWeights(wrs);
     const ultimo  = sorted[sorted.length - 1] ?? null;
-    const pond    = calcPonderal(wrs, a.nascimento);
+    const pond    = calcPonderal(wrs, a.nascimento, a.peso_nascimento);
     const classif = classificacao(pond);
     const idade   = idadeEmMeses(a.nascimento);
 

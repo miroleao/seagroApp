@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ponderalGDia } from "@/lib/ponderal";
 import { FinanceiroAnimalSection } from "@/components/FinanceiroAnimalSection";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
@@ -86,11 +87,8 @@ function categoriaPista(nascimento: string | null, sexo: "F" | "M"): string | nu
 }
 
 /** Ponderal (g/dia) = peso_kg × 1000 / dias_de_vida */
-function calcPonderal(pesoKg: number, nascimento: string | null, dataPesagem: string): number | null {
-  const dias = diasEntre(nascimento, dataPesagem);
-  if (!dias || dias <= 0) return null;
-  return (pesoKg * 1000) / dias;
-}
+// Cálculo canônico em @/lib/ponderal (desconta o peso de nascimento).
+const calcPonderal = ponderalGDia;
 
 /** Label de classificação de ponderal por faixa etária */
 function classificarPonderal(gdia: number, meses: number): { label: string; cls: string } {
@@ -1089,7 +1087,7 @@ export default async function MachoDetalhePage({
                   const prox      = pesagens[i + 1];
                   const variacao  = prox ? p.peso_kg - prox.peso_kg : null;
                   const mesesP    = mesesEntre(macho.nascimento, p.data);
-                  const ponderal  = calcPonderal(p.peso_kg, macho.nascimento, p.data);
+                  const ponderal  = calcPonderal(p.peso_kg, macho.nascimento, p.data, (macho as any).peso_nascimento);
                   const classPond = ponderal != null && mesesP != null
                     ? classificarPonderal(ponderal, mesesP)
                     : null;

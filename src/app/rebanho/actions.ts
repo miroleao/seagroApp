@@ -483,7 +483,9 @@ export async function registrarDesfechoUnificado(formData: FormData) {
 
         nascido_se_agro:    true,
         percentual_proprio: 1.0,   // nascidos na fazenda = 100% próprio por padrão
-        peso_atual: (!isNaN(peso_nascimento!) && peso_nascimento! > 0) ? peso_nascimento : null,
+        peso_atual:      (!isNaN(peso_nascimento!) && peso_nascimento! > 0) ? peso_nascimento : null,
+        // Persiste também como peso AO NASCER — base do cálculo de ganho ponderal.
+        peso_nascimento: (!isNaN(peso_nascimento!) && peso_nascimento! > 0) ? peso_nascimento : null,
       }).select("id").single();
 
       // Redireciona para a ficha do bezerro recém-criado

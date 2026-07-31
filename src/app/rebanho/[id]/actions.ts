@@ -196,7 +196,9 @@ export async function registrarNascimento(formData: FormData) {
       mae_id:       doadora_id,
       mae_nome:     doadora_nome,
       pai_nome:     touro_nome,
-      peso_atual:   peso_nascimento ? parseFloat(peso_nascimento) : null,
+      peso_atual:      peso_nascimento ? parseFloat(peso_nascimento) : null,
+      // Persiste também como peso AO NASCER — base do cálculo de ganho ponderal.
+      peso_nascimento: peso_nascimento ? parseFloat(peso_nascimento) : null,
       observacoes:  obs_nascimento,
     })
     .select("id")
