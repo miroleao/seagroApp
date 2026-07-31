@@ -80,13 +80,27 @@ export async function FinanceiroAnimalSection({
   const { data: viaAnimalId } = await supabase
     .from("transactions").select(SELECT_TX).eq("farm_id", FARM_ID).eq("animal_id", animalId);
 
-  // 3. Histórico por nome (só quando não há vínculo nenhum)
+  // 3. Histórico por nome — apenas transações sem vínculo nenhum.
+  //    O ILIKE é só um pré-filtro do banco; o match definitivo é exato,
+  //    feito abaixo em JS. Sem isso, uma doadora "Diva" puxaria as
+  //    transações de "Diva FIV do Kalunga" e o ROI da ficha ficaria errado.
   const nome = (animalNome ?? "").trim();
-  const { data: viaNome } = nome.length >= 3
+  const { data: viaNomeBruto } = nome.length >= 3
     ? await supabase
         .from("transactions").select(SELECT_TX).eq("farm_id", FARM_ID)
         .is("doadora_id", null).ilike("animal_nome", `%${nome}%`)
     : { data: [] as any[] };
+
+  const normaliza = (s: string) =>
+    s.toLowerCase()
+     .replace(/^(prenhez|aspiração|aspiracao)\s+/i, "")
+     .replace(/\s*\([^)]*\)\s*$/, "")
+     .trim();
+
+  const alvo = normaliza(nome);
+  const viaNome = (viaNomeBruto ?? []).filter(
+    (t: any) => normaliza(String(t.animal_nome ?? "")) === alvo
+  );
 
   // Deduplica
   const vistos = new Set<string>();
@@ -146,8 +160,8 @@ export async function FinanceiroAnimalSection({
         </Link>
       </div>
 
-      {/* Resumo */}
-      <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
+      {/* Resumo — empilha no mobile, valores em R$ não cabem em 3 colunas */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 border-b border-gray-100">
         <div className="px-4 py-3">
           <p className="text-[10px] text-gray-400 uppercase tracking-wide flex items-center gap-1">
             <TrendingDown className="w-3 h-3 text-red-400" /> Comprado

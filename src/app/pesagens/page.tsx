@@ -219,7 +219,7 @@ export default async function PesagensPage({
             {animais.length} animais · {comPesagem.length} com pesagem registrada
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
         <NovaPesagemModal animais={opcoesAnimais} />
         <ExportarPDF
           titulo="Relatório de Pesagens"

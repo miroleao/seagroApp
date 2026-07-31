@@ -338,12 +338,14 @@ export async function definirParcelasPagas(
     await supabase
       .from("installments")
       .update({ status: "PAGO", data_pagamento: hoje })
+      .eq("farm_id", FARM_ID)
       .eq("transaction_id", tx_id)
       .lte("numero", valor);
 
     await supabase
       .from("installments")
       .update({ status: "PENDENTE", data_pagamento: null })
+      .eq("farm_id", FARM_ID)
       .eq("transaction_id", tx_id)
       .gt("numero", valor);
   }

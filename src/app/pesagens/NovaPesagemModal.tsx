@@ -56,8 +56,8 @@ export default function NovaPesagemModal({ animais }: { animais: AnimalOpt[] }) 
       </button>
 
       {aberto && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl my-8">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl my-4 sm:my-8">
             {/* ── Cabeçalho ─────────────────────────────────────────── */}
             <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
               <Scale className="w-4 h-4 text-brand-600 shrink-0" />
@@ -343,14 +343,14 @@ function FormLote({
 
       {/* Grade */}
       <div className="border border-gray-100 rounded-lg overflow-hidden">
-        <div className="max-h-[45vh] overflow-y-auto">
-          <table className="w-full text-xs">
+        <div className="max-h-[45vh] overflow-y-auto overflow-x-auto">
+          <table className="w-full text-xs min-w-[460px]">
             <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
               <tr className="text-left">
                 <th className="px-3 py-2 font-semibold text-gray-500 uppercase text-[10px]">Animal</th>
-                <th className="px-3 py-2 font-semibold text-gray-500 uppercase text-[10px]">RGN / Brinco</th>
+                <th className="px-3 py-2 font-semibold text-gray-500 uppercase text-[10px] hidden sm:table-cell">RGN / Brinco</th>
                 <th className="px-3 py-2 font-semibold text-gray-500 uppercase text-[10px] text-right">Último peso</th>
-                <th className="px-3 py-2 font-semibold text-gray-500 uppercase text-[10px] w-32">Novo peso (kg)</th>
+                <th className="px-3 py-2 font-semibold text-gray-500 uppercase text-[10px] w-28 sm:w-32">Novo peso (kg)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -361,8 +361,11 @@ function FormLote({
                 const diff = preenchido && a.ultimoPeso != null ? num - a.ultimoPeso : null;
                 return (
                   <tr key={a.id} className={preenchido ? "bg-brand-50/40" : "hover:bg-gray-50"}>
-                    <td className="px-3 py-1.5 font-medium text-gray-900">{a.nome}</td>
-                    <td className="px-3 py-1.5 text-gray-400 font-mono text-[11px]">{ident(a)}</td>
+                    <td className="px-3 py-1.5 font-medium text-gray-900">
+                      {a.nome}
+                      <span className="block sm:hidden text-[10px] text-gray-400 font-mono font-normal">{ident(a)}</span>
+                    </td>
+                    <td className="px-3 py-1.5 text-gray-400 font-mono text-[11px] hidden sm:table-cell">{ident(a)}</td>
                     <td className="px-3 py-1.5 text-right text-gray-500 whitespace-nowrap">
                       {a.ultimoPeso != null
                         ? <>
