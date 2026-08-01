@@ -11,6 +11,17 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient();
     const hoje = new Date().toISOString().split("T")[0];
 
+    // DG → status_rebanho da receptora (fonte única para todo o fluxo abaixo).
+    // POSITIVO  → PRENHA_EMBRIAO   (prenhez confirmada, entra em Prenhas Ativas)
+    // NEGATIVO  → VAZIA            (falhou, libera a receptora para novo ciclo)
+    // AGUARDANDO/sem DG → IMPLANTADA (recebeu embrião, DG ainda não feito)
+    const statusPorDg: Record<string, string> = {
+      POSITIVO:   "PRENHA_EMBRIAO",
+      NEGATIVO:   "VAZIA",
+      AGUARDANDO: "IMPLANTADA",
+    };
+    const statusReceptora = statusPorDg[dgResultado as string] ?? "IMPLANTADA";
+
     // 1 — Sexagem + CDC-FIV + ADT-TE
     await supabase.from("embryos")
       .update({
@@ -57,7 +68,8 @@ export async function POST(req: NextRequest) {
           nome: `Receptora ${receptoraBrinco.trim()}`,
           brinco: receptoraBrinco.trim(),
           rgn: receptoraAbcz?.trim() || null,
-          status_rebanho: dgResultado === "POSITIVO" ? "PRENHA_EMBRIAO" : "ATIVA",
+          is_external: false,
+          status_rebanho: statusReceptora,
         }).select("id").single();
         receptoraId = nova?.id ?? null;
         receptoraStatus = "criada";
@@ -84,18 +96,26 @@ export async function POST(req: NextRequest) {
         await supabase.from("embryos").update({ status: "IMPLANTADO" }).eq("id", embryoId);
       }
 
-      // Sempre marca a receptora como prenha quando vinculada a um embrião implantado
-      await supabase.from("animals")
-        .update({ status_rebanho: "PRENHA_EMBRIAO" })
-        .eq("id", receptoraId);
+      // Reflete o DG no Rebanho: prenha (P+), vazia (Neg.) ou implantada (aguardando).
+      // Não sobrescreve estados terminais — animal vendido/morto/descartado não volta ao ciclo.
+      const { data: recAtual } = await supabase
+        .from("animals").select("status_rebanho").eq("id", receptoraId).maybeSingle();
+
+      const TERMINAIS = ["VENDIDA", "MORTA", "DESCARTE"];
+      if (!TERMINAIS.includes(recAtual?.status_rebanho ?? "")) {
+        await supabase.from("animals")
+          .update({ status_rebanho: statusReceptora })
+          .eq("id", receptoraId);
+      }
     }
 
     // 4 — DG + Previsão de parto (dataFiv + 293 dias)
     // Sempre cria pregnancy_diagnoses quando há transfer — sem DG usa "AGUARDANDO"
     // Isso garante a cadeia doadora → touro → embrião no Rebanho
     if (finalTransferId) {
-      // Sem DG informado → usa POSITIVO (receptora já está PRENHA_EMBRIAO)
-      const resultadoFinal = dgResultado || "POSITIVO";
+      // Sem DG informado → AGUARDANDO (não presume prenhez)
+      const resultadoFinal = dgResultado || "AGUARDANDO";
+      // Previsão de parto só faz sentido com prenhez confirmada — em NEGATIVO fica null
       let dataPrevisaoParto: string | null = null;
       if (dataFiv && resultadoFinal === "POSITIVO") {
         const d = new Date(dataFiv + "T12:00:00");
@@ -128,7 +148,14 @@ export async function POST(req: NextRequest) {
 
     revalidatePath("/reproducao");
     revalidatePath("/rebanho");
-    return NextResponse.json({ ok: true, receptoraStatus, novoTransferId: finalTransferId });
+    revalidatePath("/aspiracoes");
+    revalidatePath("/dashboard");
+    return NextResponse.json({
+      ok: true,
+      receptoraStatus,
+      novoTransferId: finalTransferId,
+      statusRebanho: receptoraId ? statusReceptora : null,
+    });
   } catch (e: any) {
     return NextResponse.json({ ok: false, erro: e?.message ?? "Erro interno" }, { status: 500 });
   }

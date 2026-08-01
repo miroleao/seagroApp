@@ -275,8 +275,20 @@ export function TabelaEmbrioes({ embryos, dataFiv, dataDgSessao, receptoras }: P
       const data = await res.json();
 
       if (data.ok) {
+        const STATUS_LABEL: Record<string, string> = {
+          PRENHA_EMBRIAO: "Prenha de Embrião",
+          VAZIA:          "Vazia",
+          IMPLANTADA:     "Implantada c/ Embrião",
+        };
+        const partes: string[] = [];
         if (data.receptoraStatus === "criada") {
-          setAvisos(prev => ({ ...prev, [emb.id]: `✓ Receptora "${form.brinco}" criada no rebanho.` }));
+          partes.push(`Receptora "${receptoraBrinco}" criada no rebanho`);
+        }
+        if (data.statusRebanho) {
+          partes.push(`Rebanho atualizado → ${STATUS_LABEL[data.statusRebanho] ?? data.statusRebanho}`);
+        }
+        if (partes.length) {
+          setAvisos(prev => ({ ...prev, [emb.id]: `✓ ${partes.join(" · ")}.` }));
         }
         setEditando(prev => { const c = {...prev}; delete c[emb.id]; return c; });
         router.refresh();

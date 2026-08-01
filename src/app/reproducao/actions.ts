@@ -401,6 +401,14 @@ export async function salvarLinhaEmbriao({
   const supabase = await createClient();
   const hoje = new Date().toISOString().split("T")[0];
 
+  // DG → status_rebanho (mesma regra de /api/salvar-embriao)
+  const statusPorDg: Record<string, string> = {
+    POSITIVO:   "PRENHA_EMBRIAO",
+    NEGATIVO:   "VAZIA",
+    AGUARDANDO: "IMPLANTADA",
+  };
+  const statusReceptora = statusPorDg[dgResultado] ?? "IMPLANTADA";
+
   // 1 ── Atualizar sexagem do embrião
   await supabase.from("embryos").update({ sexagem: sexagem || "NAO_SEXADO" }).eq("id", embryoId);
 
@@ -430,7 +438,8 @@ export async function salvarLinhaEmbriao({
           classificacao: "RECEPTORA",
           nome: `Receptora ${receptoraBrinco.trim()}`,
           brinco: receptoraBrinco.trim(),
-          status_rebanho: dgResultado === "POSITIVO" ? "PRENHA_EMBRIAO" : "ATIVA",
+          is_external: false,
+          status_rebanho: statusReceptora,
         })
         .select("id")
         .single();
@@ -464,9 +473,12 @@ export async function salvarLinhaEmbriao({
       await supabase.from("embryos").update({ status: "IMPLANTADO" }).eq("id", embryoId);
     }
 
-    // Atualiza status da receptora
-    if (dgResultado === "POSITIVO") {
-      await supabase.from("animals").update({ status_rebanho: "PRENHA_EMBRIAO" }).eq("id", receptoraId);
+    // Reflete o DG no Rebanho, preservando estados terminais
+    const { data: recAtual } = await supabase
+      .from("animals").select("status_rebanho").eq("id", receptoraId).maybeSingle();
+
+    if (!["VENDIDA", "MORTA", "DESCARTE"].includes(recAtual?.status_rebanho ?? "")) {
+      await supabase.from("animals").update({ status_rebanho: statusReceptora }).eq("id", receptoraId);
     }
   }
 
