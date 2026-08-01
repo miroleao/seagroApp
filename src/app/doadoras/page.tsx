@@ -377,7 +377,7 @@ export default async function DoadorasPage({
               </th>
 
               {/* Pai */}
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap hidden lg:table-cell">
                 <div className="flex flex-col gap-1">
                   <span>Pai</span>
                   <Suspense>
@@ -391,7 +391,7 @@ export default async function DoadorasPage({
               </th>
 
               {/* Mãe */}
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap hidden lg:table-cell">
                 <div className="flex flex-col gap-1">
                   <span>Mãe</span>
                   <Suspense>
@@ -405,7 +405,7 @@ export default async function DoadorasPage({
               </th>
 
               {/* Avó */}
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Avó</th>
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap hidden lg:table-cell">Avó</th>
 
               {/* Reprodutivo */}
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">
@@ -431,7 +431,7 @@ export default async function DoadorasPage({
                 </div>
               </th>
 
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Pai da Prenhez</th>
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap hidden lg:table-cell">Pai da Prenhez</th>
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Prev. Parto</th>
 
               {/* Localização */}
@@ -461,7 +461,7 @@ export default async function DoadorasPage({
               return (
                 <tr key={d.id} className="table-row-hover">
                   {/* Nome clicável + indicador de pista */}
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-4 py-3 align-top">
                     <div className="flex items-center gap-1.5">
                       <Link
                         href={`/doadoras/${d.id}`}
@@ -495,6 +495,25 @@ export default async function DoadorasPage({
                         </span>
                       )}
                     </div>
+                    {/* Mobile: genealogia vem para cá — em Nelore de elite ela
+                        é o dado principal, não pode sumir na tela pequena. */}
+                    <div className="lg:hidden mt-1 space-y-0.5 text-[10px] leading-tight max-w-[210px]">
+                      {d.pai_nome && (
+                        <p className="text-gray-500 truncate" title={d.pai_nome}>
+                          <span className="text-blue-500 font-semibold">♂</span> {d.pai_nome}
+                        </p>
+                      )}
+                      {d.mae_nome && (
+                        <p className="text-gray-500 truncate" title={d.mae_nome}>
+                          <span className="text-pink-500 font-semibold">♀</span> {d.mae_nome}
+                        </p>
+                      )}
+                      {(d as any).avo_materna && (
+                        <p className="text-gray-400 truncate" title={(d as any).avo_materna}>
+                          <span className="text-gray-300">avó</span> {(d as any).avo_materna}
+                        </p>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">{d.rgn ?? "—"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -509,9 +528,9 @@ export default async function DoadorasPage({
                       );
                     })()}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.pai_nome ?? ""}>{d.pai_nome ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={d.mae_nome ?? ""}>{d.mae_nome ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate" title={(d as any).avo_materna ?? "—"}>
+                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate hidden lg:table-cell" title={d.pai_nome ?? ""}>{d.pai_nome ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate hidden lg:table-cell" title={d.mae_nome ?? ""}>{d.mae_nome ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate hidden lg:table-cell" title={(d as any).avo_materna ?? "—"}>
                     {(d as any).avo_materna ?? "—"}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -523,7 +542,7 @@ export default async function DoadorasPage({
                       <span className="text-gray-300">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs whitespace-nowrap max-w-[160px] truncate"
+                  <td className="px-4 py-3 text-xs whitespace-nowrap max-w-[160px] truncate hidden lg:table-cell"
                       title={d.touro_prenhez ?? d.touro_ultimo_parto ?? ""}>
                     {d.touro_prenhez
                       ? <span className="text-gray-600">{d.touro_prenhez}</span>

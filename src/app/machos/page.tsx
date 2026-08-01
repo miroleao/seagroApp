@@ -278,9 +278,9 @@ export default async function MachosPage({
                 </div>
               </th>
 
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Pai</th>
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Mãe</th>
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Avó</th>
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap hidden lg:table-cell">Pai</th>
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap hidden lg:table-cell">Mãe</th>
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap hidden lg:table-cell">Avó</th>
 
               {/* Andrológico */}
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">
@@ -301,7 +301,7 @@ export default async function MachosPage({
               </th>
 
               <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">CE (cm)</th>
-              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Localização</th>
+              <th className="px-4 py-3 font-medium text-gray-600 whitespace-nowrap hidden lg:table-cell">Localização</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -323,7 +323,7 @@ export default async function MachosPage({
                 return (
                   <tr key={m.id} className="table-row-hover">
                     {/* Nome */}
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-4 py-3 align-top">
                       <div className="flex items-center gap-1.5">
                         <Link
                           href={`/machos/${m.id}`}
@@ -357,6 +357,26 @@ export default async function MachosPage({
                           </span>
                         )}
                       </div>
+
+                      {/* Mobile: genealogia vem para cá — em Nelore de elite ela
+                          é o dado principal, não pode sumir na tela pequena. */}
+                      <div className="lg:hidden mt-1 space-y-0.5 text-[10px] leading-tight max-w-[210px]">
+                        {m.pai_nome && (
+                          <p className="text-gray-500 truncate" title={m.pai_nome}>
+                            <span className="text-blue-500 font-semibold">♂</span> {m.pai_nome}
+                          </p>
+                        )}
+                        {m.mae_nome && (
+                          <p className="text-gray-500 truncate" title={m.mae_nome}>
+                            <span className="text-pink-500 font-semibold">♀</span> {m.mae_nome}
+                          </p>
+                        )}
+                        {(m as any).avo_materna && (
+                          <p className="text-gray-400 truncate" title={(m as any).avo_materna}>
+                            <span className="text-gray-300">avó</span> {(m as any).avo_materna}
+                          </p>
+                        )}
+                      </div>
                     </td>
 
                     {/* RGN / RGD */}
@@ -386,9 +406,9 @@ export default async function MachosPage({
                       )}
                     </td>
 
-                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{m.pai_nome ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{m.mae_nome ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate" title={(m as any).avo_materna ?? "—"}>
+                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate hidden lg:table-cell">{m.pai_nome ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate hidden lg:table-cell">{m.mae_nome ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate hidden lg:table-cell" title={(m as any).avo_materna ?? "—"}>
                       {(m as any).avo_materna ?? "—"}
                     </td>
 
@@ -411,7 +431,7 @@ export default async function MachosPage({
                       )}
                     </td>
 
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{m.localizacao ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap hidden lg:table-cell">{m.localizacao ?? "—"}</td>
                     <td className="px-2 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-1">
                         <EditarMachoInlineBtn
