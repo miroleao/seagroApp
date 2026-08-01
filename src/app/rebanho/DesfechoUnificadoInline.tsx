@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { ClipboardList, X, Lock } from "lucide-react";
 import { registrarDesfechoUnificado } from "./actions";
+import { BuscaAnimalVinculo } from "./BuscaAnimalVinculo";
 
 interface Props {
   animalId:           string;
@@ -38,6 +39,7 @@ export function DesfechoUnificadoInline({
 }: Props) {
   const [open, setOpen]  = useState(false);
   const [tipo, setTipo]  = useState("");
+  const [modoBezerro, setModoBezerro] = useState<"novo" | "existente">("novo");
   const [pos,  setPos]   = useState({ top: 0, right: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -67,6 +69,7 @@ export function DesfechoUnificadoInline({
       setPos({ top, right: window.innerWidth - r.right });
     }
     setTipo("");
+    setModoBezerro("novo");
     setOpen(o => !o);
   }
 
@@ -96,7 +99,7 @@ export function DesfechoUnificadoInline({
           {/* Painel — fixed para não cortar na tabela */}
           <div
             style={{ top: pos.top, right: pos.right }}
-            className="fixed z-50 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl p-4"
+            className="fixed z-50 w-80 max-h-[85vh] overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-2xl p-4"
           >
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-gray-800">
@@ -169,33 +172,71 @@ export function DesfechoUnificadoInline({
                       {/* Campos do bezerro — só aparecem no Nascimento */}
                       {tipo === "PARIDA" && (
                         <>
-                          <div>
-                            <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
-                              Sexo do Bezerro <span className="text-red-400">*</span>
-                            </label>
-                            <div className="flex gap-2">
-                              {[{ v: "F", label: "🐮 Fêmea" }, { v: "M", label: "🐂 Macho" }].map(op => (
-                                <label key={op.v} className="flex-1 flex items-center justify-center gap-1.5 cursor-pointer">
-                                  <input type="radio" name="bezerro_sexo" value={op.v} required className="accent-brand-600" />
-                                  <span className="text-xs font-medium text-gray-700">{op.label}</span>
-                                </label>
-                              ))}
+                          <input type="hidden" name="bezerro_modo" value={modoBezerro} />
+
+                          {/* Cadastrar novo x vincular um já existente */}
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {([
+                              { v: "novo"      as const, label: "Cadastrar novo" },
+                              { v: "existente" as const, label: "Vincular existente" },
+                            ]).map(op => (
+                              <button
+                                key={op.v}
+                                type="button"
+                                onClick={() => setModoBezerro(op.v)}
+                                className={`py-1.5 rounded-lg text-[11px] font-medium border transition-colors ${
+                                  modoBezerro === op.v
+                                    ? "border-brand-400 bg-brand-50 text-brand-700"
+                                    : "border-gray-200 text-gray-500 hover:border-gray-300 bg-white"
+                                }`}
+                              >
+                                {op.label}
+                              </button>
+                            ))}
+                          </div>
+
+                          {modoBezerro === "existente" ? (
+                            <div>
+                              <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                                Animal já cadastrado <span className="text-red-400">*</span>
+                              </label>
+                              <BuscaAnimalVinculo />
+                              <p className="text-[9px] text-gray-400 mt-1 leading-relaxed">
+                                O animal recebe a data de nascimento, a mãe e a genealogia
+                                do embrião. Nome e RGN existentes não são alterados.
+                              </p>
                             </div>
-                          </div>
-                          <div>
-                            <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
-                              Nome do Bezerro
-                            </label>
-                            <input name="bezerro_nome" type="text" placeholder="Nome do filhote…"
-                              className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                          </div>
-                          <div>
-                            <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
-                              RGN do Bezerro
-                            </label>
-                            <input name="bezerro_rgn" type="text" placeholder="Registro genealógico…"
-                              className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                          </div>
+                          ) : (
+                            <>
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                                  Sexo do Bezerro <span className="text-red-400">*</span>
+                                </label>
+                                <div className="flex gap-2">
+                                  {[{ v: "F", label: "🐮 Fêmea" }, { v: "M", label: "🐂 Macho" }].map(op => (
+                                    <label key={op.v} className="flex-1 flex items-center justify-center gap-1.5 cursor-pointer">
+                                      <input type="radio" name="bezerro_sexo" value={op.v} required className="accent-brand-600" />
+                                      <span className="text-xs font-medium text-gray-700">{op.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                                  Nome do Bezerro
+                                </label>
+                                <input name="bezerro_nome" type="text" placeholder="Nome do filhote…"
+                                  className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                              </div>
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                                  RGN do Bezerro
+                                </label>
+                                <input name="bezerro_rgn" type="text" placeholder="Registro genealógico…"
+                                  className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                              </div>
+                            </>
+                          )}
                         </>
                       )}
 

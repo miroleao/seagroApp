@@ -322,6 +322,9 @@ export async function registrarDesfechoUnificado(formData: FormData) {
   const bezerro_nome = (formData.get("bezerro_nome") as string)?.trim() || null;
   const bezerro_rgn  = (formData.get("bezerro_rgn")  as string)?.trim() || null;
   const bezerro_sexo = (formData.get("bezerro_sexo") as string)?.trim() || null; // "M" | "F"
+  // "novo" cria o animal; "existente" vincula um já cadastrado
+  const bezerro_modo         = (formData.get("bezerro_modo")         as string)?.trim() || "novo";
+  const bezerro_existente_id = (formData.get("bezerro_existente_id") as string)?.trim() || null;
 
   if (!animal_id || !tipo) return;
 
@@ -435,8 +438,78 @@ export async function registrarDesfechoUnificado(formData: FormData) {
       .update({ status_rebanho: novoStatus[tipo] ?? "VAZIA" })
       .eq("id", animal_id).eq("farm_id", FARM_ID);
 
+    // ── Vincular um animal JÁ CADASTRADO como cria deste parto ───────────────
+    if (tipo === "PARIDA" && bezerro_modo === "existente" && bezerro_existente_id) {
+      const { data: existente } = await supabase
+        .from("animals")
+        .select("id, sexo, nascimento, mae_id, mae_nome, pai_nome, avo_paterno, avo_paterna, avo_materno, avo_materna, peso_nascimento")
+        .eq("id", bezerro_existente_id)
+        .eq("farm_id", FARM_ID)
+        .maybeSingle();
+
+      if (existente) {
+        const peso_raw = (formData.get("peso_nascimento") as string)?.trim() || null;
+        const peso_n   = peso_raw ? parseFloat(peso_raw) : null;
+
+        // Só preenche o que está vazio — nome, RGN e demais dados já
+        // cadastrados pelo usuário não são sobrescritos.
+        const upd: Record<string, unknown> = { nascido_se_agro: true };
+        const preencher = (campo: string, valor: unknown) => {
+          if (valor == null || valor === "") return;
+          if ((existente as any)[campo] == null || (existente as any)[campo] === "") {
+            upd[campo] = valor;
+          }
+        };
+        preencher("nascimento",      data_evento);
+        preencher("mae_id",          doadora_id_asp);
+        preencher("mae_nome",        doadora_nome);
+        preencher("pai_nome",        touro_nome);
+        preencher("avo_paterno",     touro_genea?.pai_nome);
+        preencher("avo_paterna",     touro_genea?.mae_nome);
+        preencher("avo_materno",     doadora_genea?.pai_nome);
+        preencher("avo_materna",     doadora_genea?.mae_nome);
+        preencher("bisavo_pat_pat",  touro_genea?.avo_paterno);
+        preencher("bisava_pat_pat",  touro_genea?.avo_paterna);
+        preencher("bisavo_pat_mat",  touro_genea?.avo_materno);
+        preencher("bisava_pat_mat",  touro_genea?.avo_materna);
+        preencher("bisavo_materno",  doadora_genea?.avo_paterno);
+        preencher("bisava_mat_pat",  doadora_genea?.avo_paterna);
+        preencher("bisavo_materna",  doadora_genea?.avo_materno);
+        preencher("bisavo",          doadora_genea?.avo_materna);
+        if (peso_n != null && !isNaN(peso_n) && peso_n > 0) {
+          preencher("peso_nascimento", peso_n);
+        }
+
+        await supabase.from("animals").update(upd)
+          .eq("id", bezerro_existente_id).eq("farm_id", FARM_ID);
+
+        // Liga a cria ao parto e à receptora
+        if (tid) {
+          await supabase.from("pregnancy_diagnoses")
+            .update({ animal_nascido_id: bezerro_existente_id })
+            .eq("transfer_id", tid).eq("farm_id", FARM_ID);
+        }
+        await supabase.from("animals")
+          .update({ cria_id: bezerro_existente_id })
+          .eq("id", animal_id).eq("farm_id", FARM_ID);
+
+        revalidatePath("/rebanho");
+        revalidatePath("/reproducao");
+        revalidatePath("/reproducao/prenhezes");
+        if (aspiration_id) revalidatePath(`/reproducao/prenhezes/${aspiration_id}`);
+        revalidatePath("/doadoras");
+        revalidatePath("/machos");
+        revalidatePath("/dashboard");
+        redirect(
+          (existente as any).sexo === "M" || bezerro_sexo === "M"
+            ? `/machos/${bezerro_existente_id}`
+            : `/doadoras/${bezerro_existente_id}`
+        );
+      }
+    }
+
     // ── Criar bezerro quando há nascimento ───────────────────────────────────
-    if (tipo === "PARIDA" && bezerro_sexo) {
+    if (tipo === "PARIDA" && bezerro_modo !== "existente" && bezerro_sexo) {
       const tipoAnimal = bezerro_sexo === "F" ? "DOADORA" : "TOURO";
       const nomeAnimal = bezerro_nome || (bezerro_sexo === "F" ? "Bezerra SE" : "Bezerro SE");
       const peso_nascimento_raw = (formData.get("peso_nascimento") as string)?.trim() || null;
@@ -490,6 +563,17 @@ export async function registrarDesfechoUnificado(formData: FormData) {
 
       // Redireciona para a ficha do bezerro recém-criado
       if (novoAnimal?.id) {
+        // Liga a cria ao parto e à receptora — antes esse vínculo não era gravado,
+        // e a ficha da receptora só achava o bezerro adivinhando pela data.
+        if (tid) {
+          await supabase.from("pregnancy_diagnoses")
+            .update({ animal_nascido_id: novoAnimal.id })
+            .eq("transfer_id", tid).eq("farm_id", FARM_ID);
+        }
+        await supabase.from("animals")
+          .update({ cria_id: novoAnimal.id })
+          .eq("id", animal_id).eq("farm_id", FARM_ID);
+
         revalidatePath("/rebanho");
         revalidatePath("/reproducao");
         revalidatePath("/reproducao/prenhezes");
