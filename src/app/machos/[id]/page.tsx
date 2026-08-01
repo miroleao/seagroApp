@@ -28,7 +28,6 @@ import AnimalFotoUpload from "@/components/AnimalFotoUpload";
 import AnimalDocumentosUpload from "@/components/AnimalDocumentosUpload";
 import VendaLeilaoSection from "@/components/VendaLeilaoSection";
 import { VendaSyncProvider } from "@/components/VendaSyncContext";
-import RegistrarVendaForm from "./RegistrarVendaForm";
 
 // ── Tabela ABCZ de circunferência escrotal mínima por idade ──────────────────
 const CE_TABLE = [
@@ -831,18 +830,6 @@ export default async function MachoDetalhePage({
         />
       </div>
 
-      {/* ── Registrar Venda ─────────────────────────────────── */}
-      <details className="card group">
-        <summary className="px-5 py-4 cursor-pointer select-none list-none flex items-center gap-2 hover:bg-gray-50 rounded-xl transition-colors">
-          <ShoppingCart className="w-4 h-4 text-brand-600" />
-          <h2 className="font-semibold text-gray-900 text-sm">Registrar Venda</h2>
-          <span className="ml-auto text-xs text-gray-400 group-open:hidden">▸ Expandir</span>
-          <span className="ml-auto text-xs text-gray-400 hidden group-open:inline">▾ Fechar</span>
-        </summary>
-        <div className="px-5 pb-5 pt-1 border-t border-gray-100">
-          <RegistrarVendaForm touroId={macho.id} />
-        </div>
-      </details>
 
       {/* ── Card Leilão ─────────────────────────────────────────────────── */}
       {(macho as any).para_leilao && (
@@ -953,6 +940,12 @@ export default async function MachoDetalhePage({
               defaultParcela={(leilaoInfo as any)?.venda_valor_parcela ?? undefined}
               defaultNParcelas={(leilaoInfo as any)?.venda_n_parcelas ?? undefined}
               defaultPercentual={(leilaoInfo as any)?.venda_percentual ?? undefined}
+              animalId={macho.id}
+              percentualProprioAtual={
+                (macho as any).percentual_proprio != null
+                  ? Math.round(((macho as any).percentual_proprio as number) * 100)
+                  : 100
+              }
             />
 
             <button type="submit"

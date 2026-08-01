@@ -10,7 +10,6 @@ import AnimalDocumentosUpload from "@/components/AnimalDocumentosUpload";
 import VendaLeilaoSection from "@/components/VendaLeilaoSection";
 import { VendaSyncProvider } from "@/components/VendaSyncContext";
 import { FormPremiacao } from "./FormPremiacao";
-import RegistrarVendaForm from "./RegistrarVendaForm";
 import { ReproStatusForm } from "@/components/ui/ReproStatusForm";
 import { EditReprodutivoInline } from "@/app/rebanho/EditReprodutivoInline";
 import { NascimentoDoadoraForm } from "./NascimentoDoadoraForm";
@@ -1321,18 +1320,6 @@ export default async function DoadoraDetalhePage({
         animalId={doadora.id}
       />
 
-      {/* ── Registrar Venda ─────────────────────────────────── */}
-      <details className="card group">
-        <summary className="px-5 py-4 cursor-pointer select-none list-none flex items-center gap-2 hover:bg-gray-50 rounded-xl transition-colors">
-          <ShoppingCart className="w-4 h-4 text-brand-600" />
-          <h2 className="font-semibold text-gray-900 text-sm">Registrar Venda</h2>
-          <span className="ml-auto text-xs text-gray-400 group-open:hidden">▸ Expandir</span>
-          <span className="ml-auto text-xs text-gray-400 hidden group-open:inline">▾ Fechar</span>
-        </summary>
-        <div className="px-5 pb-5 pt-1 border-t border-gray-100">
-          <RegistrarVendaForm doadoraId={id} />
-        </div>
-      </details>
 
       {/* ── Documentos ─────────────────────────────────────── */}
       <div className="card overflow-hidden">
@@ -1817,6 +1804,12 @@ export default async function DoadoraDetalhePage({
               defaultParcela={(leilaoInfo as any)?.venda_valor_parcela ?? undefined}
               defaultNParcelas={(leilaoInfo as any)?.venda_n_parcelas ?? undefined}
               defaultPercentual={(leilaoInfo as any)?.venda_percentual ?? undefined}
+              animalId={doadora.id}
+              percentualProprioAtual={
+                (doadora as any).percentual_proprio != null
+                  ? Math.round(((doadora as any).percentual_proprio as number) * 100)
+                  : 100
+              }
             />
 
             <button type="submit"

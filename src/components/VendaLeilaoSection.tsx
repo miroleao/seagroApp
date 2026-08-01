@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useState, useEffect, useTransition } from "react";
+import { TrendingUp, TrendingDown, Minus, ShoppingCart, Loader2, Check, LogOut, Handshake } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { registrarVendaAnimal } from "@/lib/actions/venda";
 import { useVendaSync } from "./VendaSyncContext";
 
 interface Props {
@@ -10,6 +12,10 @@ interface Props {
   defaultParcela?: number;
   defaultNParcelas?: number;
   defaultPercentual?: number;
+  /** Habilita o botão que grava a venda de verdade (financeiro + saída). */
+  animalId?: string;
+  /** Participação atual da fazenda, em % (0–100). */
+  percentualProprioAtual?: number;
 }
 
 function fmt(value: number) {
@@ -22,6 +28,8 @@ export default function VendaLeilaoSection({
   defaultParcela,
   defaultNParcelas,
   defaultPercentual,
+  animalId,
+  percentualProprioAtual = 100,
 }: Props) {
   const [comprador, setComprador]   = useState(defaultComprador);
   const [parcela, setParcela]       = useState(defaultParcela?.toString() ?? "");
@@ -47,6 +55,42 @@ export default function VendaLeilaoSection({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comprador, parcelaNum, nParcelasNum, percentualNum, vendaTotal]);
+
+  // ── Registro efetivo ───────────────────────────────────────────────────
+  const [dataVenda, setDataVenda] = useState(() => new Date().toISOString().split("T")[0]);
+  const [obsVenda,  setObsVenda]  = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+  const [pendente, iniciar] = useTransition();
+  const router = useRouter();
+
+  // Regra: saída só quando a participação própria zera
+  const restante    = Math.max(0, parseFloat((percentualProprioAtual - percentualNum).toFixed(2)));
+  const vaiDarSaida = restante <= 0.01;
+
+  function registrar() {
+    if (!animalId || !vendaTotal) return;
+    setMsg(null);
+    const fd = new FormData();
+    fd.set("animal_id",           animalId);
+    fd.set("venda_comprador",     comprador);
+    fd.set("venda_valor_parcela", String(parcelaNum));
+    fd.set("venda_n_parcelas",    String(nParcelasNum));
+    fd.set("venda_percentual",    String(percentualNum));
+    fd.set("venda_data",          dataVenda);
+    fd.set("venda_observacoes",   obsVenda);
+
+    iniciar(async () => {
+      const res = await registrarVendaAnimal(fd);
+      if (!res.ok) { setMsg({ ok: false, texto: res.erro ?? "Erro ao registrar" }); return; }
+      setMsg({
+        ok: true,
+        texto: res.deuSaida
+          ? "Venda registrada. Animal recebeu saída."
+          : `Venda registrada. Participação restante: ${res.percentualRestante}%.`,
+      });
+      router.refresh();
+    });
+  }
 
   // Comparativo
   type Status = "acima" | "abaixo" | "meta" | null;
@@ -148,9 +192,79 @@ export default function VendaLeilaoSection({
         </div>
       </div>
 
-      <p className="mt-2 text-xs text-amber-600 italic">
-        Este valor é usado automaticamente para pré-preencher a seção &quot;Registrar Venda&quot; acima.
-      </p>
+      {/* ── Registro efetivo da venda ─────────────────────────────────── */}
+      {animalId && (
+        <div className="mt-4 rounded-lg border border-amber-200 bg-white p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Data da venda</label>
+              <input
+                type="date"
+                value={dataVenda}
+                onChange={(e) => setDataVenda(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Observações</label>
+              <input
+                type="text"
+                value={obsVenda}
+                onChange={(e) => setObsVenda(e.target.value)}
+                placeholder="Leilão, condições…"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+              />
+            </div>
+          </div>
+
+          {/* Prévia do efeito — deixa claro o que muda antes de gravar */}
+          {vendaTotal && (
+            <div className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2.5 text-xs space-y-1">
+              <p className="text-gray-600">
+                Registra <span className="font-semibold text-green-700">{fmt(vendaTotal)}</span> no
+                financeiro em {nParcelasNum}× de {fmt(parcelaNum)}.
+              </p>
+              {vaiDarSaida ? (
+                <p className="flex items-center gap-1.5 text-red-700 font-medium">
+                  <LogOut className="w-3 h-3 shrink-0" />
+                  Participação zera — o animal recebe saída (status Vendida).
+                </p>
+              ) : (
+                <p className="flex items-center gap-1.5 text-amber-700">
+                  <Handshake className="w-3 h-3 shrink-0" />
+                  Participação cai de {percentualProprioAtual}% para {restante}% — o animal
+                  continua ativo, sem saída.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={registrar}
+              disabled={!vendaTotal || pendente}
+              className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
+            >
+              {pendente
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <ShoppingCart className="w-4 h-4" />}
+              Registrar venda
+            </button>
+            {msg && (
+              <p className={`text-xs flex items-center gap-1 ${msg.ok ? "text-green-700" : "text-red-600"}`}>
+                {msg.ok && <Check className="w-3.5 h-3.5 shrink-0" />}
+                {msg.texto}
+              </p>
+            )}
+          </div>
+
+          <p className="text-[10px] text-gray-400 leading-relaxed">
+            Grava de uma vez: transação e parcelas no Financeiro, os dados aqui no card
+            e a participação da fazenda. Saída só é aplicada quando a participação chega a zero.
+          </p>
+        </div>
+      )}
 
       {/* ── Comparativo com Meta ── */}
       {(vendaTotal || metaTotal) && (
