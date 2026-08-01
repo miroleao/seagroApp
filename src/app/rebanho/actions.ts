@@ -313,7 +313,11 @@ export async function registrarDesfechoUnificado(formData: FormData) {
   const animal_id   = (formData.get("animal_id")   as string)?.trim();
   const transfer_id = (formData.get("transfer_id") as string)?.trim() || null;
   const tipo        = (formData.get("tipo")         as string)?.trim();
-  const data_evento = (formData.get("data_evento")  as string)?.trim() || null;
+  const data_evento_raw = (formData.get("data_evento") as string)?.trim() || null;
+  // Ao vincular uma cria já cadastrada, a data do parto é o nascimento dela —
+  // o formulário esconde o campo e manda esta em vez daquela.
+  const data_cria_existente = (formData.get("bezerro_existente_nascimento") as string)?.trim() || null;
+  const data_evento = data_evento_raw ?? data_cria_existente;
   const valor_str   = (formData.get("valor")        as string)?.trim() || null;
   const obs         = (formData.get("observacoes")  as string)?.trim() || null;
   const redirect_to = (formData.get("redirect_to")  as string)?.trim() || "/rebanho";

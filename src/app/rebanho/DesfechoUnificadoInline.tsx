@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { ClipboardList, X, Lock } from "lucide-react";
 import { registrarDesfechoUnificado } from "./actions";
-import { BuscaAnimalVinculo } from "./BuscaAnimalVinculo";
+import { BuscaAnimalVinculo, type AnimalHit } from "./BuscaAnimalVinculo";
 
 interface Props {
   animalId:           string;
@@ -40,6 +40,7 @@ export function DesfechoUnificadoInline({
   const [open, setOpen]  = useState(false);
   const [tipo, setTipo]  = useState("");
   const [modoBezerro, setModoBezerro] = useState<"novo" | "existente">("novo");
+  const [criaSelecionada, setCriaSelecionada] = useState<AnimalHit | null>(null);
   const [pos,  setPos]   = useState({ top: 0, right: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -58,6 +59,11 @@ export function DesfechoUnificadoInline({
 
   const opcoes = isPrenha ? [...OPCOES_PRENHA, ...OPCOES_SEMPRE] : OPCOES_SEMPRE;
 
+  // Vinculando uma cria que já tem nascimento: a data do parto sai dela,
+  // não faz sentido pedir de novo.
+  const dataVemDaCria =
+    tipo === "PARIDA" && modoBezerro === "existente" && !!criaSelecionada?.nascimento;
+
   function handleOpen() {
     if (!open && btnRef.current) {
       const r   = btnRef.current.getBoundingClientRect();
@@ -70,6 +76,7 @@ export function DesfechoUnificadoInline({
     }
     setTipo("");
     setModoBezerro("novo");
+    setCriaSelecionada(null);
     setOpen(o => !o);
   }
 
@@ -161,13 +168,32 @@ export function DesfechoUnificadoInline({
                     {transferId && <input type="hidden" name="transfer_id" value={transferId} />}
 
                     <div className="space-y-2.5">
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
-                          Data
-                        </label>
-                        <input name="data_evento" type="date" required
-                          className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
-                      </div>
+                      {dataVemDaCria ? (
+                        <div className="rounded-lg bg-gray-50 border border-gray-100 px-2.5 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-0.5">
+                            Data do parto
+                          </p>
+                          <p className="text-xs font-medium text-gray-700">
+                            {new Date(criaSelecionada!.nascimento! + "T12:00:00").toLocaleDateString("pt-BR")}
+                          </p>
+                          <p className="text-[9px] text-gray-400 mt-0.5">
+                            vem do nascimento do animal vinculado
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
+                            Data {modoBezerro === "existente" && tipo === "PARIDA" ? "do parto" : ""}
+                          </label>
+                          <input name="data_evento" type="date" required
+                            className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-300" />
+                          {modoBezerro === "existente" && tipo === "PARIDA" && (
+                            <p className="text-[9px] text-amber-600 mt-0.5">
+                              O animal vinculado não tem nascimento cadastrado — informe a data.
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Campos do bezerro — só aparecem no Nascimento */}
                       {tipo === "PARIDA" && (
@@ -200,7 +226,7 @@ export function DesfechoUnificadoInline({
                               <label className="text-[10px] uppercase tracking-wide text-gray-400 font-medium block mb-1">
                                 Animal já cadastrado <span className="text-red-400">*</span>
                               </label>
-                              <BuscaAnimalVinculo />
+                              <BuscaAnimalVinculo onSelect={setCriaSelecionada} />
                               <p className="text-[9px] text-gray-400 mt-1 leading-relaxed">
                                 O animal recebe a data de nascimento, a mãe e a genealogia
                                 do embrião. Nome e RGN existentes não são alterados.

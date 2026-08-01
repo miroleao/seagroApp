@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, X, Check } from "lucide-react";
 
-type AnimalHit = {
+export type AnimalHit = {
   id: string;
   nome: string;
   tipo: string;
   rgn: string | null;
   rgd: string | null;
+  nascimento: string | null;
+  sexo: string | null;
 };
 
 const TIPO_LABEL: Record<string, string> = {
@@ -21,12 +23,19 @@ const TIPO_LABEL: Record<string, string> = {
  * Emite `bezerro_existente_id` e `bezerro_sexo` (derivado do tipo do animal),
  * lidos pelo Server Action `registrarDesfechoUnificado`.
  */
-export function BuscaAnimalVinculo() {
+export function BuscaAnimalVinculo({
+  onSelect,
+}: {
+  /** Avisa o pai qual animal foi escolhido — usado para esconder o campo de data. */
+  onSelect?: (a: AnimalHit | null) => void;
+}) {
   const [busca, setBusca]           = useState("");
   const [hits, setHits]             = useState<AnimalHit[]>([]);
   const [selecionado, setSelec]     = useState<AnimalHit | null>(null);
   const [carregando, setCarregando] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => { onSelect?.(selecionado); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [selecionado]);
 
   useEffect(() => {
     const termo = busca.trim();
@@ -52,7 +61,9 @@ export function BuscaAnimalVinculo() {
 
   // Sexo derivado do tipo: TOURO é macho, o resto é fêmea.
   const sexoDerivado = selecionado
-    ? (selecionado.tipo === "TOURO" ? "M" : "F")
+    ? (selecionado.sexo === "M" || selecionado.sexo === "F"
+        ? selecionado.sexo
+        : selecionado.tipo === "TOURO" ? "M" : "F")
     : "";
 
   if (selecionado) {
@@ -60,6 +71,7 @@ export function BuscaAnimalVinculo() {
       <div className="space-y-1">
         <input type="hidden" name="bezerro_existente_id" value={selecionado.id} />
         <input type="hidden" name="bezerro_sexo"         value={sexoDerivado} />
+        <input type="hidden" name="bezerro_existente_nascimento" value={selecionado.nascimento ?? ""} />
         <div className="flex items-center gap-1.5 border border-brand-200 bg-brand-50 rounded-lg px-2 py-1.5">
           <Check className="w-3 h-3 text-brand-600 shrink-0" />
           <span className="text-xs font-medium text-gray-900 truncate">{selecionado.nome}</span>
@@ -76,7 +88,10 @@ export function BuscaAnimalVinculo() {
           </button>
         </div>
         <p className="text-[9px] text-gray-400">
-          Sexo: {sexoDerivado === "M" ? "Macho" : "Fêmea"} · vem do cadastro do animal
+          Sexo: {sexoDerivado === "M" ? "Macho" : "Fêmea"}
+          {selecionado.nascimento
+            ? ` · nasceu em ${new Date(selecionado.nascimento + "T12:00:00").toLocaleDateString("pt-BR")}`
+            : " · sem data de nascimento cadastrada"}
         </p>
       </div>
     );

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const like = `%${q}%`;
 
   const campos =
-    "id, nome, tipo, rgn, rgd, pai_nome, mae_nome, " +
+    "id, nome, tipo, rgn, rgd, nascimento, sexo, pai_nome, mae_nome, " +
     "avo_paterno, avo_paterna, avo_materno, avo_materna, " +
     "bisavo_pat_pat, bisava_pat_pat, bisavo_pat_mat, bisava_pat_mat, " +
     "bisavo_materno, bisava_mat_pat, bisavo_materna, bisavo";
