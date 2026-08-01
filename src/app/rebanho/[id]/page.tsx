@@ -10,6 +10,7 @@ import { NascimentoForm }          from "./NascimentoForm";
 import { VincularBezerroReceptora }   from "./VincularBezerroReceptora";
 import { VincularCriaManual }         from "./VincularCriaManual";
 import { MarcarDesfechoHistorico }    from "./MarcarDesfechoHistorico";
+import { ExcluirAnimalBtn }           from "./ExcluirAnimalBtn";
 
 const CLASS_MAP: Record<string, { label: string; cls: string }> = {
   RECEPTORA: { label: "Receptora",  cls: "bg-pink-100 text-pink-700"    },
@@ -724,6 +725,11 @@ export default async function FichaRebanhoPage({
 
       {/* ── Financeiro ──────────────────────────────────────────────────────── */}
       <FinanceiroAnimalSection animalId={animal.id} animalNome={animal.nome} />
+
+      {/* ── Excluir cadastro ────────────────────────────────────────────────── */}
+      <div className="pt-2 border-t border-gray-100">
+        <ExcluirAnimalBtn id={animal.id} brinco={animal.brinco ?? animal.nome} />
+      </div>
 
     </div>
   );

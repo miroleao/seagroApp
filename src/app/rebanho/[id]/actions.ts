@@ -355,3 +355,122 @@ export async function registrarDesfechoTransfer(
   revalidatePath("/rebanho");
   return { ok: true };
 }
+
+// ─── Excluir animal do rebanho ───────────────────────────────────────────────
+// Para cadastros errados (brinco digitado errado, duplicata). NÃO é desfecho:
+// desfecho preserva o histórico, exclusão apaga o registro.
+//
+// Só permite excluir quando não há histórico produtivo vinculado. Pesagens,
+// sócios e log de status caem em CASCADE e somem junto — o resto (T.E.,
+// nascimento, prêmio, transação, genealogia) bloqueia a exclusão, porque
+// apagar apontaria para um animal inexistente.
+
+type Bloqueio = { rotulo: string; total: number };
+
+export async function verificarExclusaoAnimal(
+  animalId: string
+): Promise<{ ok: boolean; erro?: string; bloqueios?: Bloqueio[]; cascatas?: Bloqueio[] }> {
+  const supabase = await createClient();
+
+  const { data: animal } = await supabase
+    .from("animals")
+    .select("id, tipo")
+    .eq("id", animalId)
+    .eq("farm_id", FARM_ID)
+    .maybeSingle();
+
+  if (!animal) return { ok: false, erro: "Animal não encontrado." };
+
+  // Trava de segurança: esta action serve só ao rebanho. Doadora e touro têm
+  // fluxo próprio e muito mais histórico agregado.
+  if (!["RECEPTORA", "DESCARTE"].includes(animal.tipo)) {
+    return { ok: false, erro: "Use a ficha de doadoras ou machos para excluir este animal." };
+  }
+
+  async function contar(tabela: string, coluna: string) {
+    const { count } = await supabase
+      .from(tabela)
+      .select("id", { count: "exact", head: true })
+      .eq(coluna, animalId);
+    return count ?? 0;
+  }
+
+  const [tes, nascimentos, premios, transacoes, pesagens, socios] = await Promise.all([
+    contar("transfers",    "receptora_id"),
+    contar("births",       "animal_id"),
+    contar("awards",       "animal_id"),
+    contar("transactions", "animal_id"),
+    contar("weight_records",  "animal_id"),
+    contar("animal_partners", "animal_id"),
+  ]);
+
+  // Genealogia: alguém aponta para este animal como mãe, pai ou cria.
+  // cria_id depende de migration — se ela não rodou, cai para mãe/pai só.
+  async function contarGenealogia() {
+    const comCria = await supabase
+      .from("animals")
+      .select("id", { count: "exact", head: true })
+      .eq("farm_id", FARM_ID)
+      .or(`mae_id.eq.${animalId},pai_id.eq.${animalId},cria_id.eq.${animalId}`);
+
+    if (!comCria.error) return comCria.count ?? 0;
+
+    const semCria = await supabase
+      .from("animals")
+      .select("id", { count: "exact", head: true })
+      .eq("farm_id", FARM_ID)
+      .or(`mae_id.eq.${animalId},pai_id.eq.${animalId}`);
+    return semCria.count ?? 0;
+  }
+
+  const filhos = await contarGenealogia();
+
+  const bloqueios: Bloqueio[] = [
+    { rotulo: "transferência(s) de embrião", total: tes },
+    { rotulo: "registro(s) de nascimento",   total: nascimentos },
+    { rotulo: "premiação(ões)",              total: premios },
+    { rotulo: "transação(ões) financeira(s)", total: transacoes },
+    { rotulo: "vínculo(s) de genealogia",    total: filhos },
+  ].filter(b => b.total > 0);
+
+  const cascatas: Bloqueio[] = [
+    { rotulo: "pesagem(ns)", total: pesagens },
+    { rotulo: "sócio(s)",    total: socios },
+  ].filter(c => c.total > 0);
+
+  return { ok: bloqueios.length === 0, bloqueios, cascatas };
+}
+
+export async function excluirAnimalRebanho(
+  formData: FormData
+): Promise<{ ok: boolean; erro?: string }> {
+  const animalId = (formData.get("animal_id") as string)?.trim();
+  if (!animalId) return { ok: false, erro: "ID do animal ausente." };
+
+  // Revalida no servidor — o cliente pode ter a tela desatualizada
+  const check = await verificarExclusaoAnimal(animalId);
+  if (check.erro) return { ok: false, erro: check.erro };
+
+  if (!check.ok) {
+    const lista = (check.bloqueios ?? [])
+      .map(b => `${b.total} ${b.rotulo}`)
+      .join(", ");
+    return {
+      ok: false,
+      erro: `Não é possível excluir: o animal tem ${lista}. Registre um desfecho ou desvincule esses registros antes.`,
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("animals")
+    .delete()
+    .eq("id", animalId)
+    .eq("farm_id", FARM_ID);
+
+  if (error) return { ok: false, erro: error.message };
+
+  revalidatePath("/rebanho");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
