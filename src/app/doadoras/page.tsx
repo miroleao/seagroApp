@@ -324,12 +324,20 @@ export default async function DoadorasPage({
                 </div>
               </div>
 
-              {/* Genealogia: Pai × Mãe */}
-              <p className="text-xs text-gray-500 mb-3 truncate">
-                <span className="font-medium text-gray-700">{d.pai_nome ?? "—"}</span>
-                <span className="mx-1.5 text-gray-300">×</span>
-                <span className="font-medium text-gray-700">{d.mae_nome ?? "—"}</span>
-              </p>
+              {/* Genealogia: Pai × Mãe, com a avó materna abaixo */}
+              <div className="mb-3">
+                <p className="text-xs text-gray-500 truncate">
+                  <span className="font-medium text-gray-700">{d.pai_nome ?? "—"}</span>
+                  <span className="mx-1.5 text-gray-300">×</span>
+                  <span className="font-medium text-gray-700">{d.mae_nome ?? "—"}</span>
+                </p>
+                {(d as any).avo_materna && (
+                  <p className="text-[10px] text-gray-400 truncate mt-0.5"
+                     title={`Avó materna: ${(d as any).avo_materna}`}>
+                    ({(d as any).avo_materna})
+                  </p>
+                )}
+              </div>
 
               {/* Linha inferior: embriões + prenhezes + seta */}
               <div className="flex items-center justify-between border-t border-gray-100 pt-2.5">

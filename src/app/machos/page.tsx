@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Plus, CheckCircle, XCircle, Clock, Star, Trophy, Gavel } from "lucide-react";
+import { Plus, CheckCircle, XCircle, Clock, Star, Trophy, Gavel, ChevronRight } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ColumnFilter } from "@/components/ui/ColumnFilter";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
@@ -253,8 +253,106 @@ export default async function MachosPage({
         })}
       </div>
 
+      {/* ── Cards (mobile) ─────────────────────────────────────────────── */}
+      <div className="md:hidden space-y-3">
+        {filtrado.length === 0 ? (
+          <div className="card p-8 text-center text-gray-400 text-sm">
+            Nenhum macho encontrado{q ? ` para "${q}"` : ""}.
+          </div>
+        ) : filtrado.map((m: any) => {
+          const meses = idadeEmMeses(m.nascimento);
+          const ceMin = ceMinimo(meses);
+          const ceOk  = m.circunferencia_escrotal != null && ceMin != null
+            ? m.circunferencia_escrotal >= ceMin
+            : null;
+
+          return (
+            <Link
+              key={m.id}
+              href={`/machos/${m.id}`}
+              className="block bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 active:bg-gray-50 transition-colors"
+            >
+              {/* Nome + idade + andrológico */}
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-semibold text-brand-700 text-sm leading-tight">{m.nome}</span>
+                    {m.nascido_se_agro && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/logo-se.png" alt="SE Agro" title="Nascido na SE Agropecuária"
+                        className="h-4 w-auto shrink-0" style={{ filter: "brightness(0)" }} />
+                    )}
+                    {m.para_pista && <Star className="w-3 h-3 fill-yellow-400 text-yellow-400 shrink-0" />}
+                    {m.para_leilao && <span title="Preparado para Leilão"><Gavel className="w-3 h-3 text-amber-500 shrink-0" /></span>}
+                    {animaisComPremio.has(m.id) && <Trophy className="w-3 h-3 text-yellow-500 shrink-0" />}
+                  </div>
+                  <span className="text-[11px] text-gray-400 font-mono">
+                    {m.rgd ?? m.rgn ?? "—"}
+                    {m.rgd && <span className="ml-1 text-gray-300">RGD</span>}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {meses != null && (
+                    <span className="text-[11px] bg-gray-100 text-gray-500 rounded-full px-2 py-0.5 font-medium">
+                      {meses}m
+                    </span>
+                  )}
+                  <span className={`badge text-[11px] font-semibold ${
+                    m.exame_andrologico === "APTO"   ? "bg-green-100 text-green-700"
+                    : m.exame_andrologico === "INAPTO" ? "bg-red-100 text-red-600"
+                    : "bg-gray-100 text-gray-500"
+                  }`}>
+                    {m.exame_andrologico === "APTO" ? "Apto"
+                      : m.exame_andrologico === "INAPTO" ? "Inapto" : "Pendente"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Genealogia: Pai × Mãe, com a avó materna abaixo */}
+              <div className="mb-3">
+                <p className="text-xs text-gray-500 truncate">
+                  <span className="font-medium text-gray-700">{m.pai_nome ?? "—"}</span>
+                  <span className="mx-1.5 text-gray-300">×</span>
+                  <span className="font-medium text-gray-700">{m.mae_nome ?? "—"}</span>
+                </p>
+                {m.avo_materna && (
+                  <p className="text-[10px] text-gray-400 truncate mt-0.5"
+                     title={`Avó materna: ${m.avo_materna}`}>
+                    ({m.avo_materna})
+                  </p>
+                )}
+              </div>
+
+              {/* CE + localização */}
+              <div className="flex items-center justify-between border-t border-gray-100 pt-2.5">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <p className={`text-base font-semibold leading-none ${
+                      ceOk === true ? "text-green-600" : ceOk === false ? "text-red-500" : "text-gray-900"
+                    }`}>
+                      {m.circunferencia_escrotal != null ? `${m.circunferencia_escrotal}` : "—"}
+                      <span className="text-[10px] font-normal text-gray-400 ml-0.5">cm</span>
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      CE{ceMin != null ? ` · mín ${ceMin}` : ""}
+                    </p>
+                  </div>
+                  {m.localizacao && (
+                    <>
+                      <div className="w-px h-6 bg-gray-100" />
+                      <p className="text-[11px] text-gray-500 truncate max-w-[110px]">{m.localizacao}</p>
+                    </>
+                  )}
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
       {/* Tabela */}
-      <div className="card overflow-x-auto">
+      <div className="card overflow-x-auto hidden md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100 text-left align-top">
