@@ -137,94 +137,6 @@ function PedCell({
     : "text-gray-300";
 
 
-  // ── Seções da ficha exportável em PDF ──────────────────────────────────────
-  const fichaMeses = mesesEntre(macho.nascimento, new Date().toISOString().split("T")[0]);
-  const fichaSecoes: SecaoFicha[] = [
-    {
-      key: "identificacao",
-      titulo: "Identificação",
-      campos: [
-        { rotulo: "Nome",        valor: macho.nome },
-        { rotulo: "RGN",         valor: (macho as any).rgn },
-        { rotulo: "RGD",         valor: (macho as any).rgd },
-        { rotulo: "Nascimento",  valor: macho.nascimento ? formatDate(macho.nascimento) : null },
-        { rotulo: "Idade",       valor: fichaMeses != null ? `${fichaMeses} meses` : null },
-        { rotulo: "Sexo",        valor: "Macho" },
-        { rotulo: "Localização", valor: (macho as any).localizacao },
-        { rotulo: "Status",      valor: (macho as any).status_reprodutivo ?? (macho as any).status_rebanho },
-      ],
-    },
-    {
-      key: "genealogia",
-      titulo: "Genealogia",
-      campos: [
-        { rotulo: "Pai",              valor: (macho as any).pai_nome },
-        { rotulo: "Mãe",              valor: (macho as any).mae_nome },
-        { rotulo: "Avô paterno",      valor: (macho as any).avo_paterno },
-        { rotulo: "Avó paterna",      valor: (macho as any).avo_paterna },
-        { rotulo: "Avô materno",      valor: (macho as any).avo_materno },
-        { rotulo: "Avó materna",      valor: (macho as any).avo_materna },
-        { rotulo: "Bisavô pat./pat.", valor: (macho as any).bisavo_pat_pat },
-        { rotulo: "Bisavó pat./pat.", valor: (macho as any).bisava_pat_pat },
-        { rotulo: "Bisavô pat./mat.", valor: (macho as any).bisavo_pat_mat },
-        { rotulo: "Bisavó pat./mat.", valor: (macho as any).bisava_pat_mat },
-        { rotulo: "Bisavô materno",   valor: (macho as any).bisavo_materno },
-        { rotulo: "Bisavó materna",   valor: (macho as any).bisavo_materna },
-      ],
-    },
-    {
-      key: "andrologico",
-      titulo: "Avaliação Andrológica",
-      campos: [
-        { rotulo: "Exame andrológico", valor: (macho as any).exame_andrologico },
-        { rotulo: "CE",                valor: (macho as any).circunferencia_escrotal != null
-            ? `${(macho as any).circunferencia_escrotal} cm` : null },
-        { rotulo: "Data do exame",     valor: (macho as any).data_ce ? formatDate((macho as any).data_ce) : null },
-      ],
-    },
-    {
-      key: "pesagens",
-      titulo: "Histórico de Pesagens",
-      tabela: {
-        colunas: ["Data", "Peso (kg)"],
-        linhas: (pesagens ?? []).map((p: any) => [
-          formatDate(p.data),
-          Number(p.peso_kg).toFixed(1),
-        ]),
-      },
-    },
-    {
-      key: "premiacoes",
-      titulo: "Premiações",
-      tabela: {
-        colunas: ["Exposição", "Prêmio", "Grupo", "Data"],
-        linhas: (premiacoes ?? []).map((p: any) => [
-          p.exhibition?.nome ?? "—",
-          String(p.tipo_premio ?? "").replace(/_/g, " "),
-          String(p.grupo_nelore ?? "").replace(/_/g, " "),
-          p.exhibition?.data_base ? formatDate(p.exhibition.data_base) : "—",
-        ]),
-      },
-    },
-    {
-      key: "observacoes",
-      titulo: "Observações",
-      texto: (macho as any).observacoes ?? null,
-    },
-    {
-      key: "financeiro",
-      titulo: "Financeiro (uso interno)",
-      sensivel: true,
-      campos: [
-        { rotulo: "% próprio da fazenda", valor: (macho as any).percentual_proprio != null
-            ? `${Math.round(((macho as any).percentual_proprio as number) * 100)}%` : null },
-        { rotulo: "Valor da parcela", valor: (macho as any).valor_parcela != null
-            ? formatCurrency((macho as any).valor_parcela) : null },
-        { rotulo: "Leilão de compra", valor: compraLeilaoNome },
-        { rotulo: "Data da compra",   valor: compraLeilaoData ? formatDate(compraLeilaoData) : null },
-      ],
-    },
-  ];
 
   return (
     <div className={`${base} ${style}`}>
@@ -456,6 +368,95 @@ export default async function MachoDetalhePage({
   const examApto       = macho.exame_andrologico === "APTO";
   const registroLabel  = temRGD ? macho.rgd : (macho.rgn ?? "—");
   const registroTipo   = temRGD ? "RGD" : "RGN";
+
+  // ── Seções da ficha exportável em PDF ──────────────────────────────────────
+  const fichaMeses = mesesEntre(macho.nascimento, new Date().toISOString().split("T")[0]);
+  const fichaSecoes: SecaoFicha[] = [
+    {
+      key: "identificacao",
+      titulo: "Identificação",
+      campos: [
+        { rotulo: "Nome",        valor: macho.nome },
+        { rotulo: "RGN",         valor: (macho as any).rgn },
+        { rotulo: "RGD",         valor: (macho as any).rgd },
+        { rotulo: "Nascimento",  valor: macho.nascimento ? formatDate(macho.nascimento) : null },
+        { rotulo: "Idade",       valor: fichaMeses != null ? `${fichaMeses} meses` : null },
+        { rotulo: "Sexo",        valor: "Macho" },
+        { rotulo: "Localização", valor: (macho as any).localizacao },
+        { rotulo: "Status",      valor: (macho as any).status_reprodutivo ?? (macho as any).status_rebanho },
+      ],
+    },
+    {
+      key: "genealogia",
+      titulo: "Genealogia",
+      campos: [
+        { rotulo: "Pai",              valor: (macho as any).pai_nome },
+        { rotulo: "Mãe",              valor: (macho as any).mae_nome },
+        { rotulo: "Avô paterno",      valor: (macho as any).avo_paterno },
+        { rotulo: "Avó paterna",      valor: (macho as any).avo_paterna },
+        { rotulo: "Avô materno",      valor: (macho as any).avo_materno },
+        { rotulo: "Avó materna",      valor: (macho as any).avo_materna },
+        { rotulo: "Bisavô pat./pat.", valor: (macho as any).bisavo_pat_pat },
+        { rotulo: "Bisavó pat./pat.", valor: (macho as any).bisava_pat_pat },
+        { rotulo: "Bisavô pat./mat.", valor: (macho as any).bisavo_pat_mat },
+        { rotulo: "Bisavó pat./mat.", valor: (macho as any).bisava_pat_mat },
+        { rotulo: "Bisavô materno",   valor: (macho as any).bisavo_materno },
+        { rotulo: "Bisavó materna",   valor: (macho as any).bisavo_materna },
+      ],
+    },
+    {
+      key: "andrologico",
+      titulo: "Avaliação Andrológica",
+      campos: [
+        { rotulo: "Exame andrológico", valor: (macho as any).exame_andrologico },
+        { rotulo: "CE",                valor: (macho as any).circunferencia_escrotal != null
+            ? `${(macho as any).circunferencia_escrotal} cm` : null },
+        { rotulo: "Data do exame",     valor: (macho as any).data_ce ? formatDate((macho as any).data_ce) : null },
+      ],
+    },
+    {
+      key: "pesagens",
+      titulo: "Histórico de Pesagens",
+      tabela: {
+        colunas: ["Data", "Peso (kg)"],
+        linhas: (pesagens ?? []).map((p: any) => [
+          formatDate(p.data),
+          Number(p.peso_kg).toFixed(1),
+        ]),
+      },
+    },
+    {
+      key: "premiacoes",
+      titulo: "Premiações",
+      tabela: {
+        colunas: ["Exposição", "Prêmio", "Grupo", "Data"],
+        linhas: (premiacoes ?? []).map((p: any) => [
+          p.exhibition?.nome ?? "—",
+          String(p.tipo_premio ?? "").replace(/_/g, " "),
+          String(p.grupo_nelore ?? "").replace(/_/g, " "),
+          p.exhibition?.data_base ? formatDate(p.exhibition.data_base) : "—",
+        ]),
+      },
+    },
+    {
+      key: "observacoes",
+      titulo: "Observações",
+      texto: (macho as any).observacoes ?? null,
+    },
+    {
+      key: "financeiro",
+      titulo: "Financeiro (uso interno)",
+      sensivel: true,
+      campos: [
+        { rotulo: "% próprio da fazenda", valor: (macho as any).percentual_proprio != null
+            ? `${Math.round(((macho as any).percentual_proprio as number) * 100)}%` : null },
+        { rotulo: "Valor da parcela", valor: (macho as any).valor_parcela != null
+            ? formatCurrency((macho as any).valor_parcela) : null },
+        { rotulo: "Leilão de compra", valor: compraLeilaoNome },
+        { rotulo: "Data da compra",   valor: compraLeilaoData ? formatDate(compraLeilaoData) : null },
+      ],
+    },
+  ];
 
   return (
     <VendaSyncProvider>

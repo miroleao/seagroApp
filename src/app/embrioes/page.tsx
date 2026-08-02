@@ -254,6 +254,7 @@ export default async function EmbrioesPag({
                     </Link>
                   </div>
                 )}
+                <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-gray-200 text-left">
@@ -285,8 +286,8 @@ export default async function EmbrioesPag({
                           />
                         </Suspense>
                       </th>
-                      <th className="px-4 py-2 font-medium text-gray-500">Receptora</th>
-                      <th className="px-4 py-2 font-medium text-gray-500">Prev. Parto</th>
+                      <th className="px-4 py-2 font-medium text-gray-500 hidden sm:table-cell">Receptora</th>
+                      <th className="px-4 py-2 font-medium text-gray-500 hidden sm:table-cell">Prev. Parto</th>
                       <th className="px-4 py-2 font-medium text-gray-500 text-center">CDC-FIV</th>
                       <th className="px-4 py-2 font-medium text-gray-500 text-center">ADT-TE</th>
                       <th className="px-4 py-2 font-medium text-gray-500 text-center">DNA</th>
@@ -321,9 +322,17 @@ export default async function EmbrioesPag({
                               : e.status === "IMPLANTADO"
                               ? <span className="badge bg-amber-100 text-amber-700">Implantado</span>
                               : <span className="badge bg-gray-100 text-gray-500">Descartado</span>}
+                            {/* Mobile: receptora e previsão vêm para cá */}
+                            {(receptora !== "—" || previsaoParto) && (
+                              <span className="block sm:hidden text-[10px] text-gray-400 mt-0.5 leading-tight">
+                                {receptora !== "—" && <span className="font-mono">{receptora}</span>}
+                                {receptora !== "—" && previsaoParto && " · "}
+                                {previsaoParto && formatDate(previsaoParto)}
+                              </span>
+                            )}
                           </td>
-                          <td className="px-4 py-2 text-gray-600 font-mono">{receptora}</td>
-                          <td className="px-4 py-2 text-gray-500">
+                          <td className="px-4 py-2 text-gray-600 font-mono hidden sm:table-cell">{receptora}</td>
+                          <td className="px-4 py-2 text-gray-500 hidden sm:table-cell">
                             {previsaoParto ? formatDate(previsaoParto) : "—"}
                           </td>
                           <td className="px-4 py-2 text-center">
@@ -340,6 +349,7 @@ export default async function EmbrioesPag({
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             </details>
           ))}

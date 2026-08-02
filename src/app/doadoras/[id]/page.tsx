@@ -118,84 +118,6 @@ function DocChipDoadora({
     toggleEmbrioDna;
 
 
-  // ── Seções da ficha exportável em PDF ──────────────────────────────────────
-  const fichaMeses = mesesEntre(doadora.nascimento, new Date().toISOString().split("T")[0]);
-  const fichaSecoes: SecaoFicha[] = [
-    {
-      key: "identificacao",
-      titulo: "Identificação",
-      campos: [
-        { rotulo: "Nome",        valor: doadora.nome },
-        { rotulo: "RGN",         valor: (doadora as any).rgn },
-        { rotulo: "RGD",         valor: (doadora as any).rgd },
-        { rotulo: "Nascimento",  valor: doadora.nascimento ? formatDate(doadora.nascimento) : null },
-        { rotulo: "Idade",       valor: fichaMeses != null ? `${fichaMeses} meses` : null },
-        { rotulo: "Sexo",        valor: "Fêmea" },
-        { rotulo: "Localização", valor: (doadora as any).localizacao },
-        { rotulo: "Status",      valor: (doadora as any).status_reprodutivo ?? (doadora as any).status_rebanho },
-      ],
-    },
-    {
-      key: "genealogia",
-      titulo: "Genealogia",
-      campos: [
-        { rotulo: "Pai",              valor: (doadora as any).pai_nome },
-        { rotulo: "Mãe",              valor: (doadora as any).mae_nome },
-        { rotulo: "Avô paterno",      valor: (doadora as any).avo_paterno },
-        { rotulo: "Avó paterna",      valor: (doadora as any).avo_paterna },
-        { rotulo: "Avô materno",      valor: (doadora as any).avo_materno },
-        { rotulo: "Avó materna",      valor: (doadora as any).avo_materna },
-        { rotulo: "Bisavô pat./pat.", valor: (doadora as any).bisavo_pat_pat },
-        { rotulo: "Bisavó pat./pat.", valor: (doadora as any).bisava_pat_pat },
-        { rotulo: "Bisavô pat./mat.", valor: (doadora as any).bisavo_pat_mat },
-        { rotulo: "Bisavó pat./mat.", valor: (doadora as any).bisava_pat_mat },
-        { rotulo: "Bisavô materno",   valor: (doadora as any).bisavo_materno },
-        { rotulo: "Bisavó materna",   valor: (doadora as any).bisavo_materna },
-      ],
-    },
-    {
-      key: "pesagens",
-      titulo: "Histórico de Pesagens",
-      tabela: {
-        colunas: ["Data", "Peso (kg)"],
-        linhas: (pesagens ?? []).map((p: any) => [
-          formatDate(p.data),
-          Number(p.peso_kg).toFixed(1),
-        ]),
-      },
-    },
-    {
-      key: "premiacoes",
-      titulo: "Premiações",
-      tabela: {
-        colunas: ["Exposição", "Prêmio", "Grupo", "Data"],
-        linhas: (premiacoes ?? []).map((p: any) => [
-          p.exhibition?.nome ?? "—",
-          String(p.tipo_premio ?? "").replace(/_/g, " "),
-          String(p.grupo_nelore ?? "").replace(/_/g, " "),
-          p.exhibition?.data_base ? formatDate(p.exhibition.data_base) : "—",
-        ]),
-      },
-    },
-    {
-      key: "observacoes",
-      titulo: "Observações",
-      texto: (doadora as any).observacoes ?? null,
-    },
-    {
-      key: "financeiro",
-      titulo: "Financeiro (uso interno)",
-      sensivel: true,
-      campos: [
-        { rotulo: "% próprio da fazenda", valor: (doadora as any).percentual_proprio != null
-            ? `${Math.round(((doadora as any).percentual_proprio as number) * 100)}%` : null },
-        { rotulo: "Valor da parcela", valor: (doadora as any).valor_parcela != null
-            ? formatCurrency((doadora as any).valor_parcela) : null },
-        { rotulo: "Leilão de compra", valor: compraLeilaoNome },
-        { rotulo: "Data da compra",   valor: compraLeilaoData ? formatDate(compraLeilaoData) : null },
-      ],
-    },
-  ];
 
   return (
     <form action={action} className="inline-flex">
@@ -814,6 +736,85 @@ export default async function DoadoraDetalhePage({
 
   const totalEmbrioes    = embrioes.length;
   const totalDisponiveis = embrioes.filter(e => e.status === "DISPONIVEL").length;
+
+  // ── Seções da ficha exportável em PDF ──────────────────────────────────────
+  const fichaMeses = mesesEntre(doadora.nascimento, new Date().toISOString().split("T")[0]);
+  const fichaSecoes: SecaoFicha[] = [
+    {
+      key: "identificacao",
+      titulo: "Identificação",
+      campos: [
+        { rotulo: "Nome",        valor: doadora.nome },
+        { rotulo: "RGN",         valor: (doadora as any).rgn },
+        { rotulo: "RGD",         valor: (doadora as any).rgd },
+        { rotulo: "Nascimento",  valor: doadora.nascimento ? formatDate(doadora.nascimento) : null },
+        { rotulo: "Idade",       valor: fichaMeses != null ? `${fichaMeses} meses` : null },
+        { rotulo: "Sexo",        valor: "Fêmea" },
+        { rotulo: "Localização", valor: (doadora as any).localizacao },
+        { rotulo: "Status",      valor: (doadora as any).status_reprodutivo ?? (doadora as any).status_rebanho },
+      ],
+    },
+    {
+      key: "genealogia",
+      titulo: "Genealogia",
+      campos: [
+        { rotulo: "Pai",              valor: (doadora as any).pai_nome },
+        { rotulo: "Mãe",              valor: (doadora as any).mae_nome },
+        { rotulo: "Avô paterno",      valor: (doadora as any).avo_paterno },
+        { rotulo: "Avó paterna",      valor: (doadora as any).avo_paterna },
+        { rotulo: "Avô materno",      valor: (doadora as any).avo_materno },
+        { rotulo: "Avó materna",      valor: (doadora as any).avo_materna },
+        { rotulo: "Bisavô pat./pat.", valor: (doadora as any).bisavo_pat_pat },
+        { rotulo: "Bisavó pat./pat.", valor: (doadora as any).bisava_pat_pat },
+        { rotulo: "Bisavô pat./mat.", valor: (doadora as any).bisavo_pat_mat },
+        { rotulo: "Bisavó pat./mat.", valor: (doadora as any).bisava_pat_mat },
+        { rotulo: "Bisavô materno",   valor: (doadora as any).bisavo_materno },
+        { rotulo: "Bisavó materna",   valor: (doadora as any).bisavo_materna },
+      ],
+    },
+    {
+      key: "pesagens",
+      titulo: "Histórico de Pesagens",
+      tabela: {
+        colunas: ["Data", "Peso (kg)"],
+        linhas: (pesagens ?? []).map((p: any) => [
+          formatDate(p.data),
+          Number(p.peso_kg).toFixed(1),
+        ]),
+      },
+    },
+    {
+      key: "premiacoes",
+      titulo: "Premiações",
+      tabela: {
+        colunas: ["Exposição", "Prêmio", "Grupo", "Data"],
+        linhas: (premiacoes ?? []).map((p: any) => [
+          p.exhibition?.nome ?? "—",
+          String(p.tipo_premio ?? "").replace(/_/g, " "),
+          String(p.grupo_nelore ?? "").replace(/_/g, " "),
+          p.exhibition?.data_base ? formatDate(p.exhibition.data_base) : "—",
+        ]),
+      },
+    },
+    {
+      key: "observacoes",
+      titulo: "Observações",
+      texto: (doadora as any).observacoes ?? null,
+    },
+    {
+      key: "financeiro",
+      titulo: "Financeiro (uso interno)",
+      sensivel: true,
+      campos: [
+        { rotulo: "% próprio da fazenda", valor: (doadora as any).percentual_proprio != null
+            ? `${Math.round(((doadora as any).percentual_proprio as number) * 100)}%` : null },
+        { rotulo: "Valor da parcela", valor: (doadora as any).valor_parcela != null
+            ? formatCurrency((doadora as any).valor_parcela) : null },
+        { rotulo: "Leilão de compra", valor: compraLeilaoNome },
+        { rotulo: "Data da compra",   valor: compraLeilaoData ? formatDate(compraLeilaoData) : null },
+      ],
+    },
+  ];
 
   return (
     <VendaSyncProvider>

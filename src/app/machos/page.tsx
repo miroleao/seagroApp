@@ -308,19 +308,24 @@ export default async function MachosPage({
                 </div>
               </div>
 
-              {/* Genealogia: Pai × Mãe, com a avó materna abaixo */}
-              <div className="mb-3">
-                <p className="text-xs text-gray-500 truncate">
-                  <span className="font-medium text-gray-700">{m.pai_nome ?? "—"}</span>
-                  <span className="mx-1.5 text-gray-300">×</span>
-                  <span className="font-medium text-gray-700">{m.mae_nome ?? "—"}</span>
-                </p>
-                {m.avo_materna && (
-                  <p className="text-[10px] text-gray-400 truncate mt-0.5"
-                     title={`Avó materna: ${m.avo_materna}`}>
-                    ({m.avo_materna})
+              {/* Genealogia: Pai × Mãe, com a avó materna alinhada sob a mãe */}
+              <div className="flex items-start gap-1.5 text-xs mb-3">
+                <span className="font-medium text-gray-700 truncate flex-1 min-w-0"
+                      title={m.pai_nome ?? ""}>
+                  {m.pai_nome ?? "—"}
+                </span>
+                <span className="text-gray-300 shrink-0 leading-5">×</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-700 truncate" title={m.mae_nome ?? ""}>
+                    {m.mae_nome ?? "—"}
                   </p>
-                )}
+                  {m.avo_materna && (
+                    <p className="text-[10px] text-gray-400 truncate leading-tight"
+                       title={`Avó materna: ${m.avo_materna}`}>
+                      ({m.avo_materna})
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* CE + localização */}

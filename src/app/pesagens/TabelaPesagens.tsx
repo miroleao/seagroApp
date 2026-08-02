@@ -180,6 +180,119 @@ function NovaPesagemInline({ row }: { row: PesagemRow }) {
   );
 }
 
+
+// ── Conteúdo expandido, compartilhado entre tabela e cards ────────────────────
+
+function DetalhePesagens({ row }: { row: PesagemRow }) {
+  return (
+    <>
+      <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-2">
+        Histórico — {row.nome}
+      </p>
+      {row.historico.length === 0 && (
+        <p className="text-xs text-gray-400">Nenhuma pesagem registrada ainda.</p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {row.historico.map((w, idx) => {
+          const prev = idx > 0 ? row.historico[idx - 1] : null;
+          const diff = prev != null ? w.peso_kg - prev.peso_kg : null;
+          return (
+            <div key={w.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs min-w-[90px]">
+              <p className="text-gray-400 text-[10px]">{formatDate(w.data)}</p>
+              <p className="font-bold text-gray-900 text-sm">{w.peso_kg.toFixed(1)} kg</p>
+              {diff != null && (
+                <p className={`text-[10px] font-medium mt-0.5 ${diff > 0 ? "text-green-600" : diff < 0 ? "text-red-500" : "text-gray-400"}`}>
+                  {diff > 0 ? "+" : ""}{diff.toFixed(1)} kg
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <NovaPesagemInline row={row} />
+    </>
+  );
+}
+
+// ── Cards (mobile) ────────────────────────────────────────────────────────────
+
+function CardsPesagens({
+  rows, expanded, toggle,
+}: {
+  rows: PesagemRow[];
+  expanded: Set<string>;
+  toggle: (id: string) => void;
+}) {
+  return (
+    <div className="md:hidden divide-y divide-gray-100">
+      {rows.map((r) => {
+        const isOpen = expanded.has(r.id);
+        return (
+          <div key={r.id} className={isOpen ? "bg-brand-50/20" : ""}>
+            <button
+              onClick={() => toggle(r.id)}
+              className="w-full text-left px-4 py-3 active:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-gray-900 text-sm truncate">{r.nome}</p>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${r.tipoBadgeCls}`}>
+                      {r.tipoLabel}
+                    </span>
+                    {(r.rgn ?? r.brinco) && (
+                      <span className="text-[10px] font-mono text-gray-400">{r.rgn ?? r.brinco}</span>
+                    )}
+                    {r.nascimentoFormatado && (
+                      <span className="text-[10px] text-gray-400">nasc. {r.nascimentoFormatado}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  {r.ultimoPeso != null ? (
+                    <p className="font-bold text-gray-900 text-base leading-tight">
+                      {r.ultimoPeso.toFixed(1)}
+                      <span className="text-[10px] font-normal text-gray-400 ml-0.5">kg</span>
+                    </p>
+                  ) : (
+                    <p className="text-gray-300 text-sm">—</p>
+                  )}
+                  {r.ultimaDataFormatada && (
+                    <p className="text-[10px] text-gray-400">{r.ultimaDataFormatada}</p>
+                  )}
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-300 transition-transform shrink-0 mt-0.5 ${isOpen ? "rotate-180" : ""}`} />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {r.ponderal != null && (
+                  <span className={`text-xs font-bold ${r.ponderal >= 800 ? "text-green-600" : r.ponderal >= 600 ? "text-blue-600" : "text-red-600"}`}>
+                    {r.ponderal} <span className="text-[10px] font-normal text-gray-400">g/dia</span>
+                  </span>
+                )}
+                {r.badgeLabel && (
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${r.badgeCls}`}>
+                    {r.badgeLabel}
+                  </span>
+                )}
+                <span className="text-[10px] text-gray-400 ml-auto">
+                  {r.qtdPesagens > 0 ? `${r.qtdPesagens} pesagem${r.qtdPesagens > 1 ? "ns" : ""}` : "sem pesagem"}
+                </span>
+              </div>
+            </button>
+
+            {isOpen && (
+              <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100 pt-3">
+                <DetalhePesagens row={r} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Tabela principal ──────────────────────────────────────────────────────────
 
 export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
@@ -204,7 +317,9 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
 
   return (
     <div className="card overflow-hidden">
-      <div className="overflow-x-auto">
+      <CardsPesagens rows={rows} expanded={expanded} toggle={toggle} />
+
+      <div className="overflow-x-auto hidden md:block">
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100 text-left">
@@ -281,33 +396,7 @@ export default function TabelaPesagens({ rows }: { rows: PesagemRow[] }) {
                   {isOpen && (
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <td colSpan={9} className="px-8 py-3">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-2">
-                          Histórico — {r.nome}
-                        </p>
-                        {r.historico.length === 0 && (
-                          <p className="text-xs text-gray-400">
-                            Nenhuma pesagem registrada ainda.
-                          </p>
-                        )}
-                        <div className="flex flex-wrap gap-2">
-                          {r.historico.map((w, idx) => {
-                            const prev = idx > 0 ? r.historico[idx - 1] : null;
-                            const diff = prev != null ? w.peso_kg - prev.peso_kg : null;
-                            return (
-                              <div key={w.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs min-w-[90px]">
-                                <p className="text-gray-400 text-[10px]">{formatDate(w.data)}</p>
-                                <p className="font-bold text-gray-900 text-sm">{w.peso_kg.toFixed(1)} kg</p>
-                                {diff != null && (
-                                  <p className={`text-[10px] font-medium mt-0.5 ${diff > 0 ? "text-green-600" : diff < 0 ? "text-red-500" : "text-gray-400"}`}>
-                                    {diff > 0 ? "+" : ""}{diff.toFixed(1)} kg
-                                  </p>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <NovaPesagemInline row={r} />
+                        <DetalhePesagens row={r} />
                       </td>
                     </tr>
                   )}

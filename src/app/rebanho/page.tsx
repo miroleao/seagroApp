@@ -764,17 +764,17 @@ export default async function RebanhoPage({
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">
                   <HeaderOrdenavel campo="brinco">Brinco</HeaderOrdenavel>
                 </th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-28">
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-28 hidden lg:table-cell">
                   <HeaderOrdenavel campo="rgn"># ABCZ</HeaderOrdenavel>
                 </th>
-                <th className="px-2 py-3 text-xs font-medium text-gray-500 w-28">
+                <th className="px-2 py-3 text-xs font-medium text-gray-500 w-28 hidden lg:table-cell">
                   <HeaderOrdenavel campo="classificacao">Classificação</HeaderOrdenavel>
                   <Suspense fallback={null}><FiltroClassificacao /></Suspense>
                 </th>
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-40">
                   <HeaderOrdenavel campo="status">Reprodutivo</HeaderOrdenavel>
                 </th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-16 text-center">
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-16 text-center hidden lg:table-cell">
                   <HeaderOrdenavel campo="partos" alinhamento="center">Partos</HeaderOrdenavel>
                 </th>
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">
@@ -783,16 +783,16 @@ export default async function RebanhoPage({
                 <th className="px-4 py-3 text-xs font-medium text-gray-500">
                   <HeaderOrdenavel campo="doadora">Embrião</HeaderOrdenavel>
                 </th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-20">
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-20 hidden lg:table-cell">
                   <HeaderOrdenavel campo="sexagem">Sexagem</HeaderOrdenavel>
                 </th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24 hidden lg:table-cell">
                   <HeaderOrdenavel campo="te">Data T.E.</HeaderOrdenavel>
                 </th>
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-28">
                   <HeaderOrdenavel campo="previsao">Prev. Parto</HeaderOrdenavel>
                 </th>
-                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24">
+                <th className="px-3 py-3 text-xs font-medium text-gray-500 w-24 hidden lg:table-cell">
                   <HeaderOrdenavel campo="local">Localização</HeaderOrdenavel>
                 </th>
                 <th className="px-3 py-3 text-xs font-medium text-gray-500 w-20">Desfecho</th>
@@ -824,15 +824,24 @@ export default async function RebanhoPage({
                         className="font-mono font-semibold text-brand-700 hover:underline text-xs">
                         {a.brinco ?? a.nome}
                       </Link>
+                      {/* Mobile: recebe o que as colunas ocultas mostrariam */}
+                      <span className="block lg:hidden text-[10px] text-gray-400 leading-tight mt-0.5">
+                        {(a as any).rgn && <span className="font-mono">{(a as any).rgn}</span>}
+                        {(a as any).rgn && a.localizacao && " · "}
+                        {a.localizacao}
+                        {dataTEExib && (
+                          <span className="block">T.E. {formatDate(dataTEExib)}</span>
+                        )}
+                      </span>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3 hidden lg:table-cell">
                       <EditRgnInline animalId={a.id} rgnAtual={(a as any).rgn ?? null} />
                     </td>
-                    <td className="px-2 py-3"><ClassBadge cls={a.classificacao} /></td>
+                    <td className="px-2 py-3 hidden lg:table-cell"><ClassBadge cls={a.classificacao} /></td>
                     <td className="px-3 py-3">
                       <EditReprodutivoInline animalId={a.id} statusAtual={a.status_rebanho} />
                     </td>
-                    <td className="px-3 py-3 text-center">
+                    <td className="px-3 py-3 text-center hidden lg:table-cell">
                       {(partosMap.get(a.id) ?? 0) > 0 ? (
                         <span className="text-xs font-bold text-gray-700 bg-gray-100 rounded-full px-2 py-0.5">
                           {partosMap.get(a.id)}
@@ -879,8 +888,8 @@ export default async function RebanhoPage({
                         <span className="text-gray-300">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-3"><SexagemBadge sexagem={sexagemExib} /></td>
-                    <td className="px-3 py-3 text-xs text-gray-500">{formatDate(dataTEExib)}</td>
+                    <td className="px-3 py-3 hidden lg:table-cell"><SexagemBadge sexagem={sexagemExib} /></td>
+                    <td className="px-3 py-3 text-xs text-gray-500 hidden lg:table-cell">{formatDate(dataTEExib)}</td>
                     <td className="px-3 py-3 text-xs text-green-700 font-medium">
                       <div className="flex items-center gap-1.5">
                         <span>{formatDate(p?.previsao ?? null)}</span>
@@ -896,7 +905,7 @@ export default async function RebanhoPage({
                         )}
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3 hidden lg:table-cell">
                       <EditLocalizacaoRebanho animalId={a.id} localizacao={a.localizacao ?? null} />
                     </td>
                     <td className="px-3 py-3">
