@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ObservacoesAnimal } from "@/components/ObservacoesAnimal";
 import { ExportarFichaPDF, type SecaoFicha } from "@/components/ui/ExportarFichaPDF";
 import { ponderalGDia } from "@/lib/ponderal";
 import { FinanceiroAnimalSection } from "@/components/FinanceiroAnimalSection";
@@ -441,7 +442,7 @@ export default async function MachoDetalhePage({
     {
       key: "observacoes",
       titulo: "Observações",
-      texto: (macho as any).observacoes ?? null,
+      texto: (macho as any).descricao ?? null,
     },
     {
       key: "financeiro",
@@ -479,6 +480,11 @@ export default async function MachoDetalhePage({
           secoes={fichaSecoes}
         />
       </div>
+
+      <ObservacoesAnimal
+        animalId={macho.id}
+        valorInicial={(macho as any).descricao ?? null}
+      />
 
       {/* ── Cabeçalho ──────────────────────────────────────── */}
       <div className="card p-6">

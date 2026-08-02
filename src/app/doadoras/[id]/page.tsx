@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ObservacoesAnimal } from "@/components/ObservacoesAnimal";
 import { ExportarFichaPDF, type SecaoFicha } from "@/components/ui/ExportarFichaPDF";
 import { ponderalGDia } from "@/lib/ponderal";
 import { formatDate, formatCurrency, FARM_ID } from "@/lib/utils";
@@ -799,7 +800,7 @@ export default async function DoadoraDetalhePage({
     {
       key: "observacoes",
       titulo: "Observações",
-      texto: (doadora as any).observacoes ?? null,
+      texto: (doadora as any).descricao ?? null,
     },
     {
       key: "financeiro",
@@ -837,6 +838,11 @@ export default async function DoadoraDetalhePage({
           secoes={fichaSecoes}
         />
       </div>
+
+      <ObservacoesAnimal
+        animalId={doadora.id}
+        valorInicial={(doadora as any).descricao ?? null}
+      />
 
       {/* Cabeçalho */}
       <div className="card p-6">

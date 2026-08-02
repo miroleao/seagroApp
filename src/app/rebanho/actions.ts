@@ -591,7 +591,14 @@ export async function registrarDesfechoUnificado(formData: FormData) {
 
   } else if (tipo === "OBITO") {
     // ── Óbito ─────────────────────────────────────────────────────────────────
-    const obsUpd = [obs, data_evento ? `Data: ${data_evento}` : null].filter(Boolean).join(" | ");
+    // Acrescenta ao histórico em vez de apagar — `observacoes` é log
+    // operacional acumulativo. O texto do usuário vive em `descricao`.
+    const { data: aAtual } = await supabase
+      .from("animals").select("observacoes").eq("id", animal_id).maybeSingle();
+    const obsUpd = [
+      (aAtual as any)?.observacoes || null,
+      [obs, data_evento ? `Data: ${data_evento}` : null].filter(Boolean).join(" | ") || null,
+    ].filter(Boolean).join("\n");
     await supabase.from("animals")
       .update({ status_rebanho: "MORTA", observacoes: obsUpd || null })
       .eq("id", animal_id).eq("farm_id", FARM_ID);
@@ -612,7 +619,14 @@ export async function registrarDesfechoUnificado(formData: FormData) {
   } else if (tipo === "VENDA") {
     // ── Venda ─────────────────────────────────────────────────────────────────
     const brinco     = (formData.get("brinco") as string)?.trim() || null;
-    const obsUpd = [obs, data_evento ? `Data: ${data_evento}` : null].filter(Boolean).join(" | ");
+    // Acrescenta ao histórico em vez de apagar — `observacoes` é log
+    // operacional acumulativo. O texto do usuário vive em `descricao`.
+    const { data: aAtual } = await supabase
+      .from("animals").select("observacoes").eq("id", animal_id).maybeSingle();
+    const obsUpd = [
+      (aAtual as any)?.observacoes || null,
+      [obs, data_evento ? `Data: ${data_evento}` : null].filter(Boolean).join(" | ") || null,
+    ].filter(Boolean).join("\n");
     await supabase.from("animals")
       .update({ status_rebanho: "VENDIDA", observacoes: obsUpd || null })
       .eq("id", animal_id).eq("farm_id", FARM_ID);

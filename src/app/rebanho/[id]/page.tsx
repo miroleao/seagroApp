@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ObservacoesAnimal } from "@/components/ObservacoesAnimal";
 import { FinanceiroAnimalSection } from "@/components/FinanceiroAnimalSection";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -722,6 +723,11 @@ export default async function FichaRebanhoPage({
           </div>
         )}
       </section>
+
+      <ObservacoesAnimal
+        animalId={animal.id}
+        valorInicial={(animal as any).descricao ?? null}
+      />
 
       {/* ── Financeiro ──────────────────────────────────────────────────────── */}
       <FinanceiroAnimalSection animalId={animal.id} animalNome={animal.nome} />
