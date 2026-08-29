@@ -30,6 +30,27 @@ export async function criarExposicao(formData: FormData) {
   redirect("/pista");
 }
 
+// ─── Corrigir Data-base da Exposição ─────────────────────────────────────────
+export async function atualizarDataBaseExposicao(formData: FormData): Promise<{ ok: boolean; erro?: string }> {
+  const supabase  = await createClient();
+  const id        = formData.get("id") as string;
+  const data_base = (formData.get("data_base") as string) || null;
+
+  if (!id) return { ok: false, erro: "Exposição não identificada" };
+  if (!data_base) return { ok: false, erro: "Informe uma data" };
+
+  const { error } = await supabase
+    .from("exhibitions")
+    .update({ data_base })
+    .eq("id", id)
+    .eq("farm_id", FARM_ID);
+
+  if (error) return { ok: false, erro: error.message };
+
+  revalidatePath("/pista");
+  return { ok: true };
+}
+
 // ─── Excluir Exposição ────────────────────────────────────────────────────────
 export async function excluirExposicao(formData: FormData) {
   const id = formData.get("id") as string;

@@ -27,7 +27,9 @@ export interface Animal {
   tipo: AnimalTipo;
   sexo?: "F" | "M";
   nascimento?: string;
+  pai_id?: string;                       // FK para touro cadastrado (animals.id)
   pai_nome?: string;
+  mae_id?: string;                       // FK para doadora cadastrada (animals.id)
   mae_nome?: string;
   // ── Avós ──────────────────────────────────────────────────
   avo_paterno?: string;                  // Avô Paterno (pai do pai)

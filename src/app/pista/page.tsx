@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, FARM_ID } from "@/lib/utils";
-import { Trophy, CalendarDays, Star, Plus, Scale } from "lucide-react";
+import { Trophy, CalendarDays, Star, Plus, Scale, Users2 } from "lucide-react";
 import { criarExposicao } from "./actions";
 import { ExcluirExposicaoBtn } from "./ExcluirExposicaoBtn";
 import { ResultadoCell } from "./ResultadoCell";
@@ -9,7 +9,13 @@ import {
   idadeExata, pesoMinimo, pesoMaximo, statusPeso, StatusPeso, grupoNaData,
 } from "@/lib/acnb";
 import { SimuladorCategoria } from "./SimuladorCategoria";
+import { DataBaseInline } from "./DataBaseInline";
 import { ExportarPDF, type ColunaPDF } from "@/components/ui/ExportarPDF";
+import {
+  montarProgeniesDeMae, montarProgeniesDePai,
+  idadeReprodutorEmMeses, ehPaiNovaGeracao,
+  type AnimalGenealogico,
+} from "@/lib/progenie";
 
 // Grupos ABCZ e `grupoNaData` vivem em @/lib/acnb — compartilhados entre
 // esta página (server) e o simulador (client).
@@ -88,6 +94,19 @@ function SituacaoReprodutivaCell({ animal }: { animal: any }) {
   );
 }
 
+// ─── Linha discreta com Pai / Mãe, exibida abaixo do nome do animal ───────────
+function GenealogiaLine({ pai, mae }: { pai?: string | null; mae?: string | null }) {
+  const partes: string[] = [];
+  if (pai) partes.push(`Pai: ${pai}`);
+  if (mae) partes.push(`Mãe: ${mae}`);
+  if (partes.length === 0) return null;
+  return (
+    <p className="text-[10px] text-gray-400 leading-tight mt-0.5">
+      ({partes.join(" / ")})
+    </p>
+  );
+}
+
 export const revalidate = 0;
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -105,7 +124,7 @@ export default async function PistaPage() {
     .from("awards")
     .select(`
       id, animal_id, tipo_premio, grupo_nelore, descricao_premio, observacoes,
-      animal:animals ( id, nome, rgn, nascimento, sexo, para_pista ),
+      animal:animals ( id, nome, rgn, nascimento, sexo, para_pista, pai_nome, mae_nome ),
       exhibition:exhibitions ( nome, data_base, local )
     `)
     .eq("farm_id", FARM_ID)
@@ -113,7 +132,7 @@ export default async function PistaPage() {
 
   const { data: candidatos } = await supabase
     .from("animals")
-    .select("id, nome, rgn, rgd, nascimento, sexo, tipo, localizacao, para_pista, peso_atual, peso_pista, status_rebanho, status_reprodutivo")
+    .select("id, nome, rgn, rgd, nascimento, sexo, tipo, localizacao, para_pista, peso_atual, peso_pista, status_rebanho, status_reprodutivo, pai_id, pai_nome, mae_id, mae_nome")
     .eq("farm_id", FARM_ID)
     .in("tipo", ["DOADORA", "NASCIDO", "TOURO"])
     .eq("para_pista", true)
@@ -192,14 +211,14 @@ export default async function PistaPage() {
 
   // ── Enriquecer animais com dados de peso e idade ─────────────────────────
   const animaisEnriquecidos = animais.map((a: any) => {
-    if (!a.nascimento) return { ...a, meses: null, dias: null, grupo: null, stPeso: "SEM_DADOS" as StatusPeso };
+    const sexoEfetivo: "M" | "F" = (a.sexo === "M" || a.tipo === "TOURO") ? "M" : "F";
+    if (!a.nascimento) return { ...a, meses: null, dias: null, grupo: null, stPeso: "SEM_DADOS" as StatusPeso, sexoEfetivo };
     const { meses, dias } = idadeExata(a.nascimento, hoje);
-    const sexo: "M" | "F" = (a.sexo === "M" || a.tipo === "TOURO") ? "M" : "F";
-    const grupo = grupoNaData(a.nascimento, sexo, hoje);
-    const stPeso = statusPeso(a.peso_atual, sexo, meses, dias);
-    const min  = pesoMinimo(sexo, meses);
-    const max  = pesoMaximo(sexo, meses, dias);
-    return { ...a, meses, dias, grupo, stPeso, min, max };
+    const grupo = grupoNaData(a.nascimento, sexoEfetivo, hoje);
+    const stPeso = statusPeso(a.peso_atual, sexoEfetivo, meses, dias);
+    const min  = pesoMinimo(sexoEfetivo, meses);
+    const max  = pesoMaximo(sexoEfetivo, meses, dias);
+    return { ...a, meses, dias, grupo, stPeso, min, max, sexoEfetivo };
   });
 
   // Mapa animal_id → premiações
@@ -230,6 +249,42 @@ export default async function PistaPage() {
     const { meses } = idadeExata(c.nascimento, hoje);
     return meses < 9;
   }).length;
+
+  // ── Conjuntos Progênie — possibilidades a partir dos candidatos p/ pista ──
+  const genealogicos: AnimalGenealogico[] = animaisEnriquecidos.map((a: any) => ({
+    id: a.id,
+    nome: a.nome,
+    sexo: a.sexoEfetivo,
+    pai_id: a.pai_id ?? null,
+    pai_nome: a.pai_nome ?? null,
+    mae_id: a.mae_id ?? null,
+    mae_nome: a.mae_nome ?? null,
+  }));
+
+  const progeniesMae = montarProgeniesDeMae(genealogicos);
+  const progeniesPai = montarProgeniesDePai(genealogicos);
+
+  // Data de referência p/ status "Pai Nova Geração" (<84m0d): data-base da
+  // próxima exposição com data definida; sem nenhuma agendada, usa hoje.
+  const proximaComData = proxExpos.find((e: any) => e.data_base);
+  const dataRefPaiNG = proximaComData ? new Date(proximaComData.data_base + "T12:00:00") : hoje;
+
+  const paiIdsParaIdade = Array.from(
+    new Set(progeniesPai.map(g => g.paiId).filter((id): id is string => !!id))
+  );
+
+  const { data: reprodutoresData } = paiIdsParaIdade.length > 0
+    ? await supabase
+        .from("animals")
+        .select("id, nascimento")
+        .in("id", paiIdsParaIdade)
+        .eq("farm_id", FARM_ID)
+    : { data: [] as any[] };
+
+  const nascimentoPorPaiId: Record<string, string> = {};
+  for (const r of reprodutoresData ?? []) {
+    if (r.nascimento) nascimentoPorPaiId[r.id] = r.nascimento;
+  }
 
   return (
     <div className="p-6 space-y-8">
@@ -338,7 +393,10 @@ export default async function PistaPage() {
             <tbody className="divide-y divide-gray-50">
               {alertasPeso.map((a: any) => (
                 <tr key={a.id} className="table-row-hover">
-                  <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">{a.nome}</td>
+                  <td className="px-4 py-2.5 font-medium text-gray-900 text-xs">
+                    {a.nome}
+                    <GenealogiaLine pai={a.pai_nome} mae={a.mae_nome} />
+                  </td>
                   <td className="px-4 py-2.5 text-xs text-gray-600">{a.meses}m {a.dias}d</td>
                   <td className="px-4 py-2.5 text-xs">
                     {a.grupo ? <span className="badge bg-brand-100 text-brand-700">{a.grupo.nome}</span>
@@ -441,7 +499,9 @@ export default async function PistaPage() {
                         )}
                       </td>
                       <td className="px-4 py-3"><TipoBadge tipo={e.tipo} /></td>
-                      <td className="px-4 py-3 text-gray-600">{formatDate(e.data_base)}</td>
+                      <td className="px-4 py-3 text-gray-600">
+                        <DataBaseInline exhibitionId={e.id} dataBase={e.data_base} />
+                      </td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{e.local ?? "—"}</td>
                       <td className="px-4 py-3 text-gray-400 text-xs">{e.organizador ?? "—"}</td>
                     </tr>
@@ -507,6 +567,7 @@ export default async function PistaPage() {
                           <span className={`text-[10px] font-medium ${isMacho ? "text-blue-500" : "text-pink-500"}`}>
                             {isMacho ? "♂ Macho" : "♀ Fêmea"}
                           </span>
+                          <GenealogiaLine pai={a.pai_nome} mae={a.mae_nome} />
                         </td>
                         {/* Registro */}
                         <td className="px-4 py-3 text-gray-500 text-xs font-mono">
@@ -589,7 +650,10 @@ export default async function PistaPage() {
                     <tbody className="divide-y divide-gray-50">
                       {animaisEnriquecidos.map((a: any) => (
                         <tr key={a.id} className="table-row-hover">
-                          <td className="px-4 py-2 font-medium text-gray-900">{a.nome}</td>
+                          <td className="px-4 py-2 font-medium text-gray-900">
+                          {a.nome}
+                          <GenealogiaLine pai={a.pai_nome} mae={a.mae_nome} />
+                        </td>
                           {proxExpos.map((e: any) => {
                             if (!a.nascimento || !e.data_base) {
                               return <td key={e.id} className="px-4 py-2 text-gray-300">—</td>;
@@ -638,6 +702,118 @@ export default async function PistaPage() {
         )}
       </section>
 
+      {/* ── Conjuntos Progênie — Possibilidades ──────────── */}
+      <section className="card overflow-hidden">
+        <details>
+          <summary className="px-5 py-4 border-b border-gray-100 flex items-center gap-2 cursor-pointer list-none">
+            <Users2 className="w-4 h-4 text-brand-600" />
+            <h2 className="font-semibold text-gray-900">Conjuntos Progênie — Possibilidades</h2>
+            <span className="badge bg-brand-100 text-brand-700 ml-auto">
+              {progeniesMae.length + progeniesPai.length} possíve{(progeniesMae.length + progeniesPai.length) === 1 ? "l" : "is"}
+            </span>
+            <span className="text-gray-400 text-xs ml-2">▼</span>
+          </summary>
+
+          <div className="px-5 py-4 space-y-6">
+            <p className="text-xs text-gray-500">
+              Montado a partir dos animais marcados para pista, conforme o Manual de Pista (ACNB 2025/2026).
+              Verificado aqui: composição do conjunto (mãe/pai, nº de matrizes, sexo). <strong>Não verificado</strong> —
+              depende do dia da exposição: cada animal precisa já ter sido julgado individualmente na mesma
+              exposição, e fêmea parida com cria própria viva &lt; 7m0d se apresenta com a cria ao pé.
+            </p>
+
+            {progeniesMae.length === 0 && progeniesPai.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">
+                Nenhum conjunto possível ainda — são necessários 2+ irmãos da mesma mãe, ou 4+ filhos do
+                mesmo reprodutor em 2+ matrizes, entre os animais marcados para pista.
+              </p>
+            ) : (
+              <>
+                {/* Progênie de Mãe */}
+                {progeniesMae.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Progênie de Mãe <span className="font-normal normal-case text-gray-400">— 60 / 40 / 32 pts</span>
+                    </p>
+                    <div className="space-y-2">
+                      {progeniesMae.map((g) => (
+                        <div key={g.chave} className={`rounded-lg border p-3 ${g.elegivel ? "border-green-200 bg-green-50/40" : "border-amber-200 bg-amber-50/40"}`}>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium text-sm text-gray-900">{g.maeNome}</span>
+                            <span className="badge bg-gray-100 text-gray-600 text-[10px]">{g.filhos.length} filhos</span>
+                            {g.mesmoPai && (
+                              <span className="badge bg-blue-100 text-blue-700 text-[10px]">mesmo pai: {g.paiComum}</span>
+                            )}
+                            <span className={`badge text-[10px] ml-auto ${g.elegivel ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                              {g.elegivel ? "✓ Elegível" : "Pendente"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 mt-1">{g.motivo}</p>
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                            {g.filhos.map((f) => (
+                              <span key={f.id} className="text-xs text-gray-700">
+                                {f.sexo === "M" ? "♂" : "♀"} {f.nome}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Progênie de Pai */}
+                {progeniesPai.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Progênie de Pai <span className="font-normal normal-case text-gray-400">— 60/40/32 pts (72/48/38 se Pai Nova Geração)</span>
+                    </p>
+                    <div className="space-y-2">
+                      {progeniesPai.map((g) => {
+                        const nasc = g.paiId ? nascimentoPorPaiId[g.paiId] : null;
+                        const mesesPai = nasc ? idadeReprodutorEmMeses(nasc, dataRefPaiNG) : null;
+                        const isNG = mesesPai != null ? ehPaiNovaGeracao(mesesPai) : null;
+                        return (
+                          <div key={g.chave} className={`rounded-lg border p-3 ${g.elegivel ? "border-green-200 bg-green-50/40" : "border-amber-200 bg-amber-50/40"}`}>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium text-sm text-gray-900">{g.paiNome}</span>
+                              <span className="badge bg-gray-100 text-gray-600 text-[10px]">{g.filhos.length} filhos</span>
+                              <span className="badge bg-gray-100 text-gray-600 text-[10px]">{g.matrizesDistintas} matrizes</span>
+                              {isNG != null && (
+                                <span className={`badge text-[10px] ${isNG ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-500"}`}>
+                                  {isNG ? `Pai Nova Geração (${mesesPai}m)` : `${mesesPai}m — não é Nova Geração`}
+                                </span>
+                              )}
+                              <span className={`badge text-[10px] ml-auto ${g.elegivel ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                                {g.elegivel ? "✓ Elegível" : "Pendente"}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 mt-1">{g.motivo}</p>
+                            {nasc == null && (
+                              <p className="text-[10px] text-gray-300 mt-0.5">
+                                Idade do reprodutor não cadastrada — cadastre-o com data de nascimento para apurar Pai Nova Geração.
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                              {g.filhos.map((f) => (
+                                <span key={f.id} className="text-xs text-gray-700">
+                                  {f.sexo === "M" ? "♂" : "♀"} {f.nome}
+                                  {f.mae_nome && <span className="text-gray-400"> ({f.mae_nome})</span>}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </details>
+      </section>
+
       {/* ── Histórico de Premiações ──────────────────────── */}
       <section className="card overflow-hidden">
         <details open>
@@ -668,7 +844,10 @@ export default async function PistaPage() {
               <tbody className="divide-y divide-gray-50">
                 {premios.map((p: any) => (
                   <tr key={p.id} className="table-row-hover">
-                    <td className="px-4 py-3 font-medium text-gray-900 text-xs">{p.animal?.nome ?? "—"}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900 text-xs">
+                      {p.animal?.nome ?? "—"}
+                      <GenealogiaLine pai={(p.animal as any)?.pai_nome} mae={(p.animal as any)?.mae_nome} />
+                    </td>
                     <td className="px-4 py-3"><PrêmioBadge tipo={p.tipo_premio} /></td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{(p as any).descricao_premio ?? p.grupo_nelore ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{p.exhibition?.nome ?? "—"}</td>
@@ -706,7 +885,9 @@ export default async function PistaPage() {
                   <tr key={e.id} className="table-row-hover">
                     <td className="px-4 py-3 font-medium text-gray-900 text-xs">{e.nome}</td>
                     <td className="px-4 py-3"><TipoBadge tipo={e.tipo} /></td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(e.data_base)}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      <DataBaseInline exhibitionId={e.id} dataBase={e.data_base} />
+                    </td>
                     <td className="px-4 py-3 text-gray-400 text-xs">{e.local ?? "—"}</td>
                     <td className="px-2 py-3">
                       <ExcluirExposicaoBtn id={e.id} nome={e.nome} />
