@@ -839,11 +839,6 @@ export default async function DoadoraDetalhePage({
         />
       </div>
 
-      <ObservacoesAnimal
-        animalId={doadora.id}
-        valorInicial={(doadora as any).descricao ?? null}
-      />
-
       {/* Cabeçalho */}
       <div className="card p-6">
         <div className="flex flex-col md:flex-row items-start gap-5">
@@ -1408,6 +1403,12 @@ export default async function DoadoraDetalhePage({
           bisavo={(doadora as any).bisavo}
         />
       </div>
+
+      <ObservacoesAnimal
+        animalId={doadora.id}
+        valorInicial={(doadora as any).descricao ?? null}
+        compact
+      />
 
       {/* ── ROI ─────────────────────────────────────────────── */}
       <ROISection

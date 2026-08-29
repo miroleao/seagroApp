@@ -15,10 +15,13 @@ export function ObservacoesAnimal({
   animalId,
   valorInicial,
   titulo = "Observações",
+  compact = false,
 }: {
   animalId: string;
   valorInicial: string | null;
   titulo?: string;
+  /** Campo mais enxuto — usado quando a seção já vem depois de bastante conteúdo na ficha. */
+  compact?: boolean;
 }) {
   const [texto, setTexto]   = useState(valorInicial ?? "");
   const [salvo, setSalvo]   = useState(true);
@@ -78,9 +81,9 @@ export function ObservacoesAnimal({
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           onBlur={() => { if (timer.current) clearTimeout(timer.current); persistir(); }}
-          rows={8}
+          rows={compact ? 3 : 8}
           placeholder="Escreva sobre este animal — origem e genealogia, resultados de pista, prêmios, produção, histórico comercial, o que for útil na hora de apresentá-lo…"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-300 resize-y min-h-[160px]"
+          className={`w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-300 resize-y ${compact ? "min-h-[64px]" : "min-h-[160px]"}`}
         />
 
         <div className="flex flex-wrap items-center gap-3">

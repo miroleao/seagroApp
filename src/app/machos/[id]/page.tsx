@@ -481,11 +481,6 @@ export default async function MachoDetalhePage({
         />
       </div>
 
-      <ObservacoesAnimal
-        animalId={macho.id}
-        valorInicial={(macho as any).descricao ?? null}
-      />
-
       {/* ── Cabeçalho ──────────────────────────────────────── */}
       <div className="card p-6">
         <div className="flex flex-col md:flex-row items-start gap-5">
@@ -942,6 +937,11 @@ export default async function MachoDetalhePage({
         />
       </div>
 
+      <ObservacoesAnimal
+        animalId={macho.id}
+        valorInicial={(macho as any).descricao ?? null}
+        compact
+      />
 
       {/* ── Card Leilão ─────────────────────────────────────────────────── */}
       {(macho as any).para_leilao && (
